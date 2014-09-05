@@ -28,5 +28,4 @@ The WikiDataTypeID is the identifier to the WikiData entry of the semantic type 
 
 To add Ensembl release 76 to WikiData the following steps are needed:
 1. Prepare the input file (fileNameWithIds)
-2. Run the command: python ProteinBoxBoxTemplate.py <fileNameWithIds> Ensembl.tsv Q17930849 Q7187
-
+2. Run the command: **python ProteinBoxBoxTemplate.py <fileNameWithIds> Ensembl.tsv Q17930849 Q7187**
