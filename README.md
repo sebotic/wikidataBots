@@ -1,6 +1,6 @@
 # README #
 
-This repositories contain the proteinBoxBots. ProteinBoxBots aim at enriching WikiData with Molecular life science databases (e.g. Entrez, Ensembl, Disease ontology, etc).
+This repository contains the proteinBoxBots. ProteinBoxBots aim at enriching WikiData with Molecular life science databases (e.g. Entrez, Ensembl, Disease ontology, etc).
 
 ###addEntrezGene2WD.py###
 This bot is a custom made bot to add Entrez Gene entries in WikiData. It is a result of the https://www.wikidata.org/wiki/User:ProteinBoxBot/201408_sprint
