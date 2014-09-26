@@ -57,7 +57,7 @@ repo = site.data_repository()
 
 pp = pprint.PrettyPrinter(indent=4)
 
-with open('proteins.txt', 'r') as myWikiDataItems:
+with open('proteins2.txt', 'r') as myWikiDataItems:
     wdItems = myWikiDataItems.readlines()
     for wdItem in wdItems:
         wdItem = wdItem.strip()
@@ -67,11 +67,12 @@ with open('proteins.txt', 'r') as myWikiDataItems:
         token = repo.token(wdPage, 'edit')
 
         claims = getClaims(site, wdPage, 'P279')
-        for claim in claims['claims']['P279']:
-            if claim['mainsnak']['datavalue']['value']['numeric-id']==7187:
-                params = {'action':'wbremoveclaims', 'claim':claim['id'], 'bot':True, 'token':token}
-                request = api.Request(site=site,**params)
-                data = request.submit()
+        if len(claims['claims']) > 0:
+            for claim in claims['claims']['P279']:
+                if claim['mainsnak']['datavalue']['value']['numeric-id']==7187:
+                    params = {'action':'wbremoveclaims', 'claim':claim['id'], 'bot':True, 'token':token}
+                    request = api.Request(site=site,**params)
+                    data = request.submit()
     
 
         deleteClaims(site, wdPage, 'P351', token) # Entrez Gene ID
