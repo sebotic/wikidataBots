@@ -32,7 +32,7 @@ import sys
 
 # Define the funcitons.
 
-def getClaims(wdItem, claimProperty):
+def getClaims(site, wdItem, claimProperty):
     params = {
     			'action' :'wbgetclaims' ,
                 'entity' : wdItem.getID(),
@@ -41,13 +41,12 @@ def getClaims(wdItem, claimProperty):
     request = api.Request(site=site,**params)
     return request.submit()
    
-def countClaims(wdItem, claimProperty):
-    data = getClaims(wdItem, claimProperty)
+def countClaims(site, wdItem, claimProperty):
+    data = getClaims(site, wdItem, claimProperty)
     return len(data["claims"][claimProperty])
 
-def claimExists(wdItem, claimProperty, claimValue):
-    data = getClaims(wdItem, claimProperty)
-    pp = pprint.PrettyPrinter(indent=4)
+def claimExists(site, wdItem, claimProperty, claimValue):
+    data = getClaims(site, wdItem, claimProperty)
     if len(data["claims"]) > 0:
       for claim in data["claims"][claimProperty]:
         if isinstance(claimValue, basestring):
@@ -69,9 +68,9 @@ Arguments:
    propertyValue: the property value. This is either a literal or a WikiData page
    importedfrom: the authoritive source from which the statement was derived
 '''
-def addStatement(defrepo, defitem, propertyKey, propertyValue, importedfrom):
-    print propertyValue
-    if not claimExists(defitem, propertyKey, propertyValue):
+def addStatement(site, defrepo, defitem, propertyKey, propertyValue, importedfrom):
+    if not claimExists(site, defitem, propertyKey, propertyValue):
+        print propertyValue
         claim = pywikibot.Claim(defrepo, propertyKey)
         claim.setTarget(propertyValue)
         statedin = pywikibot.Claim(defrepo, 'p143') # Imported from
@@ -89,61 +88,163 @@ addIdentifier:
      wikidataProperty: the property value. This is either a literal or a WikiData page
      reference: the authoritive source from which the statement was derived
 '''
-def addIdentifier(subrepo, subitem, identifierVar, wikidataProperty, reference):
-    print wikidataProperty
+def addIdentifier(site, subrepo, subitem, identifierVar, wikidataProperty, reference):
     if isinstance(identifierVar, basestring):
-        if not claimExists(subitem, wikidataProperty, identifierVar):
-           addStatement(subrepo, subitem, wikidataProperty, identifierVar, reference)    
+        if not claimExists(site, subitem, wikidataProperty, identifierVar):
+           addStatement(site, subrepo, subitem, wikidataProperty, identifierVar, reference)    
     else:
         for identifier in identifierVar:
-           if not claimExists(subitem, wikidataProperty, identifier)    :
-              addStatement(subrepo, subitem, wikidataProperty, identifier, reference)
+           if not claimExists(site, subitem, wikidataProperty, identifier)    :
+              addStatement(site, subrepo, subitem, wikidataProperty, identifier, reference)
        
-def getItems(itemtitle):
+def getItems(site, itemtitle):
   params = { 'action' :'wbsearchentities' , 'format' : 'json' , 'language' : 'en', 'type' : 'item', 'search': itemtitle}
   request = api.Request(site=site,**params)
   return request.submit()
 	
-def countItems(itemtitle):
-   data = getItems(itemtitle)
+def countItems(site, itemtitle):
+   data = getItems(site, itemtitle)
    finalResult = 0
    for item in data['search']:
        if (itemtitle == item['label']):
            finalResult = finalResult + 1
    return finalResult
    
-def itemExists(itemtitle):
+def itemExists(site, itemtitle):
     itemFound = False
-    if countItems(itemtitle) > 0:
+    if countItems(site, itemtitle) > 0:
         itemFound = True
     return itemFound 
       
-def getWDProperties(wdItem):
+def getWDProperties(site, wdItem):
     params = {'action':'wbgetclaims', 'entity':wdItem}
     request = api.Request(site=site,**params)
     data = request.submit()
     return data['claims']
     
-def getWDProperty(wdItem, wdProperty):
+def getWDProperty(site, wdItem, wdProperty):
     params = {'action':'wbgetclaims', 'entity':wdItem, 'property':wdProperty}
     request = api.Request(site=site,**params)
     data = request.submit()
     return data['claims']
     
-def countWDProperties(wdItem):
-    return len(getWDProperties(wdItem))  
+def countWDProperties(site, wdItem):
+    return len(getWDProperties(site, wdItem))  
     
-def hasProperty(wdItem, wdProperty):
-    if len(getWDProperty(wdItem, wdProperty)[wdProperty]) == 1:
+def hasProperty(site, wdItem, wdProperty):
+    if len(getWDProperty(site, wdItem, wdProperty)[wdProperty]) == 1:
         return True
     else: 
         return False     
         
-def setAlias(repo, item, itemLabel, alias):
+def setAlias(site, repo, item, itemLabel, alias):
     token = repo.token(pywikibot.Page(repo, itemLabel), 'edit')
     params = {'action':'wbsetaliases', 'language':'en', 'id':item, 'set':alias, 'bot':True, 'token':token}
     request = api.Request(site=site,**params)
     data = request.submit()
     print data 
+  
+  
+def isGene(site, repo, wdItem):
+    if (pywikibot.ItemPage(repo, wdItem)==ProteinBoxBotKnowledge.mouseSpeciesPage):
+        return True
+    else:
+        return False
+
+def isHuman(site, repo, wdItem):
+    if (pywikibot.ItemPage(repo, wdItem)==ProteinBoxBotKnowledge.humanSpeciesPage):
+        return True
+    else: 
+        return False
+
+
+def createNewPage(site, token):
+    params = {'action':'wbeditentity','format' : 'json', 'new':'item', 'data':'{}', 'bot':True, 'token':token}
+    request = api.Request(site=site,**params)
+    return request.submit()
     
+def addLabel(localdata, label):
+    englishLabel = dict()
+    englishLabel['language']='en'
+    englishLabel['value']=label
+    englishLabels=dict()
+    englishLabels['en']=englishLabel
+    localdata['entity']['labels']=englishLabels
+    return localdata
+
+def addAliases(localdata, alias, otheraliases):
+    aliases={'en':[]}
+    alias1=dict()
+    alias1['language']='en'
+    alias1['value']=alias
+    aliases['en'].append(alias1)
+    otherAliases=otheraliases
+    aliasesList = otherAliases.split("|")
+    for tempAlias in aliasesList:
+        alias=dict()
+        alias['language']='en'
+        alias['value']=tempAlias
+        aliases['en'].append(alias)
+    localdata['entity']['aliases']=aliases
+    return localdata
     
+def addClaims(localdata, property, values, datatype):
+    localdata["entity"]["claims"][property] = []
+    localvalues = []
+    if isinstance(values, list): 
+        localvalues = values
+    else:
+        localvalues.append(values)
+        
+    for value in localvalues:
+        statement = dict()
+        statement["rank"]="normal"
+        statement["type"]="statement"
+        mainsnak =dict()
+        statement["mainsnak"]=mainsnak      
+        # mainsnak["datatype"]=datatype 
+        mainsnak['property']=property    
+        mainsnak['datavalue']=dict()
+        if datatype=='string':
+            mainsnak['datavalue']['type']='string'
+            mainsnak['datavalue']['value']=value
+            mainsnak['snaktype']='value'
+        elif datatype=='wikibase-entityid':
+            mainsnak['datavalue']['type']='wikibase-entityid'
+            mainsnak['datavalue']['value']=dict()
+            mainsnak['datavalue']['value']['entity-type']='item'
+            mainsnak['datavalue']['value']['numeric-id']=value
+            mainsnak['snaktype']='value'
+        mainsnak["type"]="statement"
+        mainsnak["rank"]="normal"
+        statement["references"]=[]
+        statement["references"]=addReference(statement["references"], 'P143', 1345229)      
+        localdata["entity"]["claims"][property].append(statement)
+    return localdata
+    
+def addReference(references, property, itemId):
+    reference = dict()
+    snaks = dict()
+    reference["snaks"] = snaks
+    snaks[property]=[]
+    reference['snaks-order']=['P143']
+    snak=dict()
+    snaks[property].append(snak)
+    snak['property']=property
+    snak["snaktype"]='value'
+    snak["datatype"]='wikibase-item'
+    snak["datavalue"]=dict()
+    snak["datavalue"]["type"]='wikibase-entityid'
+    snak["datavalue"]["value"]=dict()
+    snak["datavalue"]["value"]["entity-type"]='item'
+    snak["datavalue"]["value"]["numeric-id"]=itemId
+    references.append(reference)
+    return references    
+
+def getItem(site, wdItem, token):
+    request = api.Request(site=site,
+                          action='wbgetentities',
+                          format='json',
+                          ids=wdItem)
+    
+    return request.submit()
