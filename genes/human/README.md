@@ -1,3 +1,4 @@
-# README #
+# ProteinBoxBot: Adding and Updating genes #
 
-This repository contains the proteinBoxBots. ProteinBoxBots aim at enriching WikiData with Molecular life science databases (e.g. Entrez, Ensembl, Disease ontology, etc).
+This folder contains the different python scripts used to add, edit and update human genes in WikiData. 
+
