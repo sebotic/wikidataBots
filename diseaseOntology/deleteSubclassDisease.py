@@ -79,13 +79,7 @@ for wdid in inWikidata:
     token = repo.token(pywikibot.Page(repo, str(wdid)), 'edit')
     localdata=ProteinBoxBotFunctions.getItem(site, "Q"+str(wdid) , token)
     
-    # pp.pprint(localdata['entities']["Q"+str(wdid)]['claims']['P279'])
-    
     todelete(site, localdata, "Q"+str(wdid))
 
     print counter
     counter= counter+1
-    
-    # pp.pprint(localdata['entities']["Q"+str(wdid)]['claims']['P279'])
-    # pp.pprint(localdata['entities']['Q11081']['title'])
-    
