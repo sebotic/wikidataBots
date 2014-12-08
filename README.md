@@ -7,5 +7,9 @@ ProteinBoxBotKnowledge.py. The ProteinBoxBotFunctions.py contains different func
 contains links to WikiData identifiers that are needed to create links in WikiData claims. e.g. To claim on which chromosome a gene is located, and make that claim contain a
 link to WikiData entry of that chromosome, the identifier of that WikiData entry is stored in ProteinBoxBotKnowledge.py. 
 
+On the top level in this repository also some test scripts are stored. 
 
+## getJsonWDPage.py ##
+This script can be use to get the JSON representation of WikiData entry page as example of the datamodel. 
+use: python getJsonWDPage.py <WikiData item ID> 
 
