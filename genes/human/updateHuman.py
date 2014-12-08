@@ -34,7 +34,6 @@ import ProteinBoxBotKnowledge
         
 # Login to wikidata
 site = pywikibot.Site("wikidata", "wikidata")
-# site = pywikibot.Site("wikidata", "test")
 repo = site.data_repository()
 
 
@@ -42,7 +41,6 @@ repo = site.data_repository()
 # client.captureMessage('ProteinBoxBot update on Human restarted')
 
 pp = pprint.PrettyPrinter(indent=4)
-# pp.pprint(ProteinBoxBotFunctions.getItem(site, "Q18324078", "\\__"))
 # try: 
 with open(sys.argv[1], 'r') as myWikiDataItems:
 #  try:
@@ -60,7 +58,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
         opener = urllib2.build_opener()
         f = opener.open(req)
         mygeneinfo = simplejson.load(f)
-#        pp.pprint(wikidataEntry)
 
         mygeneinfoTimeStamp = "+0000000"+mygeneinfo['_timestamp']+"Z"
         claims = wikidataEntry['entities'][wikidataID]['claims']
@@ -68,7 +65,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
             for claim in claims[claimProperty]:
               if "references" in claim.keys():
                 for reference in claim["references"]:
-                    # pp.pprint(reference)
                     if 'P143' in reference["snaks"].keys():
                         for P143reference in reference["snaks"]["P143"]:
                             if P143reference["datavalue"]["value"]["numeric-id"] == 17939676: 
@@ -78,7 +74,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
                     if not 'P143' in reference["snaks"].keys(): continue
 
                     if not 'P813' in reference["snaks"].keys(): reference["snaks"]['P813'] = []
-                        #   if not isinstance(reference["snaks"]["P813"], list):  reference["snaks"]['P813'] = []
                     wdTimestamp = dict()
                     reference["snaks-order"]=['P143', 'P813']                 
                     wdTimestamp["datatype"]='time'
@@ -112,8 +107,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
                 qualifier['datavalue']['value']=dict()
                 qualifier['datavalue']['value']['entity-type']='item'
                 qualifier['datavalue']['value']['numeric-id']=17939676
-
-        
         
         if not isuptodate or wrongreference:
             wikidataEntry.pop("success", None)
@@ -125,7 +118,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
             wikidataEntry['entities'][wikidataID].pop("type", None)
 
             token = repo.token(pywikibot.Page(repo, "Mecom adjacent non-protein coding RNA"), 'edit')
-
             request = api.Request(site=site,
                                 action='wbeditentity',
                                 format='json',
@@ -138,8 +130,6 @@ with open(sys.argv[1], 'r') as myWikiDataItems:
             # pp.pprint(data)
             ID = data['entity']['id']
             print ID
-          #  if "symbol" in mygeneinfo: 
-          #       wikidataEntry = update
 
 #  except:
 #    client.captureException()
