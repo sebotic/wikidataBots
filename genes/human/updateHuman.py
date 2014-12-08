@@ -37,9 +37,6 @@ site = pywikibot.Site("wikidata", "wikidata")
 # site = pywikibot.Site("wikidata", "test")
 repo = site.data_repository()
 
-from raven import Client
-
-client = Client('http://fe8543035e154f6591e0b578faeddb07:dba0f35cfa0a4e24880557c4ba99c7c0@sentry.sulab.org/9')
 
 # record a simple message
 # client.captureMessage('ProteinBoxBot update on Human restarted')
