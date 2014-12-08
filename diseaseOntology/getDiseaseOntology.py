@@ -25,9 +25,6 @@ site = pywikibot.Site("wikidata", "wikidata")
 # site = pywikibot.Site("wikidata", "test")
 repo = site.data_repository()
 
-# client = Client('http://fe8543035e154f6591e0b578faeddb07:dba0f35cfa0a4e24880557c4ba99c7c0@sentry.sulab.org/9')
-# client.captureMessage('ProteinBoxBot started adding diseases')
-
 pp = pprint.PrettyPrinter(indent=4)
 namespaces = {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
 
@@ -65,12 +62,9 @@ if len(getItems(site, searchTerm)['search']) == 0:
                               bot=True,
                               token=token,
                               data=json.dumps(metadata['entity']))
-        # pp.pprint(localdata)
         data = request.submit()
-        # pp.pprint(data)
         ID = data['entity']['id']
         print ID
-# sys.exit()
 
 for diseaseClass in root.findall('.//owl:Class', namespaces):
     if len(diseaseClass.findall('.//owl:deprecated', namespaces))>0:
@@ -139,7 +133,6 @@ for diseaseClass in root.findall('.//owl:Class', namespaces):
             
         localdata.pop("success", None)
         
-        # pp.pprint(localdata)
         request = api.Request(site=site,
                               action='wbeditentity',
                               format='json',
@@ -147,13 +140,7 @@ for diseaseClass in root.findall('.//owl:Class', namespaces):
                               bot=True,
                               token=token,
                               data=json.dumps(localdata['entity']))
-        # pp.pprint(localdata)
         data = request.submit()
-        # pp.pprint(data)
         ID = data['entity']['id']
         print ID
         successLog.write(doid+'\t'+ID+'\n')
-
-        
-        
-        
