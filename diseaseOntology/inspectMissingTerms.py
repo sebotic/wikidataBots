@@ -144,5 +144,15 @@ for diseaseClass in root.findall('.//owl:Class', namespaces):
                 for claim in claims['P492']:
                     statements.append(claim['mainsnak']['datavalue']['value'])
                 sys.stdout.write("\t OMIM: "+",".join(statements))
+            if 'P557' in claims:
+                statements=[]
+                for claim in claims['P557']:
+                    statements.append(claim['mainsnak']['datavalue']['value'])
+                sys.stdout.write("\t DiseasesDB: "+",".join(statements))
+            if 'P563' in claims:
+                statements=[]
+                for claim in claims['P563']:
+                    statements.append(claim['mainsnak']['datavalue']['value'])
+                sys.stdout.write("\t DiseasesDB: "+",".join(statements))
                 
 sys.exit()  
