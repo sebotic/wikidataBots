@@ -153,6 +153,6 @@ for diseaseClass in root.findall('.//owl:Class', namespaces):
                 statements=[]
                 for claim in claims['P563']:
                     statements.append(claim['mainsnak']['datavalue']['value'])
-                sys.stdout.write("\t DiseasesDB: "+",".join(statements))
+                sys.stdout.write("\t ICD-O: "+",".join(statements))
                 
 sys.exit()  
