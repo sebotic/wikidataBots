@@ -73,6 +73,9 @@ inWikidata = loadedDisOnt['items']
 # pp.pprint(inWikidata)
  
 for diseaseClass in root.findall('.//owl:Class', namespaces):
+    # print sys.argv[1]
+    if len(diseaseClass.findall('.//owl:deprecated', namespaces))>0 and sys.argv[1] == "noObsolete":
+            continue
     doid = diseaseClass.findall('.//oboInOwl:id', namespaces)[0].text
     if not doid in inWikidata:
         diseaseLabels = diseaseClass.findall('.//rdfs:label', namespaces)
@@ -154,5 +157,4 @@ for diseaseClass in root.findall('.//owl:Class', namespaces):
                 for claim in claims['P563']:
                     statements.append(claim['mainsnak']['datavalue']['value'])
                 sys.stdout.write("\t ICD-O: "+",".join(statements))
-                
-sys.exit()  
+
