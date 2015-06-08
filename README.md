@@ -9,7 +9,3 @@ link to WikiData entry of that chromosome, the identifier of that WikiData entry
 
 On the top level in this repository also some test scripts are stored. 
 
-## getJsonWDPage.py ##
-This script can be use to get the JSON representation of WikiData entry page as example of the datamodel. 
-use: python getJsonWDPage.py <WikiData item ID> 
-
