@@ -19,6 +19,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
+# Load the path to the PBB_Core library
+import sys
+sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 
 import PBB_Core
+import PBB_login
+import PBB_settings
 
+
+
+
+# Login to WikiData
+login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+print login_values
+print "Andra"
