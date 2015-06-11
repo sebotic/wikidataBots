@@ -26,6 +26,7 @@ __license__ = 'GPL'
 
 import urllib2
 import xml.etree.cElementTree as ET
+sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_do
 import DiseaseOntology_settings
 
