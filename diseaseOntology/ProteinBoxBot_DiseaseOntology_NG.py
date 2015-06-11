@@ -26,6 +26,10 @@ import PBB_Core
 import PBB_Functions
 import PBB_login
 import PBB_settings
+
+# Resource specific 
+import DiseaseOntology
+
 from raven import Client
 import traceback
 
@@ -36,9 +40,14 @@ login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getW
 # client = Client(PBB_settings.getSentryKey())
 
 try:
+    print "Getting the Disease Ontology"
+    do = DiseaseOntology.diseaseOntology()
+    print do.version_date
+    
     # Get all WikiData entries that contain a WikiData ID
+    print "Getting all terms with a Disease Ontology ID in WikiData"
     DoInWikiData = PBB_Functions.getItemsByProperty("699")['items']
-    print DoInWikiData
+    
 except Exception, err:
     print traceback.format_exc()
     # client.captureException()

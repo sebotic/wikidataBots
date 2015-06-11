@@ -26,24 +26,35 @@ __license__ = 'GPL'
 
 import urllib2
 import xml.etree.cElementTree as ET
+import PBB_do
+import DiseaseOntology_settings
 
 class diseaseOntology():
-    def __init__(self):  
-        print self.download_disease_ontology()      
+    def __init__(self):      
         self.content = ET.fromstring(self.download_disease_ontology())
-        self.version_date = getDiseaseOntologyTimeStamp(self.content)
+        self.version_date = self.getDiseaseOntologyTimeStamp(self.content)
+        for doClass in self.content.findall('.//owl:Class', ):
+            disease = disease(doClass)
+            print disease.doID
     
     def download_disease_ontology(self):
-        namespaces = {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
-        dourl = 'http://purl.obolibrary.org/obo/doid.owl'
-        request = urllib2.Request(dourl)
+        request = urllib2.Request(DiseaseOntology_settings.getdoUrl())
         u = urllib2.urlopen(request)
         do = u.read()
+        return do
         
     def getDiseaseOntologyTimeStamp(self, diseaseOntology):
-        doDate =  diseaseOntology.findall('.//oboInOwl:date', namespaces)
+        doDate =  diseaseOntology.findall('.//oboInOwl:date', DiseaseOntology_settings.getDoNameSpaces())
         dateList = doDate[0].text.split(' ')[0].split(":")
         timeList = doDate[0].text.split(' ')[1].split(":")
         # return "+0000000"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"T"+timeList[0]+":"+timeList[1]+":00Z"
         return "+0000000"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"T"+"00:00:00Z"    
+        
+class  disease(object):
+    def __init__(self):
+        self.doContent = object
+        self.doID = self.getDiseaseOntologyID(self.doContent)
+        
+    def getDiseaseOntologyID(doClass):
+        return doClass.findall('.//oboInOwl:id', do_namespaces)[0].text
         
