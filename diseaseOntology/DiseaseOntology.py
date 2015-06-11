@@ -66,8 +66,3 @@ class  disease(object):
     def getDoValue(self, doClass, doNode):
         return doClass.findall(doNode, DiseaseOntology_settings.getDoNameSpaces())
                 
-    def getDiseaseOntologyID(self, doClass):
-        return doClass.findall('.//oboInOwl:id', DiseaseOntology_settings.getDoNameSpaces())[0].text
-     
-    def getDiseaseOntologyLabel(self, doClass):
-        return doClass.findall('.//rdfs:label', DiseaseOntology_settings.getDoNameSpaces())
