@@ -23,6 +23,7 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
+import PBB_Debug
 import PBB_Functions
 import PBB_login
 import PBB_settings
@@ -40,6 +41,7 @@ login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getW
 # client = Client(PBB_settings.getSentryKey())
 
 try:
+    '''
     print "Getting the Disease Ontology"
     do = DiseaseOntology.diseaseOntology()
     print do.version_date
@@ -47,6 +49,9 @@ try:
     # Get all WikiData entries that contain a WikiData ID
     print "Getting all terms with a Disease Ontology ID in WikiData"
     DoInWikiData = PBB_Functions.getItemsByProperty("699")['items']
+    '''
+    # Get a WDItem
+    PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
     
 except Exception, err:
     print traceback.format_exc()
