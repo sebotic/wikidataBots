@@ -25,7 +25,7 @@ def getdoUrl():
     return 'http://purl.obolibrary.org/obo/doid.owl'
     
     
-deg getDoNameSpaces():
+def getDoNameSpaces():
     return {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
 
     

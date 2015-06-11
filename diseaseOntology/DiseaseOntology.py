@@ -26,17 +26,16 @@ __license__ = 'GPL'
 
 import urllib2
 import xml.etree.cElementTree as ET
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
-import PBB_do
+import sys
 import DiseaseOntology_settings
 
 class diseaseOntology():
     def __init__(self):      
         self.content = ET.fromstring(self.download_disease_ontology())
         self.version_date = self.getDiseaseOntologyTimeStamp(self.content)
-        for doClass in self.content.findall('.//owl:Class', ):
-            disease = disease(doClass)
-            print disease.doID
+        for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
+            diseaseClass = disease(doClass)
+            print diseaseClass.doID
     
     def download_disease_ontology(self):
         request = urllib2.Request(DiseaseOntology_settings.getdoUrl())
@@ -52,10 +51,10 @@ class diseaseOntology():
         return "+0000000"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"T"+"00:00:00Z"    
         
 class  disease(object):
-    def __init__(self):
+    def __init__(self, object):
         self.doContent = object
         self.doID = self.getDiseaseOntologyID(self.doContent)
         
-    def getDiseaseOntologyID(doClass):
-        return doClass.findall('.//oboInOwl:id', do_namespaces)[0].text
+    def getDiseaseOntologyID(self, doClass):
+        return doClass.findall('.//oboInOwl:id', DiseaseOntology_settings.getDoNameSpaces())[0].text
         
