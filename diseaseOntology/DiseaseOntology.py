@@ -36,6 +36,7 @@ class diseaseOntology():
         for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
             diseaseClass = disease(doClass)
             print diseaseClass.doID
+            print diseaseClass.label
     
     def download_disease_ontology(self):
         request = urllib2.Request(DiseaseOntology_settings.getdoUrl())
@@ -53,8 +54,20 @@ class diseaseOntology():
 class  disease(object):
     def __init__(self, object):
         self.doContent = object
-        self.doID = self.getDiseaseOntologyID(self.doContent)
+        self.doID = self.getDoValue(self.doContent, './/oboInOwl:id')[0].text
+        self.label = self.getDoValue(self.doContent, './/rdfs:label')[0].text
+        self.synonyms = self.getDoValue(self.doContent, './/oboInOwl:hasExactSynonym')
+        self.xrefs = dict()
+        for xref in self.getDoValue(self.doContent, './/oboInOwl:hasDbXref'):
+            if not xref.text.split(":")[0] in self.xrefs.keys():
+                self.xrefs[xref.text.split(":")[0]] = []
+            self.xrefs[xref.text.split(":")[0]].append(xref.text.split(":")[1])
         
+    def getDoValue(self, doClass, doNode):
+        return doClass.findall(doNode, DiseaseOntology_settings.getDoNameSpaces())
+                
     def getDiseaseOntologyID(self, doClass):
         return doClass.findall('.//oboInOwl:id', DiseaseOntology_settings.getDoNameSpaces())[0].text
-        
+     
+    def getDiseaseOntologyLabel(self, doClass):
+        return doClass.findall('.//rdfs:label', DiseaseOntology_settings.getDoNameSpaces())
