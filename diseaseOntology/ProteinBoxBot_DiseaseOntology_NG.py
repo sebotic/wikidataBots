@@ -33,6 +33,10 @@ import DiseaseOntology
 
 from raven import Client
 import traceback
+from datetime import date, datetime, timedelta
+
+main_log = PBB_Core.BotMainLog()
+main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Login to WikiData
 login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
@@ -52,6 +56,10 @@ try:
     '''
     # Get a WDItem
     PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
+    main_log.bot = __file__
+    main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    main_log.addTuple()
+    
     
 except Exception, err:
     print traceback.format_exc()
