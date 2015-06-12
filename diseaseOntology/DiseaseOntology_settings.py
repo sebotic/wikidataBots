@@ -3,7 +3,6 @@
 
 '''
 Authors: 
-  Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
   Andra Waagmeester (andra' at ' micelio.be)
 
 This file is part of ProteinBoxBot.
@@ -22,25 +21,11 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-from raven import Client
-
-def getSentryKey():
-    return '<Sentry key to be obtained from https://getsentry.com/welcome/>'
+def getdoUrl():
+    return 'http://purl.obolibrary.org/obo/doid.owl'
     
-def getWikiDataUser():
-    return 'ProteinBoxBot'
     
-def getWikiDataPassword():
-    return '<WikiData Password>'
-    
-def getMySQLHost():
-    return '127.0.0.1'
-    
-def getMySQLUser():
-    return '<Mysql user'
-
-def getMySQLPW():
-    return '<Mysql pw>'
-    
+def getDoNameSpaces():
+    return {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
 
     

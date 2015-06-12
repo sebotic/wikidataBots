@@ -23,11 +23,20 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
+import PBB_Debug
 import PBB_Functions
 import PBB_login
 import PBB_settings
+
+# Resource specific 
+import DiseaseOntology
+
 from raven import Client
 import traceback
+from datetime import date, datetime, timedelta
+
+main_log = PBB_Core.BotMainLog()
+main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Login to WikiData
 login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
@@ -36,9 +45,22 @@ login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getW
 # client = Client(PBB_settings.getSentryKey())
 
 try:
+    '''
+    print "Getting the Disease Ontology"
+    do = DiseaseOntology.diseaseOntology()
+    print do.version_date
+    
     # Get all WikiData entries that contain a WikiData ID
+    print "Getting all terms with a Disease Ontology ID in WikiData"
     DoInWikiData = PBB_Functions.getItemsByProperty("699")['items']
-    print DoInWikiData
+    '''
+    # Get a WDItem
+    PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
+    main_log.bot = __file__
+    main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    main_log.addTuple()
+    
+    
 except Exception, err:
     print traceback.format_exc()
     # client.captureException()
