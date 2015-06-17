@@ -44,6 +44,8 @@ login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getW
 # Login to getSentry service
 # client = Client(PBB_settings.getSentryKey())
 
+
+
 try:
     print "Getting the Disease Ontology"
     do = DiseaseOntology.diseaseOntology()
@@ -52,6 +54,10 @@ try:
     # Get all WikiData entries that contain a WikiData ID
     print "Getting all terms with a Disease Ontology ID in WikiData"
     DoInWikiData = PBB_Functions.getItemsByProperty("699")['items']
+
+    # Update the WikiData entry for this version of Disease ontology 
+    print "Update the latest version of Disease Ontology on Wikidata"
+    updateDiseaseOntologyVersion(site, repo, diseaseOntology)
     
     # Get a WDItem
     PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
@@ -59,6 +65,8 @@ try:
     main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     main_log.addTuple()
     
+    def updateDiseaseOntologyVersion(do):
+        
     
 except Exception, err:
     print traceback.format_exc()
