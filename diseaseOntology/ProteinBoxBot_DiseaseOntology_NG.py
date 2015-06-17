@@ -35,11 +35,11 @@ from raven import Client
 import traceback
 from datetime import date, datetime, timedelta
 
-main_log = PBB_Core.BotMainLog()
-main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# main_log = PBB_Core.BotMainLog()
+# main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Login to WikiData
-login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+# login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
 # Login to getSentry service
 # client = Client(PBB_settings.getSentryKey())
@@ -53,8 +53,10 @@ try:
     
     # Get all WikiData entries that contain a WikiData ID
     print "Getting all terms with a Disease Ontology ID in WikiData"
-    DoInWikiData = PBB_Functions.getItemsByProperty("699")['items']
-
+    DoInWikiData = PBB_Core.WDItemList("CLAIM[699]")
+    print DoInWikiData.wditems
+    
+    '''
     # Update the WikiData entry for this version of Disease ontology 
     print "Update the latest version of Disease Ontology on Wikidata"
     updateDiseaseOntologyVersion(site, repo, diseaseOntology)
@@ -64,8 +66,7 @@ try:
     main_log.bot = __file__
     main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     main_log.addTuple()
-    
-    def updateDiseaseOntologyVersion(do):
+    '''
         
     
 except Exception, err:
