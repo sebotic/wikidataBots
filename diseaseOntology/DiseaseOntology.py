@@ -27,6 +27,7 @@ __license__ = 'GPL'
 import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
+import PBB_Debug
 import urllib2
 import xml.etree.cElementTree as ET
 import sys
@@ -58,6 +59,8 @@ class diseaseOntology():
             print diseaseClass.do_id
             print diseaseClass.wikidata_id
             print diseaseClass.label
+            print diseaseClass.synonyms
+            print diseaseClass.xrefs
     
     def download_disease_ontology(self):
         """
@@ -110,7 +113,9 @@ class  disease(object):
         self.wd_do_content = object
         self.do_id = self.getDoValue(self.wd_do_content, './/oboInOwl:id')[0].text
         self.label = self.getDoValue(self.wd_do_content, './/rdfs:label')[0].text
-        self.synonyms = self.getDoValue(self.wd_do_content, './/oboInOwl:hasExactSynonym')
+        self.synonyms = []
+        for synonym in self.getDoValue(self.wd_do_content, './/oboInOwl:hasExactSynonym'):
+            self.synonyms.append(synonym.text)
         self.xrefs = dict()
         for xref in self.getDoValue(self.wd_do_content, './/oboInOwl:hasDbXref'):
             if not xref.text.split(":")[0] in self.xrefs.keys():
