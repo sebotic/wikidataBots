@@ -29,46 +29,21 @@ import PBB_login
 import PBB_settings
 
 # Resource specific 
-import DiseaseOntology
+import human_gene
 
 from raven import Client
 import traceback
 from datetime import date, datetime, timedelta
 
-# main_log = PBB_Core.BotMainLog()
-# main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+main_log = PBB_Core.BotMainLog()
+main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Login to WikiData
-# login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
 # Login to getSentry service
 # client = Client(PBB_settings.getSentryKey())
-
-
-
 try:
-    print "Getting the Disease Ontology"
-    do = DiseaseOntology.diseaseOntology()
-    print do.version_date
+    print "Getting all terms with an Entrez Gene ID in WikiData"
+    EntrezInWikiData = PBB_Functions.getItemsByProperty("351")['items']
     
-    # Get all WikiData entries that contain a WikiData ID
-    print "Getting all terms with a Disease Ontology ID in WikiData"
-    DoInWikiData = PBB_Core.WDItemList("CLAIM[699]")
-    print DoInWikiData.wditems
-    
-    '''
-    # Update the WikiData entry for this version of Disease ontology 
-    print "Update the latest version of Disease Ontology on Wikidata"
-    updateDiseaseOntologyVersion(site, repo, diseaseOntology)
-    
-    # Get a WDItem
-    PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
-    main_log.bot = __file__
-    main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    main_log.addTuple()
-    '''
-        
-    
-except Exception, err:
-    print traceback.format_exc()
-    # client.captureException()
