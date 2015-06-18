@@ -24,6 +24,9 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
 
+import sys
+sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+import PBB_Core
 import urllib2
 import xml.etree.cElementTree as ET
 import sys
@@ -36,9 +39,24 @@ class diseaseOntology():
         self.version_iri = self.getDiseaseOntologyVersionIRI()
         # self.wd_search_term = self.getWDSearchTerm()
         # updateDiseaseOntologyVersionInWD()
+        
+        # Get all WikiData entries that contain a WikiData ID
+        print "Getting all terms with a Disease Ontology ID in WikiData"
+        doWikiData_id = dict()
+        DoInWikiData = PBB_Core.WDItemList("CLAIM[699]", "699")
+        # PBB_Debug.prettyPrint(DoInWikiData.wditems)
+        for diseaseItem in DoInWikiData.wditems["props"]["699"]:
+           print diseaseItem[2]
+           doWikiData_id["DOID:"+str(diseaseItem[2])]=diseaseItem[0] # TODO: rm DOID: once prefix issue in wikidta is fixed
+        
         for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
             diseaseClass = disease(doClass)
+            if diseaseClass.do_id in doWikiData_id.keys():
+                diseaseClass.wikidata_id = "Q"+str(diseaseItem[0])
+            else:
+                diseaseClass.wikidata_id = None
             print diseaseClass.do_id
+            print diseaseClass.wikidata_id
             print diseaseClass.label
     
     def download_disease_ontology(self):

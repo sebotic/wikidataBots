@@ -51,11 +51,6 @@ try:
     do = DiseaseOntology.diseaseOntology()
     print do.version_date
     
-    # Get all WikiData entries that contain a WikiData ID
-    print "Getting all terms with a Disease Ontology ID in WikiData"
-    DoInWikiData = PBB_Core.WDItemList("CLAIM[699]")
-    print DoInWikiData.wditems
-    
     '''
     # Update the WikiData entry for this version of Disease ontology 
     print "Update the latest version of Disease Ontology on Wikidata"
