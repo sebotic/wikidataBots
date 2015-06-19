@@ -49,7 +49,7 @@ class diseaseOntology():
         for diseaseItem in DoInWikiData.wditems["props"]["699"]:
            print diseaseItem[2]
            doWikiData_id["DOID:"+str(diseaseItem[2])]=diseaseItem[0] # TODO: rm DOID: once prefix issue in wikidta is fixed
-        
+ 
         for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
             diseaseClass = disease(doClass)
             if diseaseClass.do_id in doWikiData_id.keys():
@@ -61,6 +61,8 @@ class diseaseOntology():
             print diseaseClass.label
             print diseaseClass.synonyms
             print diseaseClass.xrefs
+        
+        
     
     def download_disease_ontology(self):
         """
