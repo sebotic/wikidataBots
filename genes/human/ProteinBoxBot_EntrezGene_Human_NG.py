@@ -41,9 +41,14 @@ main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 # Login to WikiData
 login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
-# Login to getSentry service
-# client = Client(PBB_settings.getSentryKey())
 try:
-    print "Getting all terms with an Entrez Gene ID in WikiData"
-    EntrezInWikiData = PBB_Functions.getItemsByProperty("351")['items']
+    print "Getting human genes from mygene.info"
+    human_genome = human_gene.human_genome()
+    print human_genome.gene_count 
     
+
+    
+      
+except Exception, err:
+    print traceback.format_exc()
+    # client.captureException()  
