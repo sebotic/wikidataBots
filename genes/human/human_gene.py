@@ -64,9 +64,10 @@ class human_genome():
         """
         Downloads the latest list of human genes from mygene.info through the URL specified in mygene_info_settings
         """
-        request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
-        u = urllib2.urlopen(request)
-        return u.read()
+        # request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
+        urllib.urlretrieve ("http://randomsite.com/file.gz", "human_genes.json")
+        file = open("human_genes.json", 'r')
+        return file.read()
         
 class human_gene(object):
     def __init__(self, object):
