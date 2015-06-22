@@ -28,7 +28,10 @@ import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
+import urllib
 import urllib2
+import urllib3
+import certifi
 
 import sys
 import mygene_info_settings
@@ -53,19 +56,14 @@ class human_genome():
             if str(geneClass.entrezgene) in entrezWikidataId.keys():
                 geneClass.wdid = entrezWikidataId[str(geneClass.entrezgene)]
             else: 
-                geneClass.wdid = None
-            print geneClass.entrezgene
-            print geneClass.wdid
-            print "Ensembl gene " + geneClass.ensembl_gene
-        
-        
+                geneClass.wdid = None  
 
     def download_human_genes(self):
         """
         Downloads the latest list of human genes from mygene.info through the URL specified in mygene_info_settings
         """
         # request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
-        urllib.urlretrieve ("http://randomsite.com/file.gz", "human_genes.json")
+        urllib.urlretrieve (mygene_info_settings.getHumanGenesUrl(), "human_genes.json")
         file = open("human_genes.json", 'r')
         return file.read()
         
@@ -75,14 +73,27 @@ class human_gene(object):
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
         self.symbol = object["symbol"]
-        gene_annotations = self.annotate_gene()
-        self.synonyms = gene_annotations["alias"]
-        self.ensembl_gene = gene_annotations["ensembl"]["gene"]
-        self.ensembl_transcript = gene_annotations["ensembl"]["transcript"]
+        gene_annotations = json.loads(self.annotate_gene())
+        PBB_Debug.prettyPrint(gene_annotations)
+        print gene_annotations["_id"]
+        self.annotationstimestamp = gene_annotations["_timestamp"]
+        if "alias" in gene_annotations.keys(): 
+            self.synonyms = gene_annotations["alias"]
+        else:
+            self.synonyms = None
+        self.ensembl_transcript = None
+        self.ensembl_gene = None
+        
+        if "ensembl" in gene_annotations.keys():
+            if "gene" in gene_annotations["ensembl"].keys():
+                self.ensembl_gene = gene_annotations["ensembl"]["gene"]
+            if "transcript" in gene_annotations["ensembl"].keys():
+                self.ensembl_transcript = gene_annotations["ensembl"]["transcript"]
+                
         
     def annotate_gene(self):
         "Get gene annotations from mygene.info"
-        request = urllib2.Request(mygene_info_settings.getGeneAnnotationsURL())
+        request = urllib2.Request(mygene_info_settings.getGeneAnnotationsURL()+str(self.entrezgene))
         u = urllib2.urlopen(request)
         return u.read()
         
