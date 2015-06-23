@@ -39,7 +39,8 @@ main_log = PBB_Core.BotMainLog()
 main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Login to WikiData
-login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+print "trying to login to wikidata"
+login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword(), "www.wikidata.org")
 
 try:
     print "Getting human genes from mygene.info"
