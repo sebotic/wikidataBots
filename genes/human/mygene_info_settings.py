@@ -25,7 +25,7 @@ def getmyGeneInfoUrl():
     return 'http://mygene.info/v2/gene/'
     
 def getHumanGenesUrl():
-    return "http://mygene.info/v2/query?q=*&species=human"
+    return "http://mygene.info/v2/query?q=__all__&species=human&entrezonly=true"
     
 def getGeneAnnotationsURL():
     return "http://mygene.info/v2/gene/"
