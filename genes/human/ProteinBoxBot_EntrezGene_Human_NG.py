@@ -21,7 +21,7 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 # Load the path to the PBB_Core library
 import sys
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+sys.path.append("/Users/andra/sulab/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
 import PBB_Functions
@@ -37,10 +37,6 @@ from datetime import date, datetime, timedelta
 
 main_log = PBB_Core.BotMainLog()
 main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-# Login to WikiData
-print "trying to login to wikidata"
-login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword(), "www.wikidata.org")
 
 try:
     print "Getting human genes from mygene.info"

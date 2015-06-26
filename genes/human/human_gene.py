@@ -28,6 +28,8 @@ import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
+import PBB_login
+import PBB_settings
 import urllib
 import urllib2
 import urllib3
@@ -46,6 +48,9 @@ class human_genome():
         self.content = json.loads(self.download_human_genes())
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
+        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword(), "www.wikidata.org")
+        sys.exit()
+        
         entrezWikidataId = dict()
         print "Getting all entrez genes in Wikidata"
         InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[351]", "351")
@@ -83,6 +88,10 @@ class human_gene(object):
             self.synonyms = None
         self.ensembl_transcript = None
         self.ensembl_gene = None
+        
+        wdPage = PBB_Core.WDItemEngine('', self.name)
+        print "Test:"
+        PBB_Debug.prettyPrint(wdPage.wd_json_representation)
         
         if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
