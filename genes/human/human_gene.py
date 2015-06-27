@@ -25,7 +25,7 @@ __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
 
 import sys
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
 import PBB_login
@@ -88,12 +88,20 @@ class human_gene(object):
         self.ensembl_transcript = None
         self.ensembl_gene = None
         if self.wdid != None:
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name)
+            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False)
         else:
-            wdPage = PBB_Core.WDItemEngine('', self.name)
+            wdPage = PBB_Core.WDItemEngine('', self.name, False)
         print "Test:"
         PBB_Debug.prettyPrint(wdPage.wd_json_representation)
+        attrs = vars(self)
+        # now dump this in some way or another
+        print "Print content from mygene.info"
+        print '\n '.join("%s: %s" % item for item in attrs.items())
         print self.wdid
+        
+        print "Print content from wikidata"
+        attrs = vars(wdPage)
+        print '\n '.join("%s: %s" % item for item in attrs.items())
         sys.exit()
         ''' if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
