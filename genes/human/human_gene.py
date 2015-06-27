@@ -31,7 +31,6 @@ import PBB_Debug
 import PBB_login
 import PBB_settings
 import urllib
-import urllib2
 import urllib3
 import certifi
 
@@ -48,8 +47,7 @@ class human_genome():
         self.content = json.loads(self.download_human_genes())
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
-        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword(), "www.wikidata.org")
-        sys.exit()
+        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         
         entrezWikidataId = dict()
         print "Getting all entrez genes in Wikidata"
@@ -78,6 +76,7 @@ class human_gene(object):
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
         self.symbol = object["symbol"]
+        self.wdid = ''
         gene_annotations = json.loads(self.annotate_gene())
         PBB_Debug.prettyPrint(gene_annotations)
         print gene_annotations["_id"]
@@ -88,23 +87,28 @@ class human_gene(object):
             self.synonyms = None
         self.ensembl_transcript = None
         self.ensembl_gene = None
-        
-        wdPage = PBB_Core.WDItemEngine('', self.name)
+        if self.wdid != None:
+            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name)
+        else:
+            wdPage = PBB_Core.WDItemEngine('', self.name)
         print "Test:"
         PBB_Debug.prettyPrint(wdPage.wd_json_representation)
-        
-        if "ensembl" in gene_annotations.keys():
+        print self.wdid
+        sys.exit()
+        ''' if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
                 self.ensembl_gene = gene_annotations["ensembl"]["gene"]
             if "transcript" in gene_annotations["ensembl"].keys():
                 self.ensembl_transcript = gene_annotations["ensembl"]["transcript"]
-                
+        '''        
         
     def annotate_gene(self):
         "Get gene annotations from mygene.info"
-        request = urllib2.Request(mygene_info_settings.getGeneAnnotationsURL()+str(self.entrezgene))
-        u = urllib2.urlopen(request)
-        return u.read()
+        http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+        request = http.request("GET", mygene_info_settings.getGeneAnnotationsURL()+str(self.entrezgene))
+        return request.data
+        
+
         
         
         

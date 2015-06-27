@@ -21,7 +21,7 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 # Load the path to the PBB_Core library
 import sys
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core/")
 import PBB_Core
 import PBB_Debug
 import PBB_Functions
