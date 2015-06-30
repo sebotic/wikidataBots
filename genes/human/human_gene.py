@@ -60,7 +60,12 @@ class human_genome():
             if str(geneClass.entrezgene) in entrezWikidataId.keys():
                 geneClass.wdid = entrezWikidataId[str(geneClass.entrezgene)]
             else: 
-                geneClass.wdid = None  
+                geneClass.wdid = None 
+            if geneClass.wdid != None:
+                print str(geneClass.wdid) + " will be updated as Entrez "+ str(geneClass.entrezgene)
+                sys.exit()
+            else:
+                print str(geneClass.entrezgene) + " needs to be added to Wikidata"
 
     def download_human_genes(self):
         """
@@ -79,8 +84,8 @@ class human_gene(object):
         self.symbol = object["symbol"]
         self.wdid = ''
         gene_annotations = json.loads(self.annotate_gene())
-        PBB_Debug.prettyPrint(gene_annotations)
-        print gene_annotations["_id"]
+        # PBB_Debug.prettyPrint(gene_annotations)
+        # print gene_annotations["_id"]
         self.annotationstimestamp = gene_annotations["_timestamp"]
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
@@ -92,18 +97,18 @@ class human_gene(object):
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False)
         else:
             wdPage = PBB_Core.WDItemEngine('', self.name, False)
-        print "Test:"
-        PBB_Debug.prettyPrint(wdPage.wd_json_representation)
+        # print "Test:"
+        # PBB_Debug.prettyPrint(wdPage.wd_json_representation)
         attrs = vars(self)
         # now dump this in some way or another
-        print "Print content from mygene.info"
-        print '\n '.join("%s: %s" % item for item in attrs.items())
-        print self.wdid
+        # print "Print content from mygene.info"
+        # print '\n '.join("%s: %s" % item for item in attrs.items())
+        # print self.wdid
         
-        print "Print content from wikidata"
+        # print "Print content from wikidata"
         attrs = vars(wdPage)
-        print '\n '.join("%s: %s" % item for item in attrs.items())
-        sys.exit()
+        # print '\n '.join("%s: %s" % item for item in attrs.items())
+
         ''' if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
                 self.ensembl_gene = gene_annotations["ensembl"]["gene"]

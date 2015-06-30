@@ -90,7 +90,6 @@ query = 'https://test.wikidata.org/w/api.php'
 token = edit_token
 headers = {'content-type': 'application/x-www-form-urlencoded'}
 
-
 fields = {
     'action': "wbeditentity",
     "data": json.dumps(wikidata["entities"]["Q1232"]),
