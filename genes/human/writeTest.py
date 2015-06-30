@@ -34,11 +34,74 @@ import PBB_settings
 import urllib
 import urllib3
 import certifi
+import requests
 
 import sys
 import mygene_info_settings
+try:
+    import simplejson as json
+except ImportError as e:
+    import json
 
-wdPage = PBB_Core.WDItemEngine('Q20422232', "Veltwijcklaan", False)
-print "Print content from wikidata"
-attrs = vars(wdPage)
-print '\n '.join("%s: %s" % item for item in attrs.items())
+query = 'https://test.wikidata.org/w/api.php?action=wbgetentities{}{}{}{}'.format(
+    '&sites=enwiki',
+    '&languages=en',
+    '&ids={}'.format("Q1232"),
+    '&format=json'
+)
+print "test"
+http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+request = http.request("GET", query)
+wikidata = json.loads(request.data)
+PBB_Debug.prettyPrint(wikidata)
+
+
+wikidata['entities']["Q1232"].pop("modified", None)
+wikidata['entities']["Q1232"].pop("lastrevid", None)
+wikidata['entities']["Q1232"].pop("ns", None)
+wikidata['entities']["Q1232"].pop("pageid", None)
+wikidata['entities']["Q1232"].pop("title", None)
+wikidata['entities']["Q1232"].pop("type", None)
+
+claims =wikidata["entities"]["Q1232"]["claims"]
+sys.exit()
+newclaim = dict()
+newclaim["rank"] = "normal"
+newclaim["type"] = "statement"
+mainsnak = dict()
+mainsnak["datatype"]= 'url'
+mainsnak["property"]='P31'
+mainsnak["snaktype"]='value'
+datavalue=dict()
+datavalue['type']='string'
+datavalue['value']='http://www.ekeren.be'
+mainsnak['datavalue']=datavalue
+newclaim["mainsnak"] = mainsnak
+claims.append(newclaim)
+
+PBB_Debug.prettyPrint(wikidata)
+
+print "test"
+login_obj = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+cookies = login_obj.get_edit_cookie()
+edit_token = login_obj.get_edit_token()
+
+query = 'https://test.wikidata.org/w/api.php'
+token = edit_token
+headers = {'content-type': 'application/x-www-form-urlencoded'}
+
+
+fields = {
+    'action': "wbeditentity",
+    "data": json.dumps(wikidata["entities"]["Q1232"]),
+    'token': token,
+    'id': "Q1232",
+    'format': "json",
+    'bot': True,
+}
+
+
+reply = requests.post(query, headers=headers, data=fields, cookies=cookies)
+json_data = json.loads(reply.text)
+PBB_Debug.prettyPrint(json_data)
+

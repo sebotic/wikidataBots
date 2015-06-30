@@ -25,6 +25,7 @@ __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
 
 import sys
+import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
