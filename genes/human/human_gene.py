@@ -43,8 +43,15 @@ try:
 except ImportError as e:
     import json
     
+"""
+This is the human-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
+human gene and known external identifiers.
+  
+"""
+    
 class human_genome():
     def __init__(self):
+
         self.content = json.loads(self.download_human_genes())
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
@@ -70,6 +77,7 @@ class human_genome():
             if geneClass.wdid != None:
                 print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
+                print "adding "+str(geneClass.entrezgene) + " as statement"        
                 sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
