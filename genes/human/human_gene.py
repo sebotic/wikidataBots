@@ -77,7 +77,12 @@ class human_genome():
             if geneClass.wdid != None:
                 print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
-                print "adding "+str(geneClass.entrezgene) + " as statement"        
+                print "adding "+str(geneClass.entrezgene) + " as statement"   
+                data2add = dict()
+                data2add["P279"] = [7187]
+                data2add["P703"] = [83310]
+                data2add['P351'] = geneClass.entrezgene
+                    
                 sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
