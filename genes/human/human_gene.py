@@ -25,6 +25,7 @@ __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
 
 import sys
+import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
@@ -49,17 +50,29 @@ class human_genome():
         self.genes = self.content["hits"]
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         
-        entrezWikidataId = dict()
+        entrezWikidataIds = dict()
         print "Getting all entrez genes in Wikidata"
         InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[351]", "351")
         for geneItem in InWikiData.wditems["props"]["351"]:
-            entrezWikidataId[str(geneItem[2])] = geneItem[0]
+            entrezWikidataIds[str(geneItem[2])] = geneItem[0]
+            
         for gene in self.genes:
+            if str(gene["entrezgene"]) in entrezWikidataIds.keys():
+               gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
+            else:
+               gene["wdid"] = None 
+            
             geneClass = human_gene(gene)
-            if str(geneClass.entrezgene) in entrezWikidataId.keys():
-                geneClass.wdid = entrezWikidataId[str(geneClass.entrezgene)]
+            if str(geneClass.entrezgene) in entrezWikidataIds.keys():
+                geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
             else: 
-                geneClass.wdid = None  
+                geneClass.wdid = None 
+            if geneClass.wdid != None:
+                print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
+                PBB_Debug.prettyPrint(geneClass.wd_json_representation)
+                sys.exit()
+            else:
+                print str(geneClass.entrezgene) + " needs to be added to Wikidata"
 
     def download_human_genes(self):
         """
@@ -76,33 +89,25 @@ class human_gene(object):
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
         self.symbol = object["symbol"]
-        self.wdid = ''
         gene_annotations = json.loads(self.annotate_gene())
-        PBB_Debug.prettyPrint(gene_annotations)
-        print gene_annotations["_id"]
         self.annotationstimestamp = gene_annotations["_timestamp"]
+        self.wdid = object["wdid"]
+        
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
         else:
             self.synonyms = None
         self.ensembl_transcript = None
         self.ensembl_gene = None
-        if self.wdid != None:
+        if self.wdid != None:           
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False)
         else:
             wdPage = PBB_Core.WDItemEngine('', self.name, False)
-        print "Test:"
-        PBB_Debug.prettyPrint(wdPage.wd_json_representation)
-        attrs = vars(self)
-        # now dump this in some way or another
-        print "Print content from mygene.info"
-        print '\n '.join("%s: %s" % item for item in attrs.items())
-        print self.wdid
+        self.wd_json_representation = wdPage.get_wd_json_representation()
+
         
-        print "Print content from wikidata"
-        attrs = vars(wdPage)
-        print '\n '.join("%s: %s" % item for item in attrs.items())
-        sys.exit()
+       
+
         ''' if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
                 self.ensembl_gene = gene_annotations["ensembl"]["gene"]
@@ -115,6 +120,7 @@ class human_gene(object):
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
         request = http.request("GET", mygene_info_settings.getGeneAnnotationsURL()+str(self.entrezgene))
         return request.data
+        
         
 
         
