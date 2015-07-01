@@ -104,8 +104,7 @@ class human_gene(object):
         else:
             wdPage = PBB_Core.WDItemEngine('', self.name, False)
         self.wd_json_representation = wdPage.get_wd_json_representation()
-        PBB_Debug.prettyPrint(vars(wdPage)) 
-        PBB_Debug.prettyPrint(vars(self)) 
+
         
        
 
