@@ -31,6 +31,7 @@ import urllib
 import urllib3
 import certifi
 import itertools
+import requests
 
 import PBB_Debug
 import PBB_Functions
@@ -137,8 +138,7 @@ class WDItemEngine(object):
         self.get_item_data(item_name, wd_item_id)
         self.property_list = self.get_property_list()
 
-        if self.wd_json_representation is not '':
-            self.__construct_claim_json()
+        self.__construct_claim_json()
 
     def get_item_data(self, item_name='', item_id=''):
         """
@@ -210,7 +210,7 @@ class WDItemEngine(object):
 
             if search_results['success'] != 1:
                 raise WDSearchError('WD search failed')
-            elif len(search_results['search']) > 0:
+            elif len(search_results['search']) == 0:
                 return([])
             else:
                 id_list = []
@@ -224,7 +224,6 @@ class WDItemEngine(object):
         except urllib3.exceptions.HTTPError as e:
             print(e)
             PBB_Debug.getSentryClient().captureException(e)
-            
 
     def get_property_list(self):
         """
@@ -251,14 +250,15 @@ class WDItemEngine(object):
                 try:
                     # check if the property is a core_id and should be unique for every WD item
                     if wd_property_store.wd_properties[wd_property]['core_id'] == 'True':
-                        query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib.quote(self.data[wd_property]))
-                        http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-                        request = http.request("GET", query)
-                        tmp_qids = json.loads(request.data)['items']
-                        qid_list.append(tmp_qids)
+                        for data_point in self.data[wd_property]:
+                            query = 'http://wdq.wmflabs.org/api?q=string[{}:{}]'.format(wd_property.replace('P', ''), urllib.quote(str(data_point)))
+                            http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+                            request = http.request("GET", query)
+                            tmp_qids = json.loads(request.data)['items']
+                            qid_list.append(tmp_qids)
 
-                        if len(tmp_qids) > 1:
-                            raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
+                            if len(tmp_qids) > 1:
+                                raise ManualInterventionReqException('More than one WD item has the same property value', wd_property, tmp_qids)
 
                 except urllib3.exceptions.HTTPError as e:
                     PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
@@ -328,16 +328,20 @@ class WDItemEngine(object):
 
             # search for statements which have already the correct value
             values_present = []
-            for i in claims[wd_property]:
-                current_value = ''
+            if wd_property in claims:
+                for i in claims[wd_property]:
+                    current_value = ''
 
-                if value_is_item:
-                    current_value = i['mainsnak']['datavalue']['value']['numeric-id']
-                elif not value_is_item:
-                    current_value = i['mainsnak']['datavalue']['value']
+                    if value_is_item:
+                        current_value = i['mainsnak']['datavalue']['value']['numeric-id']
+                    elif not value_is_item:
+                        current_value = i['mainsnak']['datavalue']['value']
 
-                if current_value in self.data[wd_property]:
-                    values_present.append(current_value)
+                    if current_value in self.data[wd_property]:
+                        values_present.append(current_value)
+            else:
+                # if not in claims, initialize new property
+                claims[wd_property] = []
 
             # for appending and new claims, just append to the existing claims
             if wd_property in self.append_value:
@@ -503,21 +507,33 @@ class WDItemEngine(object):
 
         pass
 
-    def set_label(self, label):
+    def set_label(self, label, lang='en'):
         """
         set the label for a WD item
         :param label: a label string as the wikidata item.
         :return: None
         """
+        self.wd_json_representation['labels'][lang] = {
+            'language': lang,
+            'value': label
+        }
 
-        setattr(self, 'label', label)
-
-    def set_aliases(self, aliases):
+    def set_aliases(self, aliases, lang='en', append=True):
         """
         set the aliases for a WD item
         :param aliases: a list of strings representing the aliases of a WD item
+        :param append: If true, append a new alias to the list of existing aliases, else, overwrite. Default: True
         :return: None
         """
+
+        current_aliases = set(self.wd_json_representation['aliases'][lang])
+        current_aliases.update(aliases)
+
+        for i in aliases:
+            self.wd_json_representation['aliases'][lang].append({
+                'language': lang,
+                'value': list(current_aliases)
+            })
 
     def write(self):
         """
