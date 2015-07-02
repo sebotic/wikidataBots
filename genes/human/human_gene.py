@@ -106,7 +106,7 @@ class human_gene(object):
         data2add = dict()
         data2add["P279"] = ["7187"]
         data2add["P703"] = ["83310"]
-        data2add['P351'] = self.entrezgene
+        data2add['P351'] = [str(self.entrezgene)]
         
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
