@@ -106,7 +106,12 @@ class human_gene(object):
         data2add = dict()
         data2add["P279"] = ["7187"]
         data2add["P703"] = ["83310"]
-        data2add['P351'] = self.entrezgene
+        data2add['P351'] = [self.entrezgene]
+        
+        references = dict()
+        references["P248"] = "Q17939676"
+        references["P143"] = "Q20641742"
+        
         
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
@@ -115,10 +120,10 @@ class human_gene(object):
         self.ensembl_transcript = None
         self.ensembl_gene = None
         if self.wdid != None:           
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org")
-            self.wd_json_representation = wdPage.get_wd_json_representation()
-        else:
-            wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
+            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
+            self.wd_json_representation = wdPage.get_wd_json_representation()   
+        # else:
+        #    wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
         
 
         
