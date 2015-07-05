@@ -31,6 +31,7 @@ import PBB_Core
 import PBB_Debug
 import PBB_login
 import PBB_settings
+import ProteinBoxBotKnowledge
 import urllib
 import urllib3
 import certifi
@@ -100,14 +101,60 @@ class human_gene(object):
         self.name = object["name"]
         self.symbol = object["symbol"]
         gene_annotations = json.loads(self.annotate_gene())
+        print gene_annotations
         self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
-        
+        if "HGNC" in object:
+            self.hgnc = object["HGNC"]
+        else:
+            self.hgnc = None
+        if "ensembl" in object:
+            if "gene" in object["ensembl"]:
+                self.ensembl_gene = object["ensembl"]["gene"]
+            else:
+                self.ensembl_gene = None
+            if "transcript" in object["ensembl"]:
+                self.ensembl_transcript = object["ensembl"]["transcript"]
+            else:
+                self.ensembl_transcript = None
+        if "homologene" in object:
+            self.homologene = object["homologene"]["id"]
+        else:
+            self.homologene = None
+        if "refseq" in object:
+            if "rna" in object["refseq"]:
+                self.refseq_rna = object["refseq"]["rna"]
+            else :
+                self.refseq_rna = None
+                  
         data2add = dict()
         data2add["P279"] = ["7187"]
         data2add["P703"] = ["83310"]
         data2add['P351'] = [self.entrezgene]
-        
+        data2add['P353'] = [self.symbol]
+        if "ensembl_gene" in vars(self):
+            if self.ensembl_gene != None:
+                data2add["P594"] = [self.ensembl_gene] 
+        if "ensembl_gene" in vars(self):
+            if self.ensembl_transcript != None:
+                data2add['P704'] = [self.ensembl_transcript]        
+        if "hgnc" in vars(self):
+            if self.hgnc != None:
+                data2add['P354'] = [self.hgnc]
+        if "homologene" in vars(self):
+            if self.homologene != None:
+                data2add['P593'] = [self.homologene]
+        if "refseq_rna" in vars(self):
+            if self.refseq_rna != None:
+                data2add['P639'] = [self.refseq_rna]        
+        if "genomic_pos" in object: 
+            if (isinstance(object["genomic_pos"], list)):
+               chromosome = object["genomic_pos"][0]["chr"]
+            else: chromosome = object["genomic_pos"]["chr"]
+            data2add['P1057'] =  chromosomes[str(chromosome)]
+            
+            
+        # Reference section           
         references = dict()
         references["P248"] = "Q17939676"
         references["P143"] = "Q20641742"

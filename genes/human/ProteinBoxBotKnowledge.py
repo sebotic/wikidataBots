@@ -1,6 +1,3 @@
-import pywikibot
-
-
 
 #references 
 ## databases
