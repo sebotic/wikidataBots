@@ -164,10 +164,9 @@ class human_gene(object):
             self.synonyms = gene_annotations["alias"]
         else:
             self.synonyms = None
-        self.ensembl_transcript = None
-        self.ensembl_gene = None
         if self.wdid != None:           
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
+            print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation()   
         # else:
         #    wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
