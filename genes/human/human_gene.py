@@ -31,6 +31,7 @@ import PBB_Core
 import PBB_Debug
 import PBB_login
 import PBB_settings
+import PBB_Functions
 import ProteinBoxBotKnowledge
 import urllib
 import urllib3
@@ -78,9 +79,8 @@ class human_genome():
             if geneClass.wdid != None:
                 print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
-                print "adding "+str(geneClass.entrezgene) + " as statement"   
-
-                    
+                print "adding "+str(geneClass.entrezgene) + " as statement" 
+                PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
                 sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -102,6 +102,7 @@ class human_gene(object):
         self.symbol = object["symbol"]
         gene_annotations = json.loads(self.annotate_gene())
         print gene_annotations
+        print object
         self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
         if "HGNC" in object:
@@ -125,7 +126,11 @@ class human_gene(object):
             if "rna" in object["refseq"]:
                 self.refseq_rna = object["refseq"]["rna"]
             else :
-                self.refseq_rna = None
+                self.refseq_rna = None       
+        if "genomic_pos" in object:
+            self.genomic_pos = object["genomic_pos"]
+        else:
+            self.genomic_pos = None
         
         # Reference section           
         gene_reference = [
@@ -133,10 +138,9 @@ class human_gene(object):
                     'ref_properties': ['P248', 'P813', 'P143'],
                     'ref_values': ['Q17939676', 'TIMESTAMP', 'Q20641742']
                 },
-            ]
-            
+            ]           
         references = {
-            'P351': gene_reference,            
+            'P351': gene_reference,           
         }         
         
         data2add = dict()
@@ -144,6 +148,7 @@ class human_gene(object):
         data2add["P703"] = ["83310"]
         data2add['P351'] = [self.entrezgene]
         data2add['P353'] = [self.symbol]
+        # references['P353'] = gene_reference
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
                 data2add["P594"] = [self.ensembl_gene] 
@@ -179,14 +184,11 @@ class human_gene(object):
         if self.wdid != None:           
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
             print self.wdid
-            self.wd_json_representation = wdPage.get_wd_json_representation()   
+            self.wd_json_representation = wdPage.get_wd_json_representation()  
+        print references 
         # else:
         #    wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
-        
-
-        
-       
-
+    
         ''' if "ensembl" in gene_annotations.keys():
             if "gene" in gene_annotations["ensembl"].keys():
                 self.ensembl_gene = gene_annotations["ensembl"]["gene"]
