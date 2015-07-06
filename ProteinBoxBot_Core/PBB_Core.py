@@ -399,11 +399,13 @@ class WDItemEngine(object):
             for count, ref in enumerate(self.references[wd_property]):
                 timestamp = False
                 if 'TIMESTAMP' in ref['ref_values']:
-                    timestamp = True
+                    timestamp = True             
+                    ref['ref_properties'].pop(ref['ref_values'].index('TIMESTAMP'))
                     ref['ref_values'].remove('TIMESTAMP')
-
+                    
                 print(count)
                 # print(self.data[wd_property][count])
+                print self.data
                 self.add_reference(wd_property=wd_property, value=self.data[wd_property][count], reference_types=ref['ref_properties'],
                                    reference_items=ref['ref_values'], timestamp=timestamp, overwrite=True)
 

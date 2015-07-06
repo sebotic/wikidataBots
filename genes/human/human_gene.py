@@ -126,7 +126,19 @@ class human_gene(object):
                 self.refseq_rna = object["refseq"]["rna"]
             else :
                 self.refseq_rna = None
-                  
+        
+        # Reference section           
+        gene_reference = [
+                {
+                    'ref_properties': ['P248', 'P813', 'P143'],
+                    'ref_values': ['Q17939676', 'TIMESTAMP', 'Q20641742']
+                },
+            ]
+            
+        references = {
+            'P351': gene_reference,            
+        }         
+        
         data2add = dict()
         data2add["P279"] = ["7187"]
         data2add["P703"] = ["83310"]
@@ -135,43 +147,30 @@ class human_gene(object):
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
                 data2add["P594"] = [self.ensembl_gene] 
+                references['P594'] = gene_reference
         if "ensembl_gene" in vars(self):
             if self.ensembl_transcript != None:
-                data2add['P704'] = [self.ensembl_transcript]        
+                data2add['P704'] = [self.ensembl_transcript]
+                references['P704'] = gene_reference        
         if "hgnc" in vars(self):
             if self.hgnc != None:
                 data2add['P354'] = [self.hgnc]
+                references['P354'] = gene_reference    
         if "homologene" in vars(self):
             if self.homologene != None:
                 data2add['P593'] = [self.homologene]
+                references['P593'] = gene_reference    
         if "refseq_rna" in vars(self):
             if self.refseq_rna != None:
-                data2add['P639'] = [self.refseq_rna]        
+                data2add['P639'] = [self.refseq_rna]
+                references['P639'] = gene_reference            
         if "genomic_pos" in object: 
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
             else: chromosome = object["genomic_pos"]["chr"]
             data2add['P1057'] =  chromosomes[str(chromosome)]              
-        # Reference section           
-        gene_reference = [
-                {
-                    'ref_properties': ['P248', 'P813', 'P143'],
-                    'ref_values': ['Q17939676', 'TIMESTAMP', 'Q20641742']
-                },
-            ]
+            references['P1057'] = gene_reference    
         
-        
-        references = {
-            'P351': gene_reference,
-            'P353': gene_reference,
-            'P594': gene_reference,
-            'P704': gene_reference,
-            'P354': gene_reference,
-            'P593': gene_reference,
-            'P639': gene_reference,
-            'P1057': gene_reference,
-            
-        }
              
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
