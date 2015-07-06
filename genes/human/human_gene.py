@@ -151,14 +151,28 @@ class human_gene(object):
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
             else: chromosome = object["genomic_pos"]["chr"]
-            data2add['P1057'] =  chromosomes[str(chromosome)]
-            
-            
+            data2add['P1057'] =  chromosomes[str(chromosome)]              
         # Reference section           
-        references = dict()
-        references["P248"] = "Q17939676"
-        references["P143"] = "Q20641742"
+        gene_reference = [
+                {
+                    'ref_properties': ['P248', 'P813', 'P143'],
+                    'ref_values': ['Q17939676', 'TIMESTAMP', 'Q20641742']
+                },
+            ]
         
+        
+        references = {
+            'P351': gene_reference,
+            'P353': gene_reference,
+            'P594': gene_reference,
+            'P704': gene_reference,
+            'P354': gene_reference,
+            'P593': gene_reference,
+            'P639': gene_reference,
+            'P1057': gene_reference,
+            
+        }
+             
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
         else:
