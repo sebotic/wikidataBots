@@ -159,7 +159,6 @@ class human_gene(object):
         references["P248"] = "Q17939676"
         references["P143"] = "Q20641742"
         
-        
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
         else:
