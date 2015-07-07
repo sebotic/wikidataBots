@@ -36,6 +36,7 @@ import ProteinBoxBotKnowledge
 import urllib
 import urllib3
 import certifi
+import copy
 
 import sys
 import mygene_info_settings
@@ -167,54 +168,54 @@ class human_gene(object):
                 },
             ]           
         references = {
-            'P351': gene_reference,           
+            'P351': copy.deepcopy(gene_reference),
         }         
         
         data2add = dict()
         data2add["P279"] = ["7187"]
-        references['P279'] = gene_reference
+        references['P279'] = copy.deepcopy(gene_reference)
         data2add["P703"] = ["5"]
-        references['P703'] = gene_reference
+        references['P703'] = copy.deepcopy(gene_reference)
         
         data2add['P351'] = [str(self.entrezgene)]
         data2add['P353'] = [self.symbol]
-        references['P353'] = gene_reference
+        references['P353'] = copy.deepcopy(gene_reference)
         # references['P353'] = gene_reference
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
                 data2add["P594"] = self.ensembl_gene
                 references['P594'] = []
                 for i in len(self.ensembl_gene):
-                    references['P594'].append(gene_reference)
+                    references['P594'].append(copy.deepcopy(gene_reference))
         if "ensembl_gene" in vars(self):
             if self.ensembl_transcript != None:
                 data2add['P704'] = self.ensembl_transcript
                 references['P704'] = []
                 for i in len(self.ensembl_transcript):
-                    references['P704'].append(gene_reference)        
+                    references['P704'].append(copy.deepcopy(gene_reference))
         if "hgnc" in vars(self):
             if self.hgnc != None:
                 data2add['P354'] = self.hgnc
                 references['P354'] = []
                 for i in len(self.hgnc):
-                    references['P354'].append(gene_reference)   
+                    references['P354'].append(copy.deepcopy(gene_reference))
         if "homologene" in vars(self):
             if self.homologene != None:
                 data2add['P593'] = self.homologene
                 references['P593'] = []
                 for i in len(self.homologene):
-                    references['P593'].append(gene_reference)    
+                    references['P593'].append(copy.deepcopy(gene_reference))
         if "refseq_rna" in vars(self):
             if self.refseq_rna != None:
                 data2add['P639'] = self.refseq_rna
                 references['P639'] = []
                 for i in len(self.refseq_rna):
-                    references['P639'].append(refseq_rna)           
+                    references['P639'].append(refseq_rna)
         if "genomic_pos" in object: 
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
             else: chromosome = object["genomic_pos"]["chr"]
-            data2add['P1057'] =  chromosomes[str(chromosome)]              
+            data2add['P1057'] =  chromosomes[str(chromosome)]
             references['P1057'] = gene_reference    
         
              
