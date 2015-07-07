@@ -70,7 +70,7 @@ class human_genome():
                gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
             else:
                gene["wdid"] = None 
-            
+            gene["logincreds"] = self.logincreds
             geneClass = human_gene(gene)
             if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                 geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
@@ -80,7 +80,8 @@ class human_genome():
                 print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
-                PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
+                
+                #PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
                 sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -100,43 +101,69 @@ class human_gene(object):
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
         self.symbol = object["symbol"]
+        self.logincreds = object["logincreds"]
         gene_annotations = json.loads(self.annotate_gene())
         print gene_annotations
         print object
         self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
+        
+        # HGNC
         if "HGNC" in object:
-            self.hgnc = object["HGNC"]
+            if isinstance(object["HGNC"], list): 
+                self.hgnc = object["HGNC"]
+            else:
+                self.hgnc = [object["HGNC"]]
         else:
             self.hgnc = None
+            
+        # Ensembl Gene & transcript
         if "ensembl" in object:
             if "gene" in object["ensembl"]:
-                self.ensembl_gene = object["ensembl"]["gene"]
+                if isinstance(object["ensembl"]["gene"], list): 
+                    self.ensembl_gene = object["ensembl"]["gene"]
+                else:
+                    self.ensembl_gene = [object["ensembl"]["gene"]]
             else:
                 self.ensembl_gene = None
+            
             if "transcript" in object["ensembl"]:
-                self.ensembl_transcript = object["ensembl"]["transcript"]
+                if isinstance(object["ensembl"]["transcript"], list): 
+                    self.ensembl_transcript = object["ensembl"]["transcript"]
+                else:
+                    self.ensembl_transcript = [object["ensembl"]["transcript"]]
             else:
                 self.ensembl_transcript = None
+        # Homologene
         if "homologene" in object:
-            self.homologene = object["homologene"]["id"]
+            if isinstance(object["homologene"]["id"], list): 
+                self.homologene = object["homologene"]["id"]
+            else:
+                self.homologene = [object["homologene"]["id"]]
         else:
             self.homologene = None
+        # Refseq 
         if "refseq" in object:
             if "rna" in object["refseq"]:
-                self.refseq_rna = object["refseq"]["rna"]
+                if isinstance(object["refseq"]["rna"], list): 
+                    self.refseq_rna = object["refseq"]["rna"]
+                else:
+                    self.refseq_rna = [object["refseq"]["rna"]]
             else :
                 self.refseq_rna = None       
         if "genomic_pos" in object:
-            self.genomic_pos = object["genomic_pos"]
+            if isinstance(object["genomic_pos"], list): 
+                self.genomic_pos = object["genomic_pos"]
+            else:
+                self.genomic_pos = [object["genomic_pos"]]
         else:
             self.genomic_pos = None
         
         # Reference section           
         gene_reference = [
                 {
-                    'ref_properties': ['P248', 'P813', 'P143'],
-                    'ref_values': ['Q17939676', 'TIMESTAMP', 'Q20641742']
+                    'ref_properties': ['P248', 'P143', 'TIMESTAMP'],
+                    'ref_values': ['Q17939676', 'Q20641742' , 'TIMESTAMP']
                 },
             ]           
         references = {
@@ -145,30 +172,44 @@ class human_gene(object):
         
         data2add = dict()
         data2add["P279"] = ["7187"]
-        data2add["P703"] = ["83310"]
-        data2add['P351'] = [self.entrezgene]
+        references['P279'] = gene_reference
+        data2add["P703"] = ["5"]
+        references['P703'] = gene_reference
+        
+        data2add['P351'] = [str(self.entrezgene)]
         data2add['P353'] = [self.symbol]
+        references['P353'] = gene_reference
         # references['P353'] = gene_reference
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
-                data2add["P594"] = [self.ensembl_gene] 
-                references['P594'] = gene_reference
+                data2add["P594"] = self.ensembl_gene
+                references['P594'] = []
+                for i in len(self.ensembl_gene):
+                    references['P594'].append(gene_reference)
         if "ensembl_gene" in vars(self):
             if self.ensembl_transcript != None:
-                data2add['P704'] = [self.ensembl_transcript]
-                references['P704'] = gene_reference        
+                data2add['P704'] = self.ensembl_transcript
+                references['P704'] = []
+                for i in len(self.ensembl_transcript):
+                    references['P704'].append(gene_reference)        
         if "hgnc" in vars(self):
             if self.hgnc != None:
-                data2add['P354'] = [self.hgnc]
-                references['P354'] = gene_reference    
+                data2add['P354'] = self.hgnc
+                references['P354'] = []
+                for i in len(self.hgnc):
+                    references['P354'].append(gene_reference)   
         if "homologene" in vars(self):
             if self.homologene != None:
-                data2add['P593'] = [self.homologene]
-                references['P593'] = gene_reference    
+                data2add['P593'] = self.homologene
+                references['P593'] = []
+                for i in len(self.homologene):
+                    references['P593'].append(gene_reference)    
         if "refseq_rna" in vars(self):
             if self.refseq_rna != None:
-                data2add['P639'] = [self.refseq_rna]
-                references['P639'] = gene_reference            
+                data2add['P639'] = self.refseq_rna
+                references['P639'] = []
+                for i in len(self.refseq_rna):
+                    references['P639'].append(refseq_rna)           
         if "genomic_pos" in object: 
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
@@ -184,8 +225,14 @@ class human_gene(object):
         if self.wdid != None:           
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
             print self.wdid
-            self.wd_json_representation = wdPage.get_wd_json_representation()  
-        print references 
+            self.wd_json_representation = wdPage.get_wd_json_representation() 
+            #wdPage.write(self.logincreds) 
+            PBB_Debug.prettyPrint(self.wd_json_representation)
+            sys.exit()
+        print "References: "
+        print references
+        #PBB_Debug.prettyPrint() 
+
         # else:
         #    wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
     
@@ -203,7 +250,7 @@ class human_gene(object):
         return request.data
         
         
-
+ 
         
         
         
