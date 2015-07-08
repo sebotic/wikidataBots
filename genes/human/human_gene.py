@@ -82,7 +82,7 @@ class human_genome():
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
                 
-                #PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
+                PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
                 sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -228,8 +228,8 @@ class human_gene(object):
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             #wdPage.write(self.logincreds) 
-            PBB_Debug.prettyPrint(self.wd_json_representation)
-            sys.exit()
+            #PBB_Debug.prettyPrint(self.wd_json_representation)
+            #sys.exit()
         print "References: "
         print references
         #PBB_Debug.prettyPrint() 
