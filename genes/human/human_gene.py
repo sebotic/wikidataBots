@@ -176,14 +176,13 @@ class human_gene(object):
                    
         references = dict()
         
-        
+
         data2add = dict()
         data2add["P279"] = ["7187"]
         references['P279'] = [copy.deepcopy(gene_reference)]
         data2add["P703"] = ["5"]
         references['P703'] = [copy.deepcopy(gene_reference)]    
         data2add['P351'] = [str(self.entrezgene)]
-        references['P351'] = [copy.deepcopy(gene_reference)]
         data2add['P353'] = self.symbol
         references['P353'] = [copy.deepcopy(gene_reference)]
         # references['P353'] = gene_reference
@@ -218,13 +217,14 @@ class human_gene(object):
                 references['P639'] = []
                 for i in range(len(self.refseq_rna)):
                     references['P639'].append(copy.deepcopy(gene_reference))
-        if "genomic_pos" in object: 
+        if "genomic_pos" in object:
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
             else: chromosome = object["genomic_pos"]["chr"]
             data2add['P1057'] =  chromosomes[str(chromosome)]
             references['P1057'] = gene_reference    
-             
+
+
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
         else:
@@ -238,9 +238,9 @@ class human_gene(object):
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             wdPage.write(self.logincreds)
-            #wdPage.write(self.logincreds) 
             #PBB_Debug.prettyPrint(self.wd_json_representation)
             #sys.exit()
+        print "References: "
         print references
         #PBB_Debug.prettyPrint() 
 
