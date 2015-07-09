@@ -82,10 +82,8 @@ class human_genome():
                 print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
-                
-                PBB_Functions.write(geneClass.wd_json_representation, geneClass.wdid, "www.wikidata.org")  
                 counter = counter +1
-                if counter == 5:
+                if counter == 2:
                    sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -172,13 +170,12 @@ class human_gene(object):
         
         # Reference section           
         gene_reference = {
-                    'ref_properties': ['P248', 'P143', 'TIMESTAMP'],
-                    'ref_values': ['Q17939676', 'Q20641742' , 'TIMESTAMP']
+                    'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
+                    'ref_values': [u'Q17939676', u'Q20641742' , 'TIMESTAMP']
                 }
                    
-        references = {
-            'P351': [copy.deepcopy(gene_reference)],
-        }         
+        references = dict()
+        
         
         data2add = dict()
         data2add["P279"] = ["7187"]
@@ -186,6 +183,7 @@ class human_gene(object):
         data2add["P703"] = ["5"]
         references['P703'] = [copy.deepcopy(gene_reference)]    
         data2add['P351'] = [str(self.entrezgene)]
+        references['P351'] = [copy.deepcopy(gene_reference)]
         data2add['P353'] = self.symbol
         references['P353'] = [copy.deepcopy(gene_reference)]
         # references['P353'] = gene_reference
@@ -226,7 +224,6 @@ class human_gene(object):
             else: chromosome = object["genomic_pos"]["chr"]
             data2add['P1057'] =  chromosomes[str(chromosome)]
             references['P1057'] = gene_reference    
-        
              
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
@@ -240,10 +237,10 @@ class human_gene(object):
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
+            wdPage.write(self.logincreds)
             #wdPage.write(self.logincreds) 
             #PBB_Debug.prettyPrint(self.wd_json_representation)
             #sys.exit()
-        print "References: "
         print references
         #PBB_Debug.prettyPrint() 
 
