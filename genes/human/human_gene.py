@@ -183,6 +183,7 @@ class human_gene(object):
         data2add["P703"] = ["5"]
         references['P703'] = [copy.deepcopy(gene_reference)]    
         data2add['P351'] = [str(self.entrezgene)]
+        references['P351'] = [copy.deepcopy(gene_reference)]
         data2add['P353'] = self.symbol
         references['P353'] = [copy.deepcopy(gene_reference)]
         # references['P353'] = gene_reference
