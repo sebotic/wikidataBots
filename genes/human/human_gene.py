@@ -83,7 +83,7 @@ class human_genome():
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
                 counter = counter +1
-                if counter == 2:
+                if counter == 50:
                    sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -161,13 +161,26 @@ class human_gene(object):
             else :
                 self.refseq_rna = None       
         if "genomic_pos" in gene_annotations:
+            self.genomic_pos =[]
+            if (isinstance(gene_annotations["genomic_pos"], list)):
+                for i in range(len(gene_annotations["genomic_pos"])):
+                    self.genomic_pos.append(ProteinBoxBotKnowledge.chromosomes[gene_annotations["genomic_pos"][i]["chr"]])
+
             if isinstance(gene_annotations["genomic_pos"], list): 
                 self.genomic_pos = gene_annotations["genomic_pos"]
+
             else:
                 self.genomic_pos = [gene_annotations["genomic_pos"]]
         else:
             self.genomic_pos = None
         
+        # type of Gene
+        if "type_of_gene" in gene_annotations:
+            self.type_of_gene = []
+            if gene_annotations["type_of_gene"]=="ncRNA":
+                self.type_of_gene.append("Q427087")
+        else:
+            self.type_of_gene = None
         # Reference section           
         gene_reference = {
                     'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
@@ -187,6 +200,11 @@ class human_gene(object):
         data2add['P353'] = self.symbol
         references['P353'] = [copy.deepcopy(gene_reference)]
         # references['P353'] = gene_reference
+        
+        '''if "type_of_gene" in vars["self"]:
+            if self.type_of_gene != None:
+                data2add["P279"]
+                '''
         
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
@@ -243,18 +261,7 @@ class human_gene(object):
             #sys.exit()
         print "References: "
         print references
-        #PBB_Debug.prettyPrint() 
-
-        # else:
-        #    wdPage = PBB_Core.WDItemEngine('', self.name, False, data = data2add, server="www.wikidata.org")
-    
-        ''' if "ensembl" in gene_annotations.keys():
-            if "gene" in gene_annotations["ensembl"].keys():
-                self.ensembl_gene = gene_annotations["ensembl"]["gene"]
-            if "transcript" in gene_annotations["ensembl"].keys():
-                self.ensembl_transcript = gene_annotations["ensembl"]["transcript"]
-        '''        
-        
+               
     def annotate_gene(self):
         "Get gene annotations from mygene.info"
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
