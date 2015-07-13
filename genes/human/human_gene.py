@@ -83,7 +83,7 @@ class human_genome():
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
                 counter = counter +1
-                if counter == 50:
+                if counter == 100:
                    sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
@@ -127,7 +127,7 @@ class human_gene(object):
             self.hgnc = None
             
         # Ensembl Gene & transcript
-        if "ensembl" in object:
+        if "ensembl" in gene_annotations:
             if "gene" in gene_annotations["ensembl"]:
                 if isinstance(gene_annotations["ensembl"]["gene"], list): 
                     self.ensembl_gene = gene_annotations["ensembl"]["gene"]
@@ -159,7 +159,9 @@ class human_gene(object):
                 else:
                     self.refseq_rna = [gene_annotations["refseq"]["rna"]]
             else :
-                self.refseq_rna = None       
+                self.refseq_rna = None
+        else :
+            self.refseq_rna = None       
         if "genomic_pos" in gene_annotations:
             self.genomic_pos =[]
             if (isinstance(gene_annotations["genomic_pos"], list)):
@@ -236,6 +238,9 @@ class human_gene(object):
                 references['P639'] = []
                 for i in range(len(self.refseq_rna)):
                     references['P639'].append(copy.deepcopy(gene_reference))
+                else:
+                    data2add['P639'] = []
+                    references['P639'] = []
         if "genomic_pos" in object:
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
