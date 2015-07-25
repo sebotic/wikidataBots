@@ -258,7 +258,7 @@ class human_gene(object):
             PBB_Debug.prettyPrint(data2add) 
             PBB_Debug.prettyPrint(references) 
   
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, False, data = data2add, server="www.wikidata.org", references=references)
+            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", references=references)
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             wdPage.write(self.logincreds)

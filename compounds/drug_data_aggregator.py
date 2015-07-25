@@ -79,9 +79,10 @@ append = True
 # check if an appropriate CSV file exists or create new file
 if os.path.isfile('./drugbank_data/drugbank.csv') and append:
     drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, dtype={'PubChem ID (CID)': str,
-                                                                                        'ChEBI': str,
-                                                                                        'ChEMBL': str
-                                                                                        })
+                                                                                    'ChEBI': str,
+                                                                                    'ChEMBL': str
+                                                                                    })
+
     drugbank_data['PubChem ID (CID)'] = drugbank_data.loc[drugbank_data['PubChem ID (CID)'].map(
         lambda x: pd.notnull(x)), 'PubChem ID (CID)'].map(lambda x: x.split('.')[0])
     drugbank_data['ChEBI'] = drugbank_data.loc[drugbank_data['ChEBI'].map(
