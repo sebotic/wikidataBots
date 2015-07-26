@@ -49,7 +49,7 @@ InWikiData = PBB_Core.WDItemList("CLAIM[699]", "699")
 file = open('/tmp/doCounts.tsv', 'r')
 processedItems = [] 
 for lijn in file.readlines():
-    processedItems.append(lijn.split('\t')[0])
+    processedItems.append(lijn.split('\t')[1])
     
 
 target = open('/tmp/doCounts.tsv', 'a')
@@ -68,15 +68,16 @@ for diseaseItem in InWikiData.wditems["props"]["699"]:
     reply = requests.get(url, params=params)
 
     wd_reply = json.loads(reply.text, "utf-8")['entities']['Q'+str(diseaseItem[0])]
-    # PBB_Debug.prettyPrint(wd_reply)
+    #PBB_Debug.prettyPrint(wd_reply)
+    label = wd_reply["labels"]["en"]["value"].replace(u'\xfc', '')
     if 'sitelinks' in wd_reply:
         if 'enwiki' in wd_reply['sitelinks']:
-            print "DOID:"+ diseaseItem[2]+"\t https://en.wikipedia.org/wiki/"+wd_reply['sitelinks']['enwiki']['title'].replace(" ", "_")
-            target.write("\nDOID:"+ diseaseItem[2]+"\t https://en.wikipedia.org/wiki/"+wd_reply['sitelinks']['enwiki']['title'].replace(u"\u2013", "-").replace(" ", "_"))
+            print str(label)+"\tDOID:"+ diseaseItem[2]+"\t https://en.wikipedia.org/wiki/"+wd_reply['sitelinks']['enwiki']['title'].replace(" ", "_")
+            target.write(str(label)+"\tDOID:"+ diseaseItem[2]+"\t https://en.wikipedia.org/wiki/"+wd_reply['sitelinks']['enwiki']['title'].replace(u"\u2013", "-").replace(" ", "_")+"\n")
         else:
-            print "DOID:"+ diseaseItem[2]+"\t na"
-            target.write("\nDOID:"+ diseaseItem[2]+"\t na")
+            print str(label)+"\tDOID:"+ diseaseItem[2]+"\t na"
+            target.write(str(label)+"\tDOID:"+ diseaseItem[2]+"\t na\n")
     else:
-        print "DOID:"+ diseaseItem[2]+"\t na"
-        target.write("\nDOID:"+ diseaseItem[2]+"\t na")
+        print str(label)+"\tDOID:"+ diseaseItem[2]+"\t na"
+        target.write(str(label)+"\tDOID:"+ diseaseItem[2]+"\t na\n")
     # sys.exit()
