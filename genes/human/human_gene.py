@@ -83,8 +83,8 @@ class human_genome():
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
                 counter = counter +1
-                if counter == 100:
-                   sys.exit()
+                # if counter == 100:
+                #   sys.exit()
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
 
