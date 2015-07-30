@@ -166,7 +166,8 @@ class human_gene(object):
             self.genomic_pos =[]
             if (isinstance(gene_annotations["genomic_pos"], list)):
                 for i in range(len(gene_annotations["genomic_pos"])):
-                    self.genomic_pos.append(ProteinBoxBotKnowledge.chromosomes[gene_annotations["genomic_pos"][i]["chr"]])
+                    if gene_annotations["genomic_pos"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes.keys():
+                           self.genomic_pos.append(ProteinBoxBotKnowledge.chromosomes[gene_annotations["genomic_pos"][i]["chr"]])
 
             if isinstance(gene_annotations["genomic_pos"], list): 
                 self.genomic_pos = gene_annotations["genomic_pos"]
