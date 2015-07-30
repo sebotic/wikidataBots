@@ -83,8 +83,8 @@ class human_genome():
                 PBB_Debug.prettyPrint(geneClass.wd_json_representation)
                 print "adding "+str(geneClass.entrezgene) + " as statement" 
                 counter = counter +1
-                # if counter == 100:
-                #   sys.exit()
+                if counter == 100:
+                    self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
             else:
                 print str(geneClass.entrezgene) + " needs to be added to Wikidata"
 
@@ -146,9 +146,9 @@ class human_gene(object):
         # Homologene
         if "homologene" in gene_annotations:
             if isinstance(gene_annotations["homologene"]["id"], list): 
-                self.homologene = gene_annotations["homologene"]["id"]
+                self.homologene = [str(i) for i in gene_annotations["homologene"]["id"]]
             else:
-                self.homologene = [gene_annotations["homologene"]["id"]]
+                self.homologene = [str(gene_annotations["homologene"]["id"])]
         else:
             self.homologene = None
         # Refseq 
@@ -265,8 +265,8 @@ class human_gene(object):
             wdPage.write(self.logincreds)
             #PBB_Debug.prettyPrint(self.wd_json_representation)
             #sys.exit()
-        print "References: "
-        print references
+        # print "References: "
+        # print references
                
     def annotate_gene(self):
         "Get gene annotations from mygene.info"
