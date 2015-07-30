@@ -35,11 +35,11 @@ class DrugDataAggregator(object):
             os.makedirs('./drubank_data')
 
         # check if an appropriate CSV file exists or create new file
-        if os.path.isfile('./drugbank_data/drugbank.csv') and self.append:
+        if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml') and self.append:
             self.drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, dtype={'PubChem ID (CID)': str,
-                                                                                            'ChEBI': str,
-                                                                                            'ChEMBL': str
-                                                                                            })
+                                                                                                 'ChEBI': str,
+                                                                                                 'ChEMBL': str
+                                                                                                 })
 
             self.drugbank_data['PubChem ID (CID)'] = self.drugbank_data.loc[self.drugbank_data['PubChem ID (CID)'].map(
                 lambda x: pd.notnull(x)), 'PubChem ID (CID)'].map(lambda x: x.split('.')[0])
@@ -48,19 +48,19 @@ class DrugDataAggregator(object):
         else:
             self.drugbank_data = pd.DataFrame(columns=drugbank_headers, dtype=object)
 
-        # download and extract drugbank xml file
-        url = 'http://www.drugbank.ca/system/downloads/current/drugbank.xml.zip'
-        drugbank_file = './drugbank_data/drugbank.xml.zip'
-        reply = requests.get(url, stream=True)
-        with open(drugbank_file, 'wb') as f:
-            for chunk in reply.iter_content(chunk_size=2048):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
+            # download and extract drugbank xml file
+            url = 'http://www.drugbank.ca/system/downloads/current/drugbank.xml.zip'
+            drugbank_file = './drugbank_data/drugbank.xml.zip'
+            reply = requests.get(url, stream=True)
+            with open(drugbank_file, 'wb') as f:
+                for chunk in reply.iter_content(chunk_size=2048):
+                    if chunk:
+                        f.write(chunk)
+                        f.flush()
 
-        db_zip = open(drugbank_file, 'rb')
-        zipfile.ZipFile(db_zip).extract('drugbank.xml', './drugbank_data/')
-        db_zip.close()
+            db_zip = open(drugbank_file, 'rb')
+            zipfile.ZipFile(db_zip).extract('drugbank.xml', './drugbank_data/')
+            db_zip.close()
 
         f = open('./drugbank_data/drugbank.xml', 'r')
         print(self.drugbank_data.dtypes)
