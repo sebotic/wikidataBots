@@ -27,8 +27,8 @@ property_names = ['subclass of', 'significant drug interaction', 'instance of', 
 prop_to_name = dict(zip(properties, property_names))
 name_to_prop = dict(zip(property_names, properties))
 
-user = ''
-pwd = ''
+user = 'ProteinBoxBot'
+pwd = 'sNxvAlNtjQ24'
 
 login_obj = WDLogin(user=user, pwd=pwd, server='www.wikidata.org')
 
@@ -37,20 +37,33 @@ drug_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, engine='c',
                                                                                         'ChEMBL': object
                                                                                         })
 
-drugs = ['Lepirudin', 'Tenecteplase']
+# drugs = ['Lepirudin', 'Tenecteplase']
+#
+# drugs.extend([
+#     'Ipilimumab',
+#     'Atovaquone',
+#     'Dolutegravir',
+#     'Phenacetin',
+#     'Spironolactone',
+#     'Metformin',
+#     'Oseltamivir',
+#     'Rosuvastatin',
+#     'Clavulanate',
+#     'Naloxone'
+# ])
 
-drugs.extend([
-    'Ipilimumab',
-    'Atovaquone',
-    'Dolutegravir',
-    'Phenacetin',
-    'Spironolactone',
-    'Metformin',
-    'Oseltamivir',
-    'Rosuvastatin',
-    'Clavulanate',
-    'Naloxone'
-])
+drugs = [
+    'Menotropins', # 416821
+    'Pipobroman', # Q15366704
+    'Mesalazine', # Q412479
+    'Guanadrel', # Q5613557
+    'Urofollitropin', # Q4006490
+    'Natalizumab', # Q386119
+    'Ampicillin', # Q244150
+    'Famciclovir',# Q420186
+    'L-Carnitine', # Q20735709
+    'Mitotane' # Q417465
+]
 
 drug_data = drug_data.loc[drug_data['Name'].map(lambda x: x in drugs), :]
 
@@ -98,6 +111,9 @@ for count in drug_data.index:
             data.update({
                 'P267': drug_data.loc[count, 'ATC code'].split(';')
             })
+            references.update({
+                'P267': [copy.deepcopy(base_ref) for x in data['P267']]
+            })
 
         # add PubChem ref for PubChem CID
         if 'P662' in references:
@@ -116,7 +132,7 @@ for count in drug_data.index:
         label = drug_data.loc[count, 'Name']
         domain = 'drugs'
 
-        # If in aliases list, remove the label
+        # If label in aliases list, remove the label from it
         if pd.notnull(drug_data.loc[count, 'Aliases']):
             aliases = drug_data.loc[count, 'Aliases'].split(';')
             for i in aliases:
@@ -128,7 +144,8 @@ for count in drug_data.index:
         pprint.pprint(data)
         pprint.pprint(references)
 
-        wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data, server='www.wikidata.org', references=references)
+        wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data,
+                                        server='www.wikidata.org', references=references)
 
         wd_item.set_description(description='pharmaceutical drug', lang='en')
         wd_item.set_label(label=label, lang='en')
