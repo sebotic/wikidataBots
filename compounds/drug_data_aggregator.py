@@ -14,9 +14,12 @@ import requests
 import zipfile
 import simplejson
 
+import pprint
 
 class DrugDataAggregator(object):
-    def __init__(self):
+    def __init__(self, aggregate=True):
+        # append to an existing .csv file
+        self.append = aggregate
 
         drugbank_headers = [
             'Drugbank ID', 'Name', 'Secondary ID',
@@ -25,14 +28,11 @@ class DrugDataAggregator(object):
             'National Drug Code Directory', 'PharmGKB', 'UniProtKB',
             'Wikipedia', 'ChEMBL', 'ChEBI',
             'InChI', 'InChIKey', 'SMILES', 'Molecular Formula', 'Guide to Pharmacology', 'Aliases', 'WHO INN',
-            'ATC code', 'NDF-RT NUI', 'UNII', 'PubChem ID (CID)', 'MeSH ID'
+            'ATC code', 'NDF-RT NUI', 'UNII', 'PubChem ID (CID)', 'MeSH ID', 'ChemSpider'
         ]
 
-        # append tells the program to append to an existing .csv file
-        self.append = True
-
-        if not os.path.exists('./drubank_data'):
-            os.makedirs('./drubank_data')
+        if not os.path.exists('./drugbank_data'):
+            os.makedirs('./drugbank_data')
 
         # check if an appropriate CSV file exists or create new file
         if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml') and self.append:
@@ -172,7 +172,7 @@ class DrugDataAggregator(object):
                                                     .format(inchi_key))
                     if len(pubchem_reply) > 0:
                         for key, value in pubchem_reply['inchikey/{}'.format(inchi_key)].items():
-                            print(key, value)
+                            # print(key, value)
                             if key == u'http://semanticscience.org/resource/is-attribute-of':
                                 cid = value[0]['value'][12:]
                                 print('cid:', cid)
@@ -207,32 +207,40 @@ class DrugDataAggregator(object):
         for count in self.drugbank_data.index:
             if pd.notnull(self.drugbank_data.loc[count, 'ChEMBL']) and self.append:
                 print('Skipping as already in table:', self.drugbank_data.loc[count, 'Name'])
-                count += 1
+                # count += 1
                 continue
 
             inchi_key = self.drugbank_data.loc[count, 'InChIKey']
 
+            rest_result = {}
             if pd.notnull(self.drugbank_data.loc[count, 'InChIKey']):
                 rest_result = self.rest_query('https://www.ebi.ac.uk/chembl/api/data/molecule/{}{}'
                                               .format(inchi_key[9:], '.json'))
-            else:
+
+            if len(rest_result) == 0 or pd.isnull(self.drugbank_data.loc[count, 'InChIKey']):
+                print(rest_result)
                 params = {
                     'pref_name__exact': self.drugbank_data.loc[count, 'Name'].upper()
                 }
                 rest_result = self.rest_query('https://www.ebi.ac.uk/chembl/api/data/molecule.json', params=params)
 
             if 'molecules' in rest_result:
-                if len(rest_result['molecules']):
+                if len(rest_result['molecules']) > 0:
                     rest_result = rest_result['molecules'][0]
                 else:
                     continue
-            # elif 'molecule_chembl_id' in rest_result:
-            #     pass
             elif len(rest_result) == 0:
                 continue
 
             self.drugbank_data.loc[count, 'ChEMBL'] = rest_result['molecule_chembl_id']
             print(self.drugbank_data.loc[count, 'ChEMBL'])
+
+            struct_map = {'standard_inchi': 'InChI', 'standard_inchi_key': 'InChIKey', 'canonical_smiles': 'SMILES'}
+
+            if rest_result['molecule_structures'] is not None:
+                for struct, value in rest_result['molecule_structures'].items():
+                    if struct in struct_map:
+                        self.drugbank_data.loc[count, struct_map[struct]] = value
 
             aliases = set()
             if pd.notnull(self.drugbank_data.loc[count, 'Aliases']):
@@ -247,8 +255,44 @@ class DrugDataAggregator(object):
 
             self.drugbank_data.loc[count, 'Aliases'] = ';'.join(aliases)
 
-            self.drugbank_data.loc[count, 'ChEBI'] = rest_result['chebi_par_id']
+            # query unichem for chemspider, KEGG, IUPHAR identifiers
+            if pd.notnull(self.drugbank_data.loc[count, 'InChIKey']):
+                headers = {'accept': 'text/json'}
+                url = 'https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/{}'.format(self.drugbank_data.loc[count, 'InChIKey'])
+                rest_result = self.rest_query(url=url, headers=headers)
 
+                if len(rest_result) > 0 and 'error' not in rest_result:
+                    id_map = {
+                        'Guide to Pharmacology': 'Guide to Pharmacology',
+                        'KEGG Ligand': 'KEGG Drug',
+                        'ChEBI': 'ChEBI',
+                        'PubChem': 'PubChem ID (CID)'
+                    }
+
+                    for unichem_id in rest_result:
+                        if unichem_id['name_label'] in id_map:
+                            self.drugbank_data.loc[count, id_map[unichem_id['name_label']]] = unichem_id['src_compound_id'][0]
+
+                # query ChemSpider
+                if 'ChemSpider' not in self.drugbank_data.columns:
+                    self.drugbank_data['ChemSpider'] = pd.Series(index=self.drugbank_data.index)
+
+                params = {
+                    'inchi_key': self.drugbank_data.loc[count, 'InChIKey']
+                }
+                try:
+                    reply = requests.get('http://www.chemspider.com/InChI.asmx/InChIKeyToCSID', params=params)
+                    if reply.status_code != 200 or len(reply.text) == 0:
+                        continue
+                except requests.HTTPError as e:
+                    print(e)
+                    continue
+
+                for e in ET.fromstring(reply.text).iter():
+                    if e.tag == '{http://www.chemspider.com/}string':
+                        self.drugbank_data.loc[count, 'ChemSpider'] = e.text
+
+                print('ChemSpider:', self.drugbank_data.loc[count, 'ChemSpider'])
             if count % 100 == 0:
                 self.drugbank_data.to_csv('./drugbank_data/drugbank.csv', index=True, encoding='utf-8', header=True)
                 print('count:', count)
@@ -273,7 +317,7 @@ class DrugDataAggregator(object):
         return formula_string
 
     @staticmethod
-    def rest_query(url, params=dict()):
+    def rest_query(url, params=dict(), headers={}):
         """
         Executes a query to a REST API and returns the result
         :param url: A URL to the REST service
@@ -284,12 +328,14 @@ class DrugDataAggregator(object):
         """
         # the accept header is required for the PubChem RDF REST API,
         # otherwise an internal server error will be triggered (HTTP response code 500)!!!
-        headers = {'accept': 'text/html,text/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'}
+        hd = {'accept': 'text/html,text/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'}
+        if len(hd) > 0:
+            hd.update(headers)
 
         try:
-            reply = requests.get(url, params=params, headers=headers)
-            print(reply.url)
-            print(reply.status_code)
+            reply = requests.get(url, params=params, headers=hd)
+            # print(reply.url)
+            # print(reply.status_code)
 
             if reply.status_code == 404:
                 return {}
