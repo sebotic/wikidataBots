@@ -19,10 +19,10 @@ properties = ['P279', 'P769', 'P31', 'P636', 'P267', 'P231', 'P486', 'P672', 'P6
 # these property names do not match those in Wikidata!!
 property_names = ['subclass of', 'significant drug interaction', 'instance of', 'route of administration', 'ATC code',
                   'CAS number', 'MeSH ID', 'MeSH Code',
-                  'PubChem ID (CID)', 'ChemSpider ID', 'UNII', 'KEGG Drug', 'ChEBI', 'Molecular Formula', 'Drugbank ID',
+                  'PubChem ID (CID)', 'ChemSpider', 'UNII', 'KEGG Drug', 'ChEBI', 'Molecular Formula', 'Drugbank ID',
                   'Freebase identifier', 'ChEMBL',
                   'SMILES', 'InChI', 'InChIKey', 'image', 'Commons category',
-                  'Word Health Organisation International Nonproprietary Name', 'RTECS Number']
+                  'WHO INN', 'RTECS Number']
 
 prop_to_name = dict(zip(properties, property_names))
 name_to_prop = dict(zip(property_names, properties))
@@ -34,25 +34,26 @@ login_obj = WDLogin(user=user, pwd=pwd, server='www.wikidata.org')
 
 drug_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, engine='c', dtype={'PubChem ID (CID)': np.str,
                                                                                         'ChEBI': str,
-                                                                                        'ChEMBL': object
+                                                                                        'ChEMBL': object,
+                                                                                        'ChemSpider': object
                                                                                         })
 
-# drugs = ['Lepirudin', 'Tenecteplase']
-#
-# drugs.extend([
-#     'Ipilimumab',
-#     'Atovaquone',
-#     'Dolutegravir',
-#     'Phenacetin',
-#     'Spironolactone',
-#     'Metformin',
-#     'Oseltamivir',
-#     'Rosuvastatin',
-#     'Clavulanate',
-#     'Naloxone'
-# ])
+drugs = ['Lepirudin', 'Tenecteplase']
 
-drugs = [
+drugs.extend([
+    'Ipilimumab',
+    'Atovaquone',
+    'Dolutegravir',
+    'Phenacetin',
+    'Spironolactone',
+    'Metformin',
+    'Oseltamivir',
+    'Rosuvastatin',
+    'Clavulanate',
+    'Naloxone'
+])
+
+drugs.extend([
     'Menotropins', # 416821
     'Pipobroman', # Q15366704
     'Mesalazine', # Q412479
@@ -63,7 +64,7 @@ drugs = [
     'Famciclovir',# Q420186
     'L-Carnitine', # Q20735709
     'Mitotane' # Q417465
-]
+])
 
 drug_data = drug_data.loc[drug_data['Name'].map(lambda x: x in drugs), :]
 
@@ -139,6 +140,12 @@ for count in drug_data.index:
                 if i == label or i == label.lower():
                     aliases.remove(i)
 
+        data.update({'P1805': []})
+        references['P1805'] = [{
+            'ref_properties': ['P248'],
+            'ref_values': ['Q278487']
+        }]
+
         start = time.time()
 
         pprint.pprint(data)
@@ -155,7 +162,7 @@ for count in drug_data.index:
 
         pprint.pprint(wd_item.get_wd_json_representation())
 
-        wd_item.write(login_obj)
+        # wd_item.write(login_obj)
 
         end = time.time()
         print('Time elapsed:', end - start)
