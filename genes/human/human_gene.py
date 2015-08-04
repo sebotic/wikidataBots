@@ -37,7 +37,7 @@ import urllib
 import urllib3
 import certifi
 import copy
-
+import traceback
 import sys
 import mygene_info_settings
 
@@ -67,26 +67,38 @@ class human_genome():
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
             
         for gene in self.genes:
-            if str(gene["entrezgene"]) in entrezWikidataIds.keys():
-               gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
-            else:
-               gene["wdid"] = None 
-            gene["logincreds"] = self.logincreds
-            geneClass = human_gene(gene)
-            if str(geneClass.entrezgene) in entrezWikidataIds.keys():
-                geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
-                print geneClass.wdid
-            else: 
-                geneClass.wdid = None 
-            if geneClass.wdid != None:
-                print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
-                PBB_Debug.prettyPrint(geneClass.wd_json_representation)
-                print "adding "+str(geneClass.entrezgene) + " as statement" 
-                counter = counter +1
-                if counter == 100:
-                    self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-            else:
-                print str(geneClass.entrezgene) + " needs to be added to Wikidata"
+          while True:
+              try:    
+                if str(gene["entrezgene"]) in entrezWikidataIds.keys():
+                   gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
+                else:
+                   gene["wdid"] = None 
+                gene["logincreds"] = self.logincreds
+                geneClass = human_gene(gene)
+                if str(geneClass.entrezgene) in entrezWikidataIds.keys():
+                    geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
+                    print geneClass.wdid
+                else: 
+                    geneClass.wdid = None 
+                if geneClass.wdid != None:
+                    print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
+                    print "adding "+str(geneClass.entrezgene) + " as statement" 
+                    counter = counter +1
+                    if counter == 100:
+                        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+                else:
+                    print str(geneClass.entrezgene) + " needs to be added to Wikidata"
+                    
+              except:
+                  print "There has been an except"
+                  print "Unexpected error:", sys.exc_info()[0]
+                  traceback.print_exc(file=sys.stdout)
+                  sys.exit()
+                  f = open('/tmp/exceptions.txt', 'a')
+                  f.write("Unexpected error:", sys.exc_info()[0]+'\n')
+                  f.close()
+                  continue
+              break
 
     def download_human_genes(self):
         """
@@ -179,9 +191,24 @@ class human_gene(object):
         
         # type of Gene
         if "type_of_gene" in gene_annotations:
+            f = open('/tmp/geneType.txt', 'a')
             self.type_of_gene = []
+            f.write(gene_annotations["type_of_gene"]+"\n")
+            f.close()
             if gene_annotations["type_of_gene"]=="ncRNA":
-                self.type_of_gene.append("Q427087")
+                self.type_of_gene.append("427087")
+            if gene_annotations["type_of_gene"]=="snRNA":
+                self.type_of_gene.append("284578") 
+            if gene_annotations["type_of_gene"]=="snoRNA":
+                self.type_of_gene.append("284416")
+            if gene_annotations["type_of_gene"]=="rRNA":
+                self.type_of_gene.append("215980")
+            if gene_annotations["type_of_gene"]=="tRNA":
+                self.type_of_gene.append("201448")
+            if gene_annotations["type_of_gene"]=="pseudo":
+                self.type_of_gene.append("277338") 
+            if gene_annotations["type_of_gene"]=="protein-coding":
+                self.type_of_gene.append("20747295")                          
         else:
             self.type_of_gene = None
         # Reference section           
@@ -192,7 +219,6 @@ class human_gene(object):
                    
         references = dict()
         
-
         data2add = dict()
         data2add["P279"] = ["7187"]
         references['P279'] = [copy.deepcopy(gene_reference)]
@@ -204,11 +230,12 @@ class human_gene(object):
         references['P353'] = [copy.deepcopy(gene_reference)]
         # references['P353'] = gene_reference
         
-        '''if "type_of_gene" in vars["self"]:
+        if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
-                data2add["P279"]
-                '''
-        
+                for i in range(len(self.type_of_gene)):
+                    data2add["P279"].append(self.type_of_gene[i])
+                    references['P279'].append(copy.deepcopy(gene_reference))
+                    
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
                 data2add["P594"] = self.ensembl_gene
@@ -239,9 +266,6 @@ class human_gene(object):
                 references['P639'] = []
                 for i in range(len(self.refseq_rna)):
                     references['P639'].append(copy.deepcopy(gene_reference))
-                else:
-                    data2add['P639'] = []
-                    references['P639'] = []
         if "genomic_pos" in object:
             if (isinstance(object["genomic_pos"], list)):
                chromosome = object["genomic_pos"][0]["chr"]
@@ -263,8 +287,22 @@ class human_gene(object):
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             wdPage.write(self.logincreds)
+        else:
+            for key in data2add.keys():
+                if len(data2add[key]) == 0:
+                    data2add.pop(key, None)
+            for key in references.keys():
+                if len(references[key]) == 0:
+                    references.pop(key, None)
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", references=references)
+            self.wd_json_representation = wdPage.get_wd_json_representation() 
+            PBB_Debug.prettyPrint(self.wd_json_representation)
+            PBB_Debug.prettyPrint(data2add)
+            wdPage.write(self.logincreds)
+          
             #PBB_Debug.prettyPrint(self.wd_json_representation)
-            #sys.exit()
+            # sys.exit()
+        
         # print "References: "
         # print references
                
