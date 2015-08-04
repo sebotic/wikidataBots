@@ -32,11 +32,12 @@ class DrugBot(object):
 
         login_obj = WDLogin(user=user, pwd=pwd, server='www.wikidata.org')
 
-        drug_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, engine='c', dtype={'PubChem ID (CID)': np.str,
-                                                                                                'ChEBI': str,
-                                                                                                'ChEMBL': object,
-                                                                                                'ChemSpider': object
-                                                                                                })
+        drug_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, engine='c', encoding='utf-8',
+                                dtype={'PubChem ID (CID)': np.str,
+                                       'ChEBI': str,
+                                       'ChEMBL': object,
+                                       'ChemSpider': object
+                                       })
 
         # drugs = ['Lepirudin', 'Tenecteplase']
         #

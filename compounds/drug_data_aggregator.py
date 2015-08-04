@@ -36,10 +36,11 @@ class DrugDataAggregator(object):
 
         # check if an appropriate CSV file exists or create new file
         if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml') and self.append:
-            self.drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, dtype={'PubChem ID (CID)': str,
-                                                                                                 'ChEBI': str,
-                                                                                                 'ChEMBL': str
-                                                                                                 })
+            self.drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, encoding='utf-8',
+                                             dtype={'PubChem ID (CID)': str,
+                                                    'ChEBI': str,
+                                                    'ChEMBL': str
+                                                    })
 
             self.drugbank_data['PubChem ID (CID)'] = self.drugbank_data.loc[self.drugbank_data['PubChem ID (CID)'].map(
                 lambda x: pd.notnull(x)), 'PubChem ID (CID)'].map(lambda x: x.split('.')[0])
