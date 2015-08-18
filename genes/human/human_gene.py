@@ -41,6 +41,8 @@ import traceback
 import sys
 import mygene_info_settings
 
+from raven import Client
+
 try:
     import simplejson as json
 except ImportError as e:
@@ -59,22 +61,31 @@ class human_genome():
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        
+        genesProcessedFile = open('/tmp/processedGenes.txt', 'r+')
+        genesProcessed = []
+        for g in genesProcessedFile:
+          genesProcessed.append(g.rstrip('\n'))
         entrezWikidataIds = dict()
+        secondRun = []
+        secondRunItems = open('/tmp/secondRun.txt', 'r')
+        for item in secondRunItems:
+            secondRun.append(str(item).rstrip('\n'))
         print "Getting all entrez genes in Wikidata"
         InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[351]", "351")
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
-            
+        # while True: 
         for gene in self.genes:
-          while True:
-              try:    
+          try:    
+             # if not str(gene["entrezgene"]) in genesProcessed:
+             if  str(gene["entrezgene"]) in secondRun:      
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
                    gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
                 else:
                    gene["wdid"] = None 
                 gene["logincreds"] = self.logincreds
                 geneClass = human_gene(gene)
+                genesProcessedFile.write(str(geneClass.entrezgene)+'\n')
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                     geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
                     print geneClass.wdid
@@ -88,17 +99,19 @@ class human_genome():
                         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
                 else:
                     print str(geneClass.entrezgene) + " needs to be added to Wikidata"
-                    
-              except:
-                  print "There has been an except"
-                  print "Unexpected error:", sys.exc_info()[0]
-                  traceback.print_exc(file=sys.stdout)
-                  sys.exit()
-                  f = open('/tmp/exceptions.txt', 'a')
-                  f.write("Unexpected error:", sys.exc_info()[0]+'\n')
-                  f.close()
-                  continue
-              break
+                
+          except:
+              # client = Client('http://fe8543035e154f6591e0b578faeddb07:dba0f35cfa0a4e24880557c4ba99c7c0@sentry.sulab.org/9')
+              # client.captureException()
+              print "There has been an except"
+              print "Unexpected error:", sys.exc_info()[0]
+
+              f = open('/tmp/exceptions.txt', 'a')
+              # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
+              f.write(str(gene["entrezgene"])+"\n")
+              traceback.print_exc(file=f)
+              f.close()
+              
 
     def download_human_genes(self):
         """
@@ -273,7 +286,6 @@ class human_gene(object):
             data2add['P1057'] =  chromosomes[str(chromosome)]
             references['P1057'] = gene_reference    
 
-
         if "alias" in gene_annotations.keys(): 
             self.synonyms = gene_annotations["alias"]
         else:
@@ -299,7 +311,7 @@ class human_gene(object):
             PBB_Debug.prettyPrint(self.wd_json_representation)
             PBB_Debug.prettyPrint(data2add)
             wdPage.write(self.logincreds)
-          
+         
             #PBB_Debug.prettyPrint(self.wd_json_representation)
             # sys.exit()
         
