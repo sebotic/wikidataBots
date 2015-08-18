@@ -7,6 +7,7 @@ __licence__ = 'GPLv3'
 import os
 import time
 import copy
+import logging
 import pandas as pd
 import numpy as np
 
@@ -40,11 +41,11 @@ class DrugBot(object):
                                        'Guide to Pharmacology': np.str
                                        })
 
-        log_file_col_names = ['Drugbank ID', 'time', 'Exception type', 'message' 'WD QID', 'duration']
-        self.logfile = pd.DataFrame(columns=log_file_col_names, dtype=object)
-
-        if not os.path.exists('./logs'):
-            os.makedirs('./logs')
+        # log_file_col_names = ['Drugbank ID', 'time', 'Exception type', 'message' 'WD QID', 'duration']
+        # self.logfile = pd.DataFrame(columns=log_file_col_names, dtype=object)
+        #
+        # if not os.path.exists('./logs'):
+        #     os.makedirs('./logs')
 
         print(drug_data.dtypes)
 
@@ -88,6 +89,7 @@ class DrugBot(object):
                         references.update({name_to_prop[col]: [copy.deepcopy(base_ref)]})
 
                 # add instances of (P31) of chemical compound (Q11173) and pharmaceutical drug (Q12140)
+                # TODO: add Biologic medical product (Q679692) and  monoclonal antibodies (Q422248) as instances
                 data.update({
                     'P31': ['Q11173', 'Q12140']
                 })
@@ -121,11 +123,12 @@ class DrugBot(object):
                 label = drug_data.loc[count, 'Name']
                 domain = 'drugs'
 
-                # If label in aliases list, remove the label from it
+                # If label in aliases list, remove the label from it. If an alias is longer than 250 chars, also remove
+                # Aliases longer than 250 characters will trigger an WD API error.
                 if pd.notnull(drug_data.loc[count, 'Aliases']):
                     aliases = drug_data.loc[count, 'Aliases'].split(';')
                     for i in aliases:
-                        if i == label or i == label.lower():
+                        if i == label or i == label.lower() or len(i) > 250:
                             aliases.remove(i)
 
                 start = time.time()
@@ -154,36 +157,26 @@ class DrugBot(object):
 
                     new_mgs = ''
                     if wd_item.create_new_item:
-                        new_mgs = 'New item'
+                        new_mgs = ': New item'
 
-                    self.log_event(drugbank=drug_data['Drugbank ID'].at[count], exception_type='',
-                                   message='success, {}'.format(new_mgs), wd_id=wd_item.wd_item_id, duration=time.time() - start)
+                    PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=drug_data['Drugbank ID'].at[count],
+                        exception_type='',
+                        message='success{}'.format(new_mgs),
+                        wd_id=wd_item.wd_item_id,
+                        duration=time.time() - start
+                    ))
 
                 except Exception as e:
                     print(e)
-                    self.log_event(drugbank=drug_data['Drugbank ID'].at[count], exception_type=type(e),
-                                   message=e.__str__(), wd_id='', duration=time.time() - start)
+
+                    PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=drug_data['Drugbank ID'].at[count],
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='',
+                        duration=time.time() - start
+                    ))
 
                 end = time.time()
                 print('Time elapsed:', end - start)
-
-                # if count > 160:
-                #     break
-
-        self.logfile.to_csv('./logs/drug_bot_log-{}.csv'.format(time.strftime('%Y-%m-%d, %H:%M', time.localtime())),
-                            index=True, encoding='utf-8', header=True)
-
-        # delete temporary log file
-        if os.path.isfile('./logs/drug_bot_log-TMP.csv'):
-            os.remove('./logs/drug_bot_log-TMP.csv')
-
-    def log_event(self, drugbank, exception_type, message, wd_id, duration):
-        row_index = len(self.logfile.index) + 1
-        self.logfile.loc[row_index, 'Drugbank ID'] = drugbank
-        self.logfile.loc[row_index, 'time'] = time.strftime('%Y-%m-%d, %H:%M', time.localtime())
-        self.logfile.loc[row_index, 'Exception type'] = exception_type
-        self.logfile.loc[row_index, 'message'] = message
-        self.logfile.loc[row_index, 'WD QID'] = wd_id
-        self.logfile.loc[row_index, 'duration'] = duration
-
-        self.logfile.to_csv('./logs/drug_bot_log-TMP.csv', index=True, encoding='utf-8', header=True)
