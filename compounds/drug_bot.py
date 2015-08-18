@@ -4,7 +4,7 @@
 __author__ = 'Sebastian Burgstaller'
 __licence__ = 'GPLv3'
 
-import pprint
+import os
 import time
 import copy
 import pandas as pd
@@ -34,40 +34,19 @@ class DrugBot(object):
 
         drug_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, engine='c', encoding='utf-8',
                                 dtype={'PubChem ID (CID)': np.str,
-                                       'ChEBI': str,
-                                       'ChEMBL': object,
-                                       'ChemSpider': object
+                                       'ChEBI': np.str,
+                                       'ChEMBL': np.str,
+                                       'ChemSpider': np.str,
+                                       'Guide to Pharmacology': np.str
                                        })
 
-        # drugs = ['Lepirudin', 'Tenecteplase']
-        #
-        # drugs.extend([
-        #     'Ipilimumab',
-        #     'Atovaquone',
-        #     'Dolutegravir',
-        #     'Phenacetin',
-        #     'Spironolactone',
-        #     'Metformin',
-        #     'Oseltamivir',
-        #     'Rosuvastatin',
-        #     'Clavulanate',
-        #     'Naloxone'
-        # ])
-        #
-        # drugs.extend([
-        #     'Menotropins', # 416821
-        #     'Pipobroman', # Q15366704
-        #     'Mesalazine', # Q412479
-        #     'Guanadrel', # Q5613557
-        #     'Urofollitropin', # Q4006490
-        #     'Natalizumab', # Q386119
-        #     'Ampicillin', # Q244150
-        #     'Famciclovir',# Q420186
-        #     'L-Carnitine', # Q20735709
-        #     'Mitotane' # Q417465
-        # ])
-        #
-        # drug_data = drug_data.loc[drug_data['Name'].map(lambda x: x in drugs), :]
+        log_file_col_names = ['Drugbank ID', 'time', 'Exception type', 'message' 'WD QID', 'duration']
+        self.logfile = pd.DataFrame(columns=log_file_col_names, dtype=object)
+
+        if not os.path.exists('./logs'):
+            os.makedirs('./logs')
+
+        print(drug_data.dtypes)
 
         base_ref = {
             'ref_properties': ['P248'],
@@ -77,8 +56,10 @@ class DrugBot(object):
         # remove potential 'InChI=' and 'InChIKey=' prefixes
         for i in drug_data['InChI'].index:
             if pd.notnull(drug_data['InChI'].at[i]):
-                drug_data['InChI'].at[i] = drug_data['InChI'].at[i][6:]
-                drug_data['InChIKey'].at[i] = drug_data['InChIKey'].at[i][9:]
+                if 'InChI=' in drug_data['InChI'].at[i]:
+                    drug_data['InChI'].at[i] = drug_data['InChI'].at[i][6:]
+                if 'InChIKey=' in drug_data['InChIKey'].at[i]:
+                    drug_data['InChIKey'].at[i] = drug_data['InChIKey'].at[i][9:]
 
         # remove DB prefix from Drugbank ID (should be corrected in the Wikidata property)
         for i in drug_data['Drugbank ID'].index:
@@ -96,7 +77,10 @@ class DrugBot(object):
                 for col in drug_data.columns.values:
                     data_value = drug_data.loc[count, col]
 
-                    if pd.isnull(data_value):
+                    # no values and values greater than 400 chars should not be added to wikidata.
+                    if pd.isnull(data_value) or col not in name_to_prop:
+                        continue
+                    elif len(data_value) > 400:
                         continue
 
                     if col in property_names:
@@ -107,6 +91,9 @@ class DrugBot(object):
                 data.update({
                     'P31': ['Q11173', 'Q12140']
                 })
+
+                # for instance of, do not overwrite what other users have put there
+                append_value = ['P31']
 
                 # split the ATC code values present as one string in the csv file
                 if 'P267' in data:
@@ -143,24 +130,60 @@ class DrugBot(object):
 
                 start = time.time()
 
-                pprint.pprint(data)
-                pprint.pprint(references)
+                # pprint.pprint(data)
+                # pprint.pprint(references)
+                print('Drug name:', label)
+                try:
 
-                wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data,
-                                                server='www.wikidata.org', references=references)
+                    wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data, server='www.wikidata.org',
+                                                    append_value=append_value, references=references)
 
-                wd_item.set_description(description='pharmaceutical drug', lang='en')
-                wd_item.set_label(label=label, lang='en')
+                    # overwrite only certain descriptions
+                    descriptions_to_overwrite = {'chemical compound', 'chemical substance', ''}
+                    if wd_item.get_description() in descriptions_to_overwrite:
+                        wd_item.set_description(description='pharmaceutical drug', lang='en')
 
-                if pd.notnull(drug_data.loc[count, 'Aliases']):
-                    wd_item.set_aliases(aliases=aliases, lang='en', append=True)
+                    wd_item.set_label(label=label, lang='en')
 
-                pprint.pprint(wd_item.get_wd_json_representation())
+                    if pd.notnull(drug_data.loc[count, 'Aliases']):
+                        wd_item.set_aliases(aliases=aliases, lang='en', append=True)
 
-                # wd_item.write(login_obj)
+                    # pprint.pprint(wd_item.get_wd_json_representation())
+
+                    wd_item.write(login_obj)
+
+                    new_mgs = ''
+                    if wd_item.create_new_item:
+                        new_mgs = 'New item'
+
+                    self.log_event(drugbank=drug_data['Drugbank ID'].at[count], exception_type='',
+                                   message='success, {}'.format(new_mgs), wd_id=wd_item.wd_item_id, duration=time.time() - start)
+
+                except Exception as e:
+                    print(e)
+                    self.log_event(drugbank=drug_data['Drugbank ID'].at[count], exception_type=type(e),
+                                   message=e.__str__(), wd_id='', duration=time.time() - start)
 
                 end = time.time()
                 print('Time elapsed:', end - start)
 
-                # if count == 0:
+                # if count > 160:
                 #     break
+
+        self.logfile.to_csv('./logs/drug_bot_log-{}.csv'.format(time.strftime('%Y-%m-%d, %H:%M', time.localtime())),
+                            index=True, encoding='utf-8', header=True)
+
+        # delete temporary log file
+        if os.path.isfile('./logs/drug_bot_log-TMP.csv'):
+            os.remove('./logs/drug_bot_log-TMP.csv')
+
+    def log_event(self, drugbank, exception_type, message, wd_id, duration):
+        row_index = len(self.logfile.index) + 1
+        self.logfile.loc[row_index, 'Drugbank ID'] = drugbank
+        self.logfile.loc[row_index, 'time'] = time.strftime('%Y-%m-%d, %H:%M', time.localtime())
+        self.logfile.loc[row_index, 'Exception type'] = exception_type
+        self.logfile.loc[row_index, 'message'] = message
+        self.logfile.loc[row_index, 'WD QID'] = wd_id
+        self.logfile.loc[row_index, 'duration'] = duration
+
+        self.logfile.to_csv('./logs/drug_bot_log-TMP.csv', index=True, encoding='utf-8', header=True)
