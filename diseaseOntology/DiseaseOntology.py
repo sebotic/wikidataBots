@@ -42,6 +42,7 @@ except ImportError as e:
 import PBB_login
 import PBB_settings
 import copy
+import traceback
 
 class diseaseOntology():
     def __init__(self):      
@@ -53,37 +54,44 @@ class diseaseOntology():
         # updateDiseaseOntologyVersionInWD()
         self.updateDiseaseOntologyVersion()
         print self.doVersionID
+
         # Get all WikiData entries that contain a WikiData ID
         print "Getting all terms with a Disease Ontology ID in WikiData"
         doWikiData_id = dict()
         DoInWikiData = PBB_Core.WDItemList("CLAIM[699]", "699")
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        # PBB_Debug.prettyPrint(DoInWikiData.wditems)
+
         for diseaseItem in DoInWikiData.wditems["props"]["699"]:
-           print diseaseItem[2]
-           doWikiData_id["DOID:"+str(diseaseItem[2])]=diseaseItem[0] # TODO: rm DOID: once prefix issue in wikidta is fixed
- 
-        for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()): 
+           #print diseaseItem[2]
+           doWikiData_id[str(diseaseItem[2])]=diseaseItem[0] # diseaseItem[2] = DO identifier, diseaseItem[0] = WD identifier
+       
+        for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
+          try:      
             disVars = []
             disVars.append(doClass)
             disVars.append(self.doVersionID)
             disVars.append(doWikiData_id)
             disVars.append(self.logincreds)
+            disVars.append(doWikiData_id)
             
             diseaseClass = disease(disVars)          
             
-            print diseaseClass.do_id
+            print "do_id: "+diseaseClass.do_id
             print diseaseClass.wdid
             print diseaseClass.name
             print diseaseClass.synonyms
             print diseaseClass.xrefs
-            
             counter = counter +1
-            if counter == 100:
-               sys.exit()
-        
-        
-    
+          except:
+              print "There has been an except"
+              print "Unexpected error:", sys.exc_info()[0]
+
+              f = open('/tmp/Diseaseexceptions.txt', 'a')
+              # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
+              # f.write(diseaseClass.do_id+"\n")
+              traceback.print_exc(file=f)
+              f.close()
+
     def download_disease_ontology(self):
         """
         Downloads the latest version of disease ontology from the URL specified in DiseaseOntology_settings
@@ -230,7 +238,7 @@ class diseaseOntology():
         }
         data = requests.get(url, params=params)
         reply = json.loads(data.text, "utf-8")     
-        PBB_Debug.prettyPrint(reply)
+        #PBB_Debug.prettyPrint(reply)
         self.doVersionID = None
         if len(reply['search']) == 0:
                 login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
@@ -281,24 +289,39 @@ class  disease(object):
         doVersionID = object[1]
         doClass = object[0]         
         self.logincreds = object[3]
+        self.wd_doMappings = object[4]
         
         self.wd_do_content = doClass
+        PBB_Debug.prettyPrint(self.wd_do_content)
         self.do_id = self.getDoValue(self.wd_do_content, './/oboInOwl:id')[0].text
         self.name = self.getDoValue(self.wd_do_content, './/rdfs:label')[0].text
-        self.synonyms = []
+        classDescription = self.getDoValue(self.wd_do_content, './/oboInOwl:hasDefinition/oboInOwl:Definition/rdfs:label')
+        if len(classDescription)>0:
+            self.description = classDescription[0].text
+
         
         if self.do_id in object[2].keys():
             self.wdid = "Q"+str(object[2][self.do_id])
         else:
             self.wdid = None
+            
+        self.synonyms = []
         for synonym in self.getDoValue(self.wd_do_content, './/oboInOwl:hasExactSynonym'):
             self.synonyms.append(synonym.text)
+        
+        self.subclasses = []
+        for subclass in self.getDoValue(self.wd_do_content, './/rdfs:subClassOf'):
+            parts = subclass.get('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource').split("DOID_")
+            print parts[1]
+            if len(parts)>1:
+                self.subclasses.append("DOID:"+parts[1])
+        
         self.xrefs = dict()
         for xref in self.getDoValue(self.wd_do_content, './/oboInOwl:hasDbXref'):
+            print xref.text
             if not xref.text.split(":")[0] in self.xrefs.keys():
                 self.xrefs[xref.text.split(":")[0]] = []
             self.xrefs[xref.text.split(":")[0]].append(xref.text.split(":")[1])
-            
         do_reference = {
                     'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
                     'ref_values': [doVersionID, u'Q5282129' , 'TIMESTAMP']
@@ -308,6 +331,11 @@ class  disease(object):
         # Subclass of disease
         data2add["P279"] = ["12136"]
         references['P279'] = [copy.deepcopy(do_reference)]
+        
+        for subclass in self.subclasses:
+            if subclass in self.wd_doMappings.keys():
+                data2add["P279"].append(str(self.wd_doMappings[subclass]))
+                references["P279"].append(copy.deepcopy(do_reference))
         #disease Ontology
         data2add["P699"] = [self.do_id]
         references["P699"] = [copy.deepcopy(do_reference)]
@@ -371,7 +399,7 @@ class  disease(object):
                 references["P492"] = []
             for item in data2add['P492']:
                 references["P492"].append(copy.deepcopy(do_reference))
-            
+        print self.wdid
         if self.wdid != None: 
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", references=references)
             print self.wdid
@@ -383,4 +411,6 @@ class  disease(object):
         
     def getDoValue(self, doClass, doNode):
         return doClass.findall(doNode, DiseaseOntology_settings.getDoNameSpaces())
+        
+     
                 
