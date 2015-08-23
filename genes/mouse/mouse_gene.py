@@ -49,42 +49,39 @@ except ImportError as e:
     import json
     
 """
-This is the human-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
-human gene and known external identifiers.
+This is the mouse-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
+mouse gene and known external identifiers.
   
 """
     
-class human_genome():
+class mouse_genome():
     def __init__(self):
         counter = 0
-        self.content = json.loads(self.download_human_genes())
+        self.content = json.loads(self.download_mouse_genes())
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        genesProcessedFile = open('/tmp/processedGenes.txt', 'r+')
+        genesProcessedFile = open('/tmp/processedMouseGenes.txt', 'r+')
         genesProcessed = []
         for g in genesProcessedFile:
           genesProcessed.append(g.rstrip('\n'))
         entrezWikidataIds = dict()
-        secondRun = []
-        secondRunItems = open('/tmp/secondRun.txt', 'r')
-        for item in secondRunItems:
-            secondRun.append(str(item).rstrip('\n'))
+
         print "Getting all entrez genes in Wikidata"
-        InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[351]", "351")
+        InWikiData = PBB_Core.WDItemList("CLAIM[703:83310] AND CLAIM[351]", "351")
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
         # while True: 
         for gene in self.genes:
           try:    
              # if not str(gene["entrezgene"]) in genesProcessed:
-             if  str(gene["entrezgene"]) in secondRun:      
+             # if  str(gene["entrezgene"]) in secondRun:      
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
                    gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
                 else:
                    gene["wdid"] = None 
                 gene["logincreds"] = self.logincreds
-                geneClass = human_gene(gene)
+                geneClass = mouse_gene(gene)
                 genesProcessedFile.write(str(geneClass.entrezgene)+'\n')
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                     geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
@@ -113,16 +110,16 @@ class human_genome():
               f.close()
               
 
-    def download_human_genes(self):
+    def download_mouse_genes(self):
         """
-        Downloads the latest list of human genes from mygene.info through the URL specified in mygene_info_settings
+        Downloads the latest list of mouse genes from mygene.info through the URL specified in mygene_info_settings
         """
         # request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
-        urllib.urlretrieve (mygene_info_settings.getHumanGenesUrl(), "human_genes.json")
-        file = open("human_genes.json", 'r')
+        urllib.urlretrieve (mygene_info_settings.getHumanGenesUrl(), "mouse_genes.json")
+        file = open("mouse_genes.json", 'r')
         return file.read()
         
-class human_gene(object):
+class mouse_gene(object):
     def __init__(self, object):
         self.content = object
         self.entrezgene = object["entrezgene"]

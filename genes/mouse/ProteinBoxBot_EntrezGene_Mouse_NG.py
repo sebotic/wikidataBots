@@ -41,8 +41,8 @@ main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 try:
     print "Getting human genes from mygene.info"
-    human_genome = human_gene.human_genome()
-    print human_genome.gene_count 
+    mouse_genome = mouse_gene.mouse_genome()
+    print mouse_genome.gene_count 
     
 
     
