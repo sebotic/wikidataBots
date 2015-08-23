@@ -115,7 +115,7 @@ class mouse_genome():
         Downloads the latest list of mouse genes from mygene.info through the URL specified in mygene_info_settings
         """
         # request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
-        urllib.urlretrieve (mygene_info_settings.getHumanGenesUrl(), "mouse_genes.json")
+        urllib.urlretrieve (mygene_info_settings.getMouseGenesUrl(), "mouse_genes.json")
         file = open("mouse_genes.json", 'r')
         return file.read()
         
@@ -232,7 +232,7 @@ class mouse_gene(object):
         data2add = dict()
         data2add["P279"] = ["7187"]
         references['P279'] = [copy.deepcopy(gene_reference)]
-        data2add["P703"] = ["5"]
+        data2add["P703"] = ["83310"]
         references['P703'] = [copy.deepcopy(gene_reference)]    
         data2add['P351'] = [str(self.entrezgene)]
         references['P351'] = [copy.deepcopy(gene_reference)]
