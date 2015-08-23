@@ -224,7 +224,7 @@ class mouse_gene(object):
         # Reference section           
         gene_reference = {
                     'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
-                    'ref_values': [u'Q17939676', u'Q20641742' , 'TIMESTAMP']
+                    'ref_values': [u'Q19296499', u'Q20641742' , 'TIMESTAMP']
                 }
                    
         references = dict()
