@@ -30,7 +30,7 @@ import PBB_login
 import PBB_settings
 
 # Resource specific 
-import human_gene
+import mouse_gene
 
 from raven import Client
 import traceback
@@ -40,7 +40,7 @@ main_log = PBB_Core.BotMainLog()
 main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 try:
-    print "Getting human genes from mygene.info"
+    print "Getting mouse genes from mygene.info"
     mouse_genome = mouse_gene.mouse_genome()
     print mouse_genome.gene_count 
     
