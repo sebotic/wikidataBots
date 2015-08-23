@@ -1,6 +1,3 @@
-import pywikibot
-
-
 
 #references 
 ## databases
@@ -65,3 +62,4 @@ chromosomes['22'] = "Q753805"
 chromosomes['22'] = "Q753805"
 chromosomes['X'] = "Q61333"
 chromosomes['Y'] = "Q202771"
+chromosomes["MT"] = "Q27075"
