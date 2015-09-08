@@ -382,13 +382,13 @@ class  disease(object):
 
         if "NCI" in self.xrefs.keys():
             if isinstance(self.xrefs["NCI"], list): 
-                data2add['P1395'] = self.xrefs["NCI"]
+                data2add['P1748'] = self.xrefs["NCI"]
             else:
-                data2add['P1395'] = [self.xrefs["NCI"]]
-            if "P1395" not in references.keys():
-                references["P1395"] = []
+                data2add['P1748'] = [self.xrefs["NCI"]]
+            if "P1748" not in references.keys():
+                references["P1748"] = []
             for item in data2add['P1395']:
-                references["P1395"].append(copy.deepcopy(do_reference))
+                references["P1748"].append(copy.deepcopy(do_reference))
            
         if "OMIM" in self.xrefs.keys():
             if isinstance(self.xrefs["OMIM"], list): 
