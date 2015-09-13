@@ -49,16 +49,16 @@ try:
 except ImportError as e:
     import json
 	
-class human_proteome():
+class mouse_proteome():
     def __init__(self):
-        self.content = json.loads(self.download_human_proteins())
+        self.content = json.loads(self.download_mouse_proteins())
         # print self.content["results"]["bindings"]
         self.protein_count = len(self.content["results"]["bindings"])
         self.proteins = self.content["results"]["bindings"]
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         uniprotWikidataIds = dict()
         print "Getting all proteins with a uniprot ID in Wikidata"
-        InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[352]", "352")
+        InWikiData = PBB_Core.WDItemList("CLAIM[703:83310] AND CLAIM[352]", "352")
         for proteinItem in InWikiData.wditems["props"]["352"]:
           try:
             uniprotWikidataIds[str(proteinItem[2])] = proteinItem[0]
@@ -69,7 +69,7 @@ class human_proteome():
             protein["logincreds"] = self.logincreds
             protein["wdid"] = 'Q'+str(proteinItem[0])
             print protein
-            proteinClass = human_protein(protein)
+            proteinClass = mouse_protein(protein)
 
             
           except:
@@ -84,16 +84,16 @@ class human_proteome():
             traceback.print_exc(file=f)
             f.close()
           
-    def download_human_proteins(self):
+    def download_mouse_proteins(self):
         """
-        Downloads the latest list of human proteins from uniprot through the URL specified in mygene_info_settings
+        Downloads the latest list of mouse proteins from uniprot through the URL specified in mygene_info_settings
         """
         print "Getting content from Uniprot"
-        urllib.urlretrieve (mygene_info_settings.getUniprotUrl(), "human_proteins.json")
-        file = open("human_proteins.json", 'r')
+        urllib.urlretrieve (mygene_info_settings.getUniprotUrl(), "mouse_proteins.json")
+        file = open("mouse_proteins.json", 'r')
         return file.read()
         
-class human_protein(object):
+class mouse_protein(object):
     def __init__(self, object):
         # Uniprot
         self.logincreds = object["logincreds"]
@@ -134,7 +134,7 @@ class human_protein(object):
         references['P279'] = [copy.deepcopy(protein_reference)]
         
         # P703 = found in taxon
-        data2add["P703"] = ["5"]
+        data2add["P703"] = ["83310"]
         references['P703'] = [copy.deepcopy(protein_reference)]
         
         # P352 = UniprotID
