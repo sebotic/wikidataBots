@@ -278,9 +278,13 @@ class human_gene(object):
             references['P1057'] = gene_reference    
 
         if "alias" in gene_annotations.keys():
-            self.synonyms = []
-            for alias in gene_annotations["alias"]:
-                self.synonyms.append(alias.replace(" ", "").replace("\"" ,""))
+            if isinstance(gene_annotations["alias"], list):
+                self.synonyms = []
+                for alias in gene_annotations["alias"]:
+                    self.synonyms.append(alias)
+            else:
+               self.synonyms = [gene_annotations["alias"]]
+            print self.synonyms
         else:
             self.synonyms = None
         if self.wdid != None: 
