@@ -44,7 +44,7 @@ class EntrezGeneJson:
         elink_hit = elink_resp.json()
         elink_parsed_json = json.loads(json.dumps(elink_hit))
         return elink_parsed_json['linksets'][0]['linksetdbs'][0]['links']
-w
+
     def gene_ids_gene_data(self, elinks):
         """
         use list of gene ids from download_microbe links to query NCBI gene database using Entrez API's esummary
