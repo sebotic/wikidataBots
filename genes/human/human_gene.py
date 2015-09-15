@@ -284,6 +284,7 @@ class human_gene(object):
                     self.synonyms.append(alias)
             else:
                self.synonyms = [gene_annotations["alias"]]
+            self.synonyms.append(self.symbol)
             print self.synonyms
         else:
             self.synonyms = None
