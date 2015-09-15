@@ -281,7 +281,6 @@ class human_gene(object):
             self.synonyms = []
             for alias in gene_annotations["alias"]:
                 self.synonyms.append(alias.replace(" ", "").replace("\"" ,""))
-            self.synonyms = gene_annotations["alias"]
         else:
             self.synonyms = None
         if self.wdid != None: 
