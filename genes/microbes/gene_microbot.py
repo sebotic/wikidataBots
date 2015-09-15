@@ -10,6 +10,7 @@ import PBB_Debug
 import PBB_login
 import PBB_settings
 import PBB_Functions
+import ProteinBoxBotKnowledge
 
 
 __author__ = 'timputman'
