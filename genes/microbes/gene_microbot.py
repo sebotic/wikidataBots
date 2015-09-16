@@ -103,4 +103,3 @@ test2 = WDFormatJson(test).pull_rel_wd_data()
 
 for i in test2:
     print(i)
-
