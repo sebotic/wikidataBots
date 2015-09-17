@@ -24,11 +24,8 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 def getmyGeneInfoUrl():
     return 'http://mygene.info/v2/gene/'
     
-def getHumanGenesUrl():
-    return "http://mygene.info/v2/query?q=__all__&species=human&entrezonly=true&size=100000"
-    
-def getMouseGenesUrl():
-    return "http://mygene.info/v2/query?q=__all__&species=mouse&entrezonly=true&size=100000"
+def getGenesUrl():
+    return "http://mygene.info/v2/query?q=__all__&species={}&entrezonly=true&size=100000"
     
 def getGeneAnnotationsURL():
     return "http://mygene.info/v2/gene/"

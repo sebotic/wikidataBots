@@ -49,78 +49,71 @@ except ImportError as e:
     import json
     
 """
-This is the mouse-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
-mouse gene and known external identifiers.
+This is the human-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
+human gene and known external identifiers.
   
 """
     
-class mouse_genome():
-    def __init__(self):
+class genome(object):
+    def __init__(self, object):
         counter = 0
-        self.content = json.loads(self.download_mouse_genes())
+        self.genomeInfo = object
+        print "Getting all {} genes in Wikidata".format(self.genomeInfo["name"])
+        self.content = json.loads(self.download_genes(self.genomeInfo["name"]))
         self.gene_count = self.content["total"]
         self.genes = self.content["hits"]
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        genesProcessedFile = open('/tmp/processedMouseGenes.txt', 'r+')
-        genesProcessed = []
-        for g in genesProcessedFile:
-          genesProcessed.append(g.rstrip('\n'))
-        entrezWikidataIds = dict()
 
-        print "Getting all entrez genes in Wikidata"
-        InWikiData = PBB_Core.WDItemList("CLAIM[703:83310] AND CLAIM[351]", "351")
+        entrezWikidataIds = dict()
+        wdqQuery = "CLAIM[703:{}] AND CLAIM[351]".format(self.genomeInfo["wdid"].replace("Q", ""))
+        InWikiData = PBB_Core.WDItemList(wdqQuery, "351")
+        
+        '''
+        Below a mapping is created between entrez gene ids and wikidata identifiers.
+        '''
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
-        # while True: 
+
         for gene in self.genes:
-          try:    
-             # if not str(gene["entrezgene"]) in genesProcessed:
-             # if  str(gene["entrezgene"]) in secondRun:      
+          try:         
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
                    gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
                 else:
                    gene["wdid"] = None 
                 gene["logincreds"] = self.logincreds
-                geneClass = mouse_gene(gene)
-                genesProcessedFile.write(str(geneClass.entrezgene)+'\n')
+                gene["genomeInfo"] = self.genomeInfo
+                geneClass = mammal_gene(gene)
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                     geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
                     print geneClass.wdid
                 else: 
                     geneClass.wdid = None 
-                if geneClass.wdid != None:
-                    print geneClass.wdid + " will be updated as Entrez "+ str(geneClass.entrezgene)
-                    print "adding "+str(geneClass.entrezgene) + " as statement" 
-                    counter = counter +1
-                    if counter == 100:
-                        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-                else:
-                    print str(geneClass.entrezgene) + " needs to be added to Wikidata"
+                counter = counter +1
+                if counter == 100:
+                    self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+
                 
           except:
-              # client = Client('http://fe8543035e154f6591e0b578faeddb07:dba0f35cfa0a4e24880557c4ba99c7c0@sentry.sulab.org/9')
-              # client.captureException()
               print "There has been an except"
               print "Unexpected error:", sys.exc_info()[0]
 
-              f = open('/tmp/exceptions.txt', 'a')
-              # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
+              f = open('/tmp/exceptions_{}.txt'.format(self.genomeInfo["name"]), 'a')
               f.write(str(gene["entrezgene"])+"\n")
               traceback.print_exc(file=f)
               f.close()
               
 
-    def download_mouse_genes(self):
+    def download_genes(self, species):
         """
-        Downloads the latest list of mouse genes from mygene.info through the URL specified in mygene_info_settings
+        Downloads the latest list of human genes from mygene.info through the URL specified in mygene_info_settings
         """
-        # request = urllib2.Request(mygene_info_settings.getHumanGenesUrl())
-        urllib.urlretrieve (mygene_info_settings.getMouseGenesUrl(), "mouse_genes.json")
-        file = open("mouse_genes.json", 'r')
+        urllib.urlretrieve (mygene_info_settings.getGenesUrl().format(species), species+"_genes.json")
+        file = open(species+"_genes.json", 'r')
         return file.read()
         
-class mouse_gene(object):
+class mammal_gene(object):
     def __init__(self, object):
+        self.genomeInfo = object["genomeInfo"]
         self.content = object
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
@@ -224,7 +217,7 @@ class mouse_gene(object):
         # Reference section           
         gene_reference = {
                     'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
-                    'ref_values': [u'Q19296499', u'Q20641742' , 'TIMESTAMP']
+                    'ref_values': [self.genomeInfo["release"], u'Q20641742' , 'TIMESTAMP']
                 }
                    
         references = dict()
@@ -232,7 +225,7 @@ class mouse_gene(object):
         data2add = dict()
         data2add["P279"] = ["7187"]
         references['P279'] = [copy.deepcopy(gene_reference)]
-        data2add["P703"] = ["83310"]
+        data2add["P703"] = [self.genomeInfo["wdid"].replace("Q", "")]
         references['P703'] = [copy.deepcopy(gene_reference)]    
         data2add['P351'] = [str(self.entrezgene)]
         references['P351'] = [copy.deepcopy(gene_reference)]
@@ -283,16 +276,23 @@ class mouse_gene(object):
             data2add['P1057'] =  chromosomes[str(chromosome)]
             references['P1057'] = gene_reference    
 
-        if "alias" in gene_annotations.keys(): 
-            self.synonyms = gene_annotations["alias"]
+        if "alias" in gene_annotations.keys():
+            if isinstance(gene_annotations["alias"], list):
+                self.synonyms = []
+                for alias in gene_annotations["alias"]:
+                    self.synonyms.append(alias)
+            else:
+               self.synonyms = [gene_annotations["alias"]]
+            for syn in self.symbol:
+               self.synonyms.append(syn)
+            print self.synonyms
         else:
             self.synonyms = None
-        if self.wdid != None: 
-            PBB_Debug.prettyPrint(vars(self)) 
-            PBB_Debug.prettyPrint(data2add) 
-            PBB_Debug.prettyPrint(references) 
-  
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", references=references)
+        if self.wdid != None:   
+            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", references=references, domain="genes")
+            wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
+            if self.synonyms != None:
+                wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             print self.wdid
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             wdPage.write(self.logincreds)
@@ -303,17 +303,13 @@ class mouse_gene(object):
             for key in references.keys():
                 if len(references[key]) == 0:
                     references.pop(key, None)
-            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", references=references)
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", references=references, domain="genes")
+            wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
+            if self.synonyms != None:
+                wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             self.wd_json_representation = wdPage.get_wd_json_representation() 
-            PBB_Debug.prettyPrint(self.wd_json_representation)
-            PBB_Debug.prettyPrint(data2add)
+
             wdPage.write(self.logincreds)
-         
-            #PBB_Debug.prettyPrint(self.wd_json_representation)
-            # sys.exit()
-        
-        # print "References: "
-        # print references
                
     def annotate_gene(self):
         "Get gene annotations from mygene.info"
