@@ -170,8 +170,8 @@ class human_protein(object):
             if len(self.pdb) > 0:
                 data2add['P638'] = self.pdb
                 references['P638'] = []
-                data2add['P18'] = "http://www.rcsb.org/pdb/images/{}_bio_r_500.jpg".format{self.pdb}
-                reference['P18'] = []
+                data2add['P18'] = "http://www.rcsb.org/pdb/images/{}_bio_r_500.jpg".format(self.pdb)
+                references['P18'] = []
                 for i in range(len(self.pdb)):
                     references['P638'].append(copy.deepcopy(protein_reference))
                     references['P18'].append(copy.deepcopy(protein_reference))
