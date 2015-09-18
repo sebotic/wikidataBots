@@ -46,9 +46,7 @@ class orthologClass(object):
         refStatedInHomologeneBuild = PBB_Core.WDItemID(value='Q20976936', prop_nr='P248', is_reference=True)
         refImportedFromHomologen = PBB_Core.WDItemID(value='Q468215', prop_nr='P143', is_reference=True)
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        print(timeStringNow)
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
-        
         homologene_reference =  [[refStatedInHomologeneBuild, refImportedFromHomologen, refRetrieved]]
         
         # Prepare qualifiers
@@ -93,6 +91,7 @@ for line in homologene:
             mouseOrthologs[fields[0]] = fields[2]
 
 for ortholog in humanOrthologs.keys():
+  try:
     if ortholog in mouseOrthologs.keys():
         if ((humanOrthologs[ortholog] in humanEntrezWikidataIds.keys()) and
            (mouseOrthologs[ortholog] in mouseEntrezWikidataIds.keys())) :
@@ -109,7 +108,15 @@ for ortholog in humanOrthologs.keys():
             mouseOrtholog["ortholog"] = "Q"+str(mouseEntrezWikidataIds[mouseOrthologs[ortholog]])
             mouseOrtholog["speciesWdID"] = "Q83310"
             mouseOrtholog["source"] = "Q"+str(humanEntrezWikidataIds[humanOrthologs[ortholog]]) 
-            MouseOrthoLogClass = orthologClass(mouseOrtholog)     
+            MouseOrthoLogClass = orthologClass(mouseOrtholog) 
+  except:
+      print "There has been an except"
+      print "Unexpected error:", sys.exc_info()[0]
+
+      f = open('/tmp/OrthologExceptions.txt', 'a')
+      f.write(str(gene["entrezgene"])+"\n")
+      traceback.print_exc(file=f)
+      f.close()    
               
                                         
     
