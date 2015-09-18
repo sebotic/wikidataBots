@@ -110,9 +110,6 @@ for ortholog in humanOrthologs.keys():
             mouseOrtholog["source"] = "Q"+str(humanEntrezWikidataIds[humanOrthologs[ortholog]]) 
             MouseOrthoLogClass = orthologClass(mouseOrtholog) 
   except:
-      print "There has been an except"
-      print "Unexpected error:", sys.exc_info()[0]
-
       f = open('/tmp/OrthologExceptions.txt', 'a')
       f.write(str(gene["entrezgene"])+"\n")
       traceback.print_exc(file=f)
