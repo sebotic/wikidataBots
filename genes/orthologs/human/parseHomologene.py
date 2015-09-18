@@ -45,7 +45,7 @@ class orthologClass(object):
         # Prepare references
         refStatedInHomologeneBuild = PBB_Core.WDItemID(value='Q20976936', prop_nr='P248', is_reference=True)
         refImportedFromHomologen = PBB_Core.WDItemID(value='Q468215', prop_nr='P143', is_reference=True)
-        timeStringNow = strftime("+%Y-%m-%dT%H:%M:%SZ", gmtime())
+        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         print(timeStringNow)
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         
@@ -58,12 +58,12 @@ class orthologClass(object):
         # Prepare the items to add
         if self.species == "Q5":
             orthologValue = PBB_Core.WDItemID(value=self.ortholog, prop_nr='P684', references=homologene_reference, qualifiers=[humanQualifier])
-        elif self.species == "":
+        elif self.species == "Q83310":
             orthologValue = PBB_Core.WDItemID(value=self.ortholog, prop_nr='P684', references=homologene_reference, qualifiers=[mouseQualifier])
-                 
+              
         wdPage = PBB_Core.WDItemEngine(wd_item_id=self.source, data=[orthologValue], server="www.wikidata.org", domain="genes")
         wdPage.write(self.logincreds)
-        sys.exit()
+
 
 logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
