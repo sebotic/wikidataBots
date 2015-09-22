@@ -277,12 +277,14 @@ class mammal_gene(object):
             prep['P644'] = [] 
             if self.startpos != None:
                 for pos in self.startpos:
-                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference, qualifiers=[genomeBuildQualifier]))
+                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference,
+                                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
         if "endpos" in vars(self):
             prep['P645'] = [] 
             if self.endpos != None:
                 for pos in self.endpos:
-                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference, qualifiers=[genomeBuildQualifier]))
+                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference,
+                                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
                               
         if "MGI" in vars(self):
             prep['P671'] = []
