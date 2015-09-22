@@ -288,7 +288,7 @@ class mammal_gene(object):
             prep['P671'] = []
             if self.MGI != None:
                 for mgi in self.MGI:
-                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'), references=gene_reference))
+                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'), references=gene_reference)
         
         if "alias" in gene_annotations.keys():
             if isinstance(gene_annotations["alias"], list):
