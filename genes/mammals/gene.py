@@ -93,6 +93,7 @@ class genome(object):
           except:
               f = open('/tmp/exceptions_{}.txt'.format(self.genomeInfo["name"]), 'a')
               f.write(str(gene["entrezgene"])+"\n")
+              # f.write()
               traceback.print_exc(file=f)
               f.close()
               
@@ -164,21 +165,29 @@ class mammal_gene(object):
             else :
                 self.refseq_rna = None
         else :
-            self.refseq_rna = None       
+            self.refseq_rna = None 
+         
+        self.chromosome = None
+        self.startpost = None
+        self.endpos = None          
         if "genomic_pos" in gene_annotations:
-            self.genomic_pos =[]
-            if (isinstance(gene_annotations["genomic_pos"], list)):
+            if (isinstance(gene_annotations["genomic_pos"], list)): 
+                self.chromosome = []
+                self.startpos = []
+                self.endpos = [] 
                 for i in range(len(gene_annotations["genomic_pos"])):
-                    if gene_annotations["genomic_pos"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes.keys():
-                           self.genomic_pos.append(ProteinBoxBotKnowledge.chromosomes[gene_annotations["genomic_pos"][i]["chr"]])
-
-            if isinstance(gene_annotations["genomic_pos"], list): 
-                self.genomic_pos = gene_annotations["genomic_pos"]
-
+                    if gene_annotations["genomic_pos"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
+                           self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos"][i]["chr"]])
+                           self.startpos.append(gene_annotations["genomic_pos"][i]["start"])
+                           self.endpos.append(gene_annotations["genomic_pos"][i]["end"])
             else:
-                self.genomic_pos = [gene_annotations["genomic_pos"]]
-        else:
-            self.genomic_pos = None
+                self.chromosome = []
+                self.startpos = []
+                self.endpos = []
+                if gene_annotations["genomic_pos"]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
+                       self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos"]["chr"]])
+                       self.startpos.append(gene_annotations["genomic_pos"]["start"])
+                       self.endpos.append(gene_annotations["genomic_pos"]["end"])     
         
         # type of Gene
         if "type_of_gene" in gene_annotations:
@@ -207,7 +216,7 @@ class mammal_gene(object):
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         gene_reference =  [[refStatedIn, refImported, refRetrieved]]
         
-        genomeBuildQualifier = PBB_Core.WDString(value=self.genomeInfo["genome_assembly"], prop_nr='P659', is_qualifier=True)
+        genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659', is_qualifier=True)
         prep = dict()           
         prep['P279'] = [PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference)]
         prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo["wdid"], prop_nr='P703', references=gene_reference)]
@@ -240,7 +249,7 @@ class mammal_gene(object):
         if "homologene" in vars(self):
             if self.homologene != None:
                 prep['P593'] = []
-                for ortholog in self.homologen:
+                for ortholog in self.homologene:
                     prep['P593'].append(PBB_Core.WDString(value=ortholog, prop_nr='P593', references=gene_reference))
 
         if "refseq_rna" in vars(self):
@@ -248,21 +257,24 @@ class mammal_gene(object):
                 prep['P639'] = []
                 for refseq in self.refseq_rna:
                     prep['P639'].append(PBB_Core.WDString(value=refseq, prop_nr='P639', references=gene_reference))
-        # TODO FIX Chromosomes
-        if "genomic_pos" in object:
-            if (isinstance(object["genomic_pos"], list)):
-               chromosome = object["genomic_pos"][0]["chr"]
-               startpos = object["genomic_pos"][0]["start"]
-               endpos = object["genomic_pos"][0]["end"]
-            else: 
-                chromosome = object["genomic_pos"]["chr"]
-                startpos = object["genomic_pos"][0]["start"]
-                endpos = object["genomic_pos"][0]["end"]
-                
-            prep['P1057'] = [PBB_Core.WDItemID(value=chromosomes[str(chromosome)], prop_nr='P1057', references=gene_reference)]
-            prep['P644'] = [PBB_Core.WDItemID(value=chromosomes[str(startpos)], prop_nr='P644', references=gene_reference, qualifiers=[genomeBuildQualifier])]
-            prep['P645'] = [PBB_Core.WDItemID(value=chromosomes[str(endpos)], prop_nr='P645', references=gene_reference,qualifiers=[genomeBuildQualifier])]        
 
+        if "chromosome" in vars(self):
+            prep['P1057'] = []
+            if self.chromosome != None:
+                for chrom in list(set(self.chromosome)):
+                     prep['P1057'].append(PBB_Core.WDItemID(value=chrom, prop_nr='P1057', references=gene_reference))
+            
+        if "startpos" in vars(self):
+            prep['P644'] = [] 
+            if self.startpos != None:
+                for pos in self.startpos:
+                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference, qualifiers=[genomeBuildQualifier]))
+        if "endpos" in vars(self):
+            prep['P645'] = [] 
+            if self.endpos != None:
+                for pos in self.endpos:
+                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference, qualifiers=[genomeBuildQualifier]))
+                              
         if "alias" in gene_annotations.keys():
             if isinstance(gene_annotations["alias"], list):
                 self.synonyms = []
@@ -270,8 +282,7 @@ class mammal_gene(object):
                     self.synonyms.append(alias)
             else:
                self.synonyms = [gene_annotations["alias"]]
-            for syn in self.symbol:
-               self.synonyms.append(syn)
+            self.synonyms.append(self.symbol)
             print(self.synonyms)
         else:
             self.synonyms = None
@@ -280,8 +291,8 @@ class mammal_gene(object):
         for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
-        
-            
+                print(statement.prop_nr, statement.value)
+             
         if self.wdid != None:   
             wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", domain="genes")
             wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
@@ -290,6 +301,8 @@ class mammal_gene(object):
             print(self.wdid)
             self.wd_json_representation = wdPage.get_wd_json_representation()
             PBB_Debug.prettyPrint(self.wd_json_representation) 
+            PBB_Debug.prettyPrint(data2add)
+            # print(self.wd_json_representation)
             wdPage.write(self.logincreds)
         else:
             for key in data2add.keys():
@@ -304,6 +317,8 @@ class mammal_gene(object):
                 wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             self.wd_json_representation = wdPage.get_wd_json_representation() 
             PBB_Debug.prettyPrint(self.wd_json_representation)
+            PBB_Debug.prettyPrint(data2add)
+            # print(self.wd_json_representation)
             wdPage.write(self.logincreds)
                
     def annotate_gene(self):
