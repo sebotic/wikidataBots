@@ -167,6 +167,15 @@ class mammal_gene(object):
         else :
             self.refseq_rna = None 
          
+         # MGI
+         if "MGI" in gene_annotations:
+             if isinstance(gene_annotations["MGI"], list): 
+                 self.MGI = gene_annotations["MGI"]
+             else:
+                 self.MGI = [gene_annotations["MGI"]]
+         else:
+             self.MGI = None
+             
         self.chromosome = None
         self.startpost = None
         self.endpos = None          
@@ -275,6 +284,12 @@ class mammal_gene(object):
                 for pos in self.endpos:
                     prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference, qualifiers=[genomeBuildQualifier]))
                               
+        if "MGI" in vars(self):
+            prep['P671'] = []
+            if self.MGI != None:
+                for mgi in self.MGI:
+                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'), references=gene_reference))
+        
         if "alias" in gene_annotations.keys():
             if isinstance(gene_annotations["alias"], list):
                 self.synonyms = []
