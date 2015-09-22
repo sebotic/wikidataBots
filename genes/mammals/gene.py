@@ -168,12 +168,12 @@ class mammal_gene(object):
             self.refseq_rna = None 
          
          # MGI
-         if "MGI" in gene_annotations:
+        if "MGI" in gene_annotations:
              if isinstance(gene_annotations["MGI"], list): 
                  self.MGI = gene_annotations["MGI"]
              else:
                  self.MGI = [gene_annotations["MGI"]]
-         else:
+        else:
              self.MGI = None
              
         self.chromosome = None
