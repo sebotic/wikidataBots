@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'sebastian'
-
-"""extract relevant data from the drugbank.ca database xml file and put it into a CSV file"""
-
-
 import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
@@ -15,6 +10,11 @@ import zipfile
 import simplejson
 
 import pprint
+
+__author__ = 'Sebastian Burgstaller'
+
+"""extract relevant data from the drugbank.ca database xml file and put it into a CSV file"""
+
 
 class DrugDataAggregator(object):
     def __init__(self, aggregate=True):
@@ -35,7 +35,7 @@ class DrugDataAggregator(object):
             os.makedirs('./drugbank_data')
 
         # check if an appropriate CSV file exists or create new file
-        if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml') and self.append:
+        if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml.zip') and self.append:
             self.drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, encoding='utf-8',
                                              dtype={'PubChem ID (CID)': np.str,
                                                     'ChEBI': np.str,
@@ -60,9 +60,7 @@ class DrugDataAggregator(object):
                         f.write(chunk)
                         f.flush()
 
-            db_zip = open(drugbank_file, 'rb')
-            zipfile.ZipFile(db_zip).extract('drugbank.xml', './drugbank_data/')
-            db_zip.close()
+        zipfile.ZipFile(drugbank_file).extract('drugbank.xml', './drugbank_data/')
 
         f = open('./drugbank_data/drugbank.xml', 'r')
         print(self.drugbank_data.dtypes)
@@ -257,7 +255,7 @@ class DrugDataAggregator(object):
 
             self.drugbank_data.loc[count, 'Aliases'] = ';'.join(aliases)
 
-            # query unichem for chemspider, KEGG, IUPHAR identifiers
+            # query unichem for KEGG, IUPHAR identifiers
             if pd.notnull(self.drugbank_data.loc[count, 'InChIKey']):
                 headers = {'accept': 'text/json'}
                 url = 'https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/{}'.format(self.drugbank_data.loc[count, 'InChIKey'])
