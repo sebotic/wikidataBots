@@ -105,51 +105,33 @@ class DrugBot(object):
                     for atc in drug_data.loc[count, 'ATC code'].split(';'):
                         data.append(PBB_Core.WDString(value=atc, prop_nr='P267'))
 
-
-                drugbank_ref = [[
-                        PBB_Core.WDItemID(value='Q1122544', prop_nr='P248', is_reference=True),
-                        PBB_Core.WDString(value=drug_data.loc[count, 'Drugbank ID'], prop_nr='P715', is_reference=True),
-                        PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),
-                        PBB_Core.WDMonolingualText(value=drug_data.loc[count, 'Name'], language='en',
-                                                   prop_nr='P1476', is_reference=True)
-                    ], [
-                        PBB_Core.WDTime(time=self.drugbank_date, prop_nr='P577', is_reference=True)  # publication date
-                    ]]
-
                 drugbank_source = ['instance of', 'ATC code', 'CAS number', 'Drugbank ID', 'Molecular Formula',  'InChI', 'InChIKey']
-                for i in data:
-                    if i.get_prop_nr() in [name_to_prop[x] for x in drugbank_source]:
-                        i.set_references(copy.deepcopy(drugbank_ref))
-
-                chembl_ref = [[
-                        PBB_Core.WDItemID(value='Q6120337', prop_nr='P248', is_reference=True),  # stated in
-                        PBB_Core.WDString(value=drug_data.loc[count, 'ChEMBL'], prop_nr='P592', is_reference=True),  # source element
-                        PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of database
-                        PBB_Core.WDMonolingualText(value=drug_data.loc[count, 'Name'], language='en',
-                                                   prop_nr='P1476', is_reference=True)  # title of source DB entry
-                    ], [
-                        PBB_Core.WDTime(time=time.strftime('+%Y-%m-%dT00:00:00Z'), prop_nr='P813', is_reference=True)
-                    ]]
-
                 chembl_source = ['ChEMBL', 'ChemSpider', 'KEGG Drug', 'ChEBI', 'SMILES', 'WHO INN', 'Guide to Pharmacology']
+                pubchem_source = ['MeSH ID', 'PubChem ID (CID)', 'UNII']
+
                 for i in data:
                     if i.get_prop_nr() in [name_to_prop[x] for x in chembl_source]:
-                        i.set_references(copy.deepcopy(chembl_ref))
+                        # if no ChEMBL ID exists, data is from Drugbank, therefore add Drugbank as ref
+                        if pd.isnull(drug_data.loc[count, 'ChEMBL']):
+                            drugbank_source.append(prop_to_name[i.get_prop_nr()])
+                            continue
+                        i.set_references(self.make_reference(stated_in='Q6120337',
+                                                             source_element=drug_data.loc[count, 'ChEMBL'],
+                                                             source_element_name=drug_data.loc[count, 'Name']))
 
-                pubchem_ref = [[
-                        PBB_Core.WDItemID(value='Q6120337', prop_nr='P248', is_reference=True),  # stated in
-                        PBB_Core.WDString(value=drug_data.loc[count, 'PubChem ID (CID)'], prop_nr='P592', is_reference=True),  # source element
-                        PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of database
-                        PBB_Core.WDMonolingualText(value=drug_data.loc[count, 'Name'], language='en',
-                                                   prop_nr='P1476', is_reference=True)  # title of source DB entry
-                    ], [
-                        PBB_Core.WDTime(time=time.strftime('+%Y-%m-%dT00:00:00Z'), prop_nr='P813', is_reference=True)
-                    ]]
+                for i in data:
+                    if i.get_prop_nr() in [name_to_prop[x] for x in drugbank_source]:
+                        i.set_references(self.make_reference(stated_in='Q1122544',
+                                                             source_element=drug_data.loc[count, 'Drugbank ID'],
+                                                             source_element_name=drug_data.loc[count, 'Name'],
+                                                             date=self.drugbank_date,
+                                                             date_property='P577'))
 
-                pubchem_source = ['MeSH ID', 'PubChem ID (CID)', 'UNII']
                 for i in data:
                     if i.get_prop_nr() in [name_to_prop[x] for x in pubchem_source] and pd.notnull(drug_data.loc[count, 'PubChem ID (CID)']):
-                        i.set_references(copy.deepcopy(pubchem_ref))
+                        i.set_references(self.make_reference(stated_in='Q278487',
+                                                             source_element=drug_data.loc[count, 'PubChem ID (CID)'],
+                                                             source_element_name=drug_data.loc[count, 'Name']))
 
                 label = drug_data.loc[count, 'Name']
                 domain = 'drugs'
@@ -182,7 +164,7 @@ class DrugBot(object):
                     if pd.notnull(drug_data.loc[count, 'Aliases']):
                         wd_item.set_aliases(aliases=aliases, lang='en', append=True)
 
-                    pprint.pprint(wd_item.get_wd_json_representation())
+                    # pprint.pprint(wd_item.get_wd_json_representation())
 
                     wd_item.write(login_obj)
 
@@ -197,6 +179,7 @@ class DrugBot(object):
                         wd_id=wd_item.wd_item_id,
                         duration=time.time() - start
                     ))
+                    print('success')
 
                 except Exception as e:
                     print(e)
@@ -212,5 +195,16 @@ class DrugBot(object):
                 end = time.time()
                 print('Time elapsed:', end - start)
 
-                if count == 2:
-                    break
+    def make_reference(self, stated_in, source_element, source_element_name, date=time.strftime('+%Y-%m-%dT00:00:00Z'),
+                       date_property='P813'):
+        ref = [[
+            PBB_Core.WDItemID(value=stated_in, prop_nr='P248', is_reference=True),  # stated in
+            PBB_Core.WDString(value=source_element, prop_nr='P715', is_reference=True),  # source element
+            PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of work
+            PBB_Core.WDMonolingualText(value=source_element_name, language='en',
+                                       prop_nr='P1476', is_reference=True)
+        ], [
+            PBB_Core.WDTime(time=date, prop_nr=date_property, is_reference=True)  # publication date
+        ]]
+
+        return ref
