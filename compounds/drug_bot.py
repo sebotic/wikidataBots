@@ -1,32 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'Sebastian Burgstaller'
-__licence__ = 'GPLv3'
-
-import os
+import pprint
 import time
 import copy
-import logging
+import datetime
+import zipfile
 import pandas as pd
 import numpy as np
 
 import PBB_Core
 from PBB_login import WDLogin
 
+__author__ = 'Sebastian Burgstaller'
+__licence__ = 'GPLv3'
+
 
 class DrugBot(object):
     def __init__(self, user, pwd):
         properties = ['P279', 'P769', 'P31', 'P636', 'P267', 'P231', 'P486', 'P672', 'P662', 'P661', 'P652', 'P665', 'P683',
                       'P274', 'P715', 'P646', 'P592', 'P233', 'P234', 'P235',
-                      'P18', 'P373', 'P1805', 'P657']
+                      'P18', 'P373', 'P1805', 'P657', 'P595']
         # these property names do not match those in Wikidata!!
         property_names = ['subclass of', 'significant drug interaction', 'instance of', 'route of administration', 'ATC code',
                           'CAS number', 'MeSH ID', 'MeSH Code',
                           'PubChem ID (CID)', 'ChemSpider', 'UNII', 'KEGG Drug', 'ChEBI', 'Molecular Formula', 'Drugbank ID',
                           'Freebase identifier', 'ChEMBL',
                           'SMILES', 'InChI', 'InChIKey', 'image', 'Commons category',
-                          'WHO INN', 'RTECS Number']
+                          'WHO INN', 'RTECS Number', 'Guide to Pharmacology']
 
         prop_to_name = dict(zip(properties, property_names))
         name_to_prop = dict(zip(property_names, properties))
@@ -41,11 +42,10 @@ class DrugBot(object):
                                        'Guide to Pharmacology': np.str
                                        })
 
-        # log_file_col_names = ['Drugbank ID', 'time', 'Exception type', 'message' 'WD QID', 'duration']
-        # self.logfile = pd.DataFrame(columns=log_file_col_names, dtype=object)
-        #
-        # if not os.path.exists('./logs'):
-        #     os.makedirs('./logs')
+        # extract creation date of Drugbank file from Drugbank zip file
+        drugbank_zip = zipfile.ZipFile('./drugbank_data/drugbank.xml.zip')
+        self.drugbank_date = datetime.datetime(
+            *[x for x in drugbank_zip.infolist()[0].date_time]).strftime('+%Y-%m-%dT00:00:00Z')
 
         print(drug_data.dtypes)
 
@@ -73,8 +73,7 @@ class DrugBot(object):
             print('Count is:', count)
 
             if drug_data.loc[count, 'Status'] == 'approved' or drug_data.loc[count, 'Status'] == 'withdrawn':
-                data = {}
-                references = {}
+                data = []
                 for col in drug_data.columns.values:
                     data_value = drug_data.loc[count, col]
 
@@ -84,41 +83,55 @@ class DrugBot(object):
                     elif len(data_value) > 400:
                         continue
 
-                    if col in property_names:
-                        data.update({name_to_prop[col]: [str(data_value).strip()]})
-                        references.update({name_to_prop[col]: [copy.deepcopy(base_ref)]})
+                    if col in property_names and col != 'ATC code':
+                        data.append(PBB_Core.WDString(value=str(data_value).strip(), prop_nr=name_to_prop[col]))
 
-                # add instances of (P31) of chemical compound (Q11173) and pharmaceutical drug (Q12140)
-                # TODO: add Biologic medical product (Q679692) and  monoclonal antibodies (Q422248) as instances
-                data.update({
-                    'P31': ['Q11173', 'Q12140']
-                })
+                # add instances of (P31) of chemical compound (Q11173), pharmaceutical drug (Q12140),
+                # Biologic medical product (Q679692) and  monoclonal antibodies (Q422248)
+                data.append(PBB_Core.WDItemID(value='Q11173', prop_nr='P31'))
+                data.append(PBB_Core.WDItemID(value='Q12140', prop_nr='P31'))
+
+                if drug_data.loc[count, 'Drug type'] == 'biotech':
+                    data.append(PBB_Core.WDItemID(value='Q679692', prop_nr='P31'))
+
+                if drug_data.loc[count, 'Name'][-3:] == 'mab':
+                    data.append(PBB_Core.WDItemID(value='Q422248', prop_nr='P31'))
 
                 # for instance of, do not overwrite what other users have put there
                 append_value = ['P31']
 
                 # split the ATC code values present as one string in the csv file
-                if 'P267' in data:
-                    data.update({
-                        'P267': drug_data.loc[count, 'ATC code'].split(';')
-                    })
-                    references.update({
-                        'P267': [copy.deepcopy(base_ref) for x in data['P267']]
-                    })
+                if pd.notnull(drug_data.loc[count, 'ATC code']):
+                    for atc in drug_data.loc[count, 'ATC code'].split(';'):
+                        data.append(PBB_Core.WDString(value=atc, prop_nr='P267'))
 
-                # add PubChem ref for PubChem CID
-                if 'P662' in references:
-                    references['P662'] = [{
-                        'ref_properties': ['P248'],
-                        'ref_values': ['Q278487']
-                    }]
+                drugbank_source = ['instance of', 'ATC code', 'CAS number', 'Drugbank ID', 'Molecular Formula',  'InChI', 'InChIKey']
+                chembl_source = ['ChEMBL', 'ChemSpider', 'KEGG Drug', 'ChEBI', 'SMILES', 'WHO INN', 'Guide to Pharmacology']
+                pubchem_source = ['MeSH ID', 'PubChem ID (CID)', 'UNII']
 
-                # add PubChem ref for MeSH ID
-                if 'P486' in references:
-                    references['P486'] = [{
-                        'ref_properties': ['P248'],
-                        'ref_values': ['Q278487']
-                    }]
+                for i in data:
+                    if i.get_prop_nr() in [name_to_prop[x] for x in chembl_source]:
+                        # if no ChEMBL ID exists, data is from Drugbank, therefore add Drugbank as ref
+                        if pd.isnull(drug_data.loc[count, 'ChEMBL']):
+                            drugbank_source.append(prop_to_name[i.get_prop_nr()])
+                            continue
+                        i.set_references(self.make_reference(stated_in='Q6120337',
+                                                             source_element=drug_data.loc[count, 'ChEMBL'],
+                                                             source_element_name=drug_data.loc[count, 'Name']))
+
+                for i in data:
+                    if i.get_prop_nr() in [name_to_prop[x] for x in drugbank_source]:
+                        i.set_references(self.make_reference(stated_in='Q1122544',
+                                                             source_element=drug_data.loc[count, 'Drugbank ID'],
+                                                             source_element_name=drug_data.loc[count, 'Name'],
+                                                             date=self.drugbank_date,
+                                                             date_property='P577'))
+
+                for i in data:
+                    if i.get_prop_nr() in [name_to_prop[x] for x in pubchem_source] and pd.notnull(drug_data.loc[count, 'PubChem ID (CID)']):
+                        i.set_references(self.make_reference(stated_in='Q278487',
+                                                             source_element=drug_data.loc[count, 'PubChem ID (CID)'],
+                                                             source_element_name=drug_data.loc[count, 'Name']))
 
                 label = drug_data.loc[count, 'Name']
                 domain = 'drugs'
@@ -138,8 +151,8 @@ class DrugBot(object):
                 print('Drug name:', label)
                 try:
 
-                    wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data, server='www.wikidata.org',
-                                                    append_value=append_value, references=references)
+                    wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data,
+                                                    server='www.wikidata.org', append_value=append_value)
 
                     # overwrite only certain descriptions
                     descriptions_to_overwrite = {'chemical compound', 'chemical substance', ''}
@@ -166,6 +179,7 @@ class DrugBot(object):
                         wd_id=wd_item.wd_item_id,
                         duration=time.time() - start
                     ))
+                    print('success')
 
                 except Exception as e:
                     print(e)
@@ -180,3 +194,17 @@ class DrugBot(object):
 
                 end = time.time()
                 print('Time elapsed:', end - start)
+
+    def make_reference(self, stated_in, source_element, source_element_name, date=time.strftime('+%Y-%m-%dT00:00:00Z'),
+                       date_property='P813'):
+        ref = [[
+            PBB_Core.WDItemID(value=stated_in, prop_nr='P248', is_reference=True),  # stated in
+            PBB_Core.WDString(value=source_element, prop_nr='P715', is_reference=True),  # source element
+            PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of work
+            PBB_Core.WDMonolingualText(value=source_element_name, language='en',
+                                       prop_nr='P1476', is_reference=True)
+        ], [
+            PBB_Core.WDTime(time=date, prop_nr=date_property, is_reference=True)  # publication date
+        ]]
+
+        return ref

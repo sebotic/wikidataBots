@@ -32,6 +32,7 @@ import PBB_Core
 import PBB_login
 import PBB_settings
 import copy
+from time import gmtime, strftime
 
 
 class orthologClass(object):
@@ -40,30 +41,39 @@ class orthologClass(object):
         self.source = object["source"]
         self.ortholog = object["ortholog"]
         self.species = object["speciesWdID"]
-        homologene_reference = {
-                    'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
-                    'ref_values': [u'Q20976936', u'Q468215' , 'TIMESTAMP']
-                }
-            
-        references = dict()
-        data2add = dict()
-        data2add["P684"] = [self.ortholog]
-        references['P684'] = [copy.deepcopy(homologene_reference)]
         
-        wdPage = PBB_Core.WDItemEngine(wd_item_id=self.source, data=data2add, server="www.wikidata.org", references=references, domain="genes")
+        # Prepare references
+        refStatedInHomologeneBuild = PBB_Core.WDItemID(value='Q20976936', prop_nr='P248', is_reference=True)
+        refImportedFromHomologen = PBB_Core.WDItemID(value='Q468215', prop_nr='P143', is_reference=True)
+        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        homologene_reference =  [[refStatedInHomologeneBuild, refImportedFromHomologen, refRetrieved]]
+        
+        # Prepare qualifiers
+        humanQualifier = PBB_Core.WDItemID(value='Q5', prop_nr='P703', is_qualifier=True)
+        mouseQualifier = PBB_Core.WDItemID(value='Q83310', prop_nr='P703', is_qualifier=True)    
+
+        # Prepare the items to add
+        if self.species == "Q5":
+            orthologValue = PBB_Core.WDItemID(value=self.ortholog, prop_nr='P684', references=homologene_reference, qualifiers=[humanQualifier])
+        elif self.species == "Q83310":
+            orthologValue = PBB_Core.WDItemID(value=self.ortholog, prop_nr='P684', references=homologene_reference, qualifiers=[mouseQualifier])
+              
+        wdPage = PBB_Core.WDItemEngine(wd_item_id=self.source, data=[orthologValue], server="www.wikidata.org", domain="genes")
         wdPage.write(self.logincreds)
+
 
 logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
 humanEntrezWikidataIds = dict()
 mouseEntrezWikidataIds = dict()
 
-print "Getting all human genes in Wikidata"
+print("Getting all human genes in Wikidata")
 InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[351]", "351")
 for geneItem in InWikiData.wditems["props"]["351"]:
     humanEntrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-print "Getting all mouse genes in Wikidata"
+print("Getting all mouse genes in Wikidata")
 InWikiData = PBB_Core.WDItemList("CLAIM[703:83310] AND CLAIM[351]", "351")
 for geneItem in InWikiData.wditems["props"]["351"]:
     mouseEntrezWikidataIds[str(geneItem[2])] = geneItem[0]
@@ -81,11 +91,12 @@ for line in homologene:
             mouseOrthologs[fields[0]] = fields[2]
 
 for ortholog in humanOrthologs.keys():
+  try:
     if ortholog in mouseOrthologs.keys():
         if ((humanOrthologs[ortholog] in humanEntrezWikidataIds.keys()) and
            (mouseOrthologs[ortholog] in mouseEntrezWikidataIds.keys())) :
-            print "{} \t {} \tQ{}) \t {} \tQ{}".format(ortholog, humanOrthologs[ortholog], humanEntrezWikidataIds[humanOrthologs[ortholog]], 
-                                                mouseOrthologs[ortholog], mouseEntrezWikidataIds[mouseOrthologs[ortholog]])
+            print("{} \t {} \tQ{}) \t {} \tQ{}".format(ortholog, humanOrthologs[ortholog], humanEntrezWikidataIds[humanOrthologs[ortholog]], 
+                                                mouseOrthologs[ortholog], mouseEntrezWikidataIds[mouseOrthologs[ortholog]]))
             humanOrtholog = dict()
             mouseOrtholog = dict()
             humanOrtholog["logincreds"] = logincreds
@@ -97,7 +108,12 @@ for ortholog in humanOrthologs.keys():
             mouseOrtholog["ortholog"] = "Q"+str(mouseEntrezWikidataIds[mouseOrthologs[ortholog]])
             mouseOrtholog["speciesWdID"] = "Q83310"
             mouseOrtholog["source"] = "Q"+str(humanEntrezWikidataIds[humanOrthologs[ortholog]]) 
-            MouseOrthoLogClass = orthologClass(mouseOrtholog)     
+            MouseOrthoLogClass = orthologClass(mouseOrtholog) 
+  except:
+      f = open('/tmp/OrthologExceptions.txt', 'a')
+      f.write(str(gene["entrezgene"])+"\n")
+      traceback.print_exc(file=f)
+      f.close()    
               
                                         
     

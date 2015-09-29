@@ -107,3 +107,4 @@ for count, item in enumerate(wd_disease_items):
             print('count:', count)
 
 wd_to_wp_map.to_csv('./WD_to_WP_disease_map.csv', index=True, encoding='utf-8', header=True)
+

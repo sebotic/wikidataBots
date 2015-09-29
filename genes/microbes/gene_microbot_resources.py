@@ -3,9 +3,10 @@
 import pandas as pd
 import json
 import pprint
-
+import urllib
 
 __author__ = 'timputman'
+
 
 
 class ReferenceTaxonomyIDList(object):

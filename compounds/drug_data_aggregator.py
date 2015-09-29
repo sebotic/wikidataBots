@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'sebastian'
-
-"""extract relevant data from the drugbank.ca database xml file and put it into a CSV file"""
-
-
 import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
@@ -15,6 +10,11 @@ import zipfile
 import simplejson
 
 import pprint
+
+__author__ = 'Sebastian Burgstaller'
+
+"""extract relevant data from the drugbank.ca database xml file and put it into a CSV file"""
+
 
 class DrugDataAggregator(object):
     def __init__(self, aggregate=True):
@@ -34,25 +34,32 @@ class DrugDataAggregator(object):
         if not os.path.exists('./drugbank_data'):
             os.makedirs('./drugbank_data')
 
+        drugbank_file = './drugbank_data/drugbank.xml.zip'
+
         # check if an appropriate CSV file exists or create new file
-        if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml') and self.append:
+        if os.path.isfile('./drugbank_data/drugbank.csv') and os.path.isfile('./drugbank_data/drugbank.xml.zip') and self.append:
             self.drugbank_data = pd.read_csv('./drugbank_data/drugbank.csv', index_col=0, encoding='utf-8',
                                              dtype={'PubChem ID (CID)': np.str,
                                                     'ChEBI': np.str,
                                                     'ChEMBL': np.str,
-                                                    'ChemSpider': np.str
+                                                    'ChemSpider': np.str,
+                                                    'Guide to Pharmacology': np.str
                                                     })
 
             self.drugbank_data['PubChem ID (CID)'] = self.drugbank_data.loc[self.drugbank_data['PubChem ID (CID)'].map(
                 lambda x: pd.notnull(x)), 'PubChem ID (CID)'].map(lambda x: x.split('.')[0])
             self.drugbank_data['ChEBI'] = self.drugbank_data.loc[self.drugbank_data['ChEBI'].map(
                 lambda x: pd.notnull(x)), 'ChEBI'].map(lambda x: x.split('.')[0])
+            self.drugbank_data['Guide to Pharmacology'] = self.drugbank_data.loc[self.drugbank_data['Guide to Pharmacology'].map(
+                lambda x: pd.notnull(x)), 'Guide to Pharmacology'].map(lambda x: x.split('.')[0])
+            self.drugbank_data['Aliases'] = self.drugbank_data.loc[self.drugbank_data['Aliases'].map(
+                lambda x: pd.notnull(x)), 'Aliases'].map(lambda x: x.strip(';'))
         else:
             self.drugbank_data = pd.DataFrame(columns=drugbank_headers, dtype=object)
 
             # download and extract drugbank xml file
             url = 'http://www.drugbank.ca/system/downloads/current/drugbank.xml.zip'
-            drugbank_file = './drugbank_data/drugbank.xml.zip'
+
             reply = requests.get(url, stream=True)
             with open(drugbank_file, 'wb') as f:
                 for chunk in reply.iter_content(chunk_size=2048):
@@ -60,9 +67,7 @@ class DrugDataAggregator(object):
                         f.write(chunk)
                         f.flush()
 
-            db_zip = open(drugbank_file, 'rb')
-            zipfile.ZipFile(db_zip).extract('drugbank.xml', './drugbank_data/')
-            db_zip.close()
+        zipfile.ZipFile(drugbank_file).extract('drugbank.xml', './drugbank_data/')
 
         f = open('./drugbank_data/drugbank.xml', 'r')
         print(self.drugbank_data.dtypes)
@@ -206,11 +211,13 @@ class DrugDataAggregator(object):
         query ChEML with the InChI Key and extract relevant data
         :return:
         """
-        for count in self.drugbank_data.index:
-            if pd.notnull(self.drugbank_data.loc[count, 'ChEMBL']) and self.append:
-                print('Skipping as already in table:', self.drugbank_data.loc[count, 'Name'])
-                # count += 1
-                continue
+        last_added_chembl_index = 0
+        if self.append:
+            for count in self.drugbank_data.index:
+                if pd.notnull(self.drugbank_data.loc[count, 'ChEMBL']):
+                    last_added_chembl_index = count
+
+        for count in self.drugbank_data.index[last_added_chembl_index:]:
 
             inchi_key = self.drugbank_data.loc[count, 'InChIKey']
 
@@ -246,7 +253,7 @@ class DrugDataAggregator(object):
 
             aliases = set()
             if pd.notnull(self.drugbank_data.loc[count, 'Aliases']):
-                aliases = set(self.drugbank_data.loc[count, 'Aliases'].split(':'))
+                aliases = set(self.drugbank_data.loc[count, 'Aliases'].split(';'))
 
             # extract INN and other aliases/drug names
             for synonym in rest_result['molecule_synonyms']:
@@ -257,7 +264,7 @@ class DrugDataAggregator(object):
 
             self.drugbank_data.loc[count, 'Aliases'] = ';'.join(aliases)
 
-            # query unichem for chemspider, KEGG, IUPHAR identifiers
+            # query unichem for KEGG, IUPHAR identifiers
             if pd.notnull(self.drugbank_data.loc[count, 'InChIKey']):
                 headers = {'accept': 'text/json'}
                 url = 'https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/{}'.format(self.drugbank_data.loc[count, 'InChIKey'])
