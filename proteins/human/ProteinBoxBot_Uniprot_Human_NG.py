@@ -20,32 +20,23 @@ You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
 # Load the path to the PBB_Core library
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
 import PBB_Core
-import PBB_Debug
-import PBB_Functions
-import PBB_login
-import PBB_settings
 
 # Resource specific 
 import human_protein
-
 import traceback
 from datetime import date, datetime, timedelta
 
-main_log = PBB_Core.BotMainLog()
-main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 try:
-    print "Getting human proteins from mygene.info"
+    print("Getting human proteins from mygene.info")
     human_proteome = human_protein.human_proteome()
-    print human_proteome.protein_count 
-    
+    print(human_proteome.protein_count)
 
-    
-      
-except Exception, err:
-    print traceback.format_exc()
+except Exception as err:
+    print(traceback.format_exc())
     # client.captureException()  
