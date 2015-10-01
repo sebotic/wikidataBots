@@ -223,13 +223,16 @@ class human_protein(object):
 
         wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, item_name = wdLabel, data=genePrep[key], server="www.wikidata.org", references=references, domain="genes")
 
-        if self.genewiki == wdProteinpage.get_wd_sitelinks(site="enwiki")["title"]:
-            PBB_Debug.prettyPrint(wdProteinpage.get_wd_sitelinks(site="enwiki"))
-            wdGenePage.set_sitelink(site="enwiki", value = wdProteinpage.remove_sitelink(site="enwiki"))
+        if self.genewiki == wdProteinpage.get_sitelink(site="enwiki")["title"]:
+            geneWiki = wdProteinpage.get_sitelink(site="enwiki")
+            PBB_Debug.prettyPrint(geneWiki)
+            wdGenePage.set_sitelink(site="enwiki", title = geneWiki["title"])
+            wdProteinpage.set_sitelink(site="enwiki", title = None)
             PBB_Debug.prettyPrint(wdGenePage.get_wd_json_representation())
             print(self.wdid)
+            print("===================")
             PBB_Debug.prettyPrint(wdProteinpage.get_wd_json_representation())
-
         wdProteinpage.write(self.logincreds)
+        sys.exit()
         wdGenePage.write(self.logincreds)
         sys.exit()
