@@ -225,7 +225,7 @@ class human_protein(object):
 
         if self.genewiki == wdProteinpage.get_wd_sitelinks(site="enwiki")["title"]:
             PBB_Debug.prettyPrint(wdProteinpage.get_wd_sitelinks(site="enwiki"))
-            wdGenePage.add_wd_sitelinks(site="enwiki", value = wdProteinpage.rm_wd_sitelinks(site="enwiki"))
+            wdGenePage.set_sitelink(site="enwiki", value = wdProteinpage.remove_sitelink(site="enwiki"))
             PBB_Debug.prettyPrint(wdGenePage.get_wd_json_representation())
             print(self.wdid)
             PBB_Debug.prettyPrint(wdProteinpage.get_wd_json_representation())
