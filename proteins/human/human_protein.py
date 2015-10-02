@@ -43,12 +43,15 @@ try:
     import simplejson as json
 except ImportError as e:
     import json
-	
+
+
 class human_proteome():
     def __init__(self):
         #self.content = self.download_human_proteins()
         #self.protein_count = len(self.content["results"]["bindings"])
         #self.proteins = self.content["results"]["bindings"]
+        # self.login.login()
+
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         uniprotWikidataIds = dict()
         GeneSymbolWdMapping = dict()
@@ -224,15 +227,13 @@ class human_protein(object):
         wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, item_name = wdLabel, data=genePrep[key], server="www.wikidata.org", references=references, domain="genes")
 
         if self.genewiki == wdProteinpage.get_sitelink(site="enwiki")["title"]:
-            geneWiki = wdProteinpage.get_sitelink(site="enwiki")
-            PBB_Debug.prettyPrint(geneWiki)
-            wdGenePage.set_sitelink(site="enwiki", title = geneWiki["title"])
-            wdProteinpage.set_sitelink(site="enwiki", title = None)
+            PBB_Debug.prettyPrint(self.genewiki)
+            wdGenePage.set_sitelink(site="enwiki", title = self.genewiki)
+            wdProteinpage.set_sitelink(site="enwiki", title = "")
             PBB_Debug.prettyPrint(wdGenePage.get_wd_json_representation())
             print(self.wdid)
             print("===================")
             PBB_Debug.prettyPrint(wdProteinpage.get_wd_json_representation())
         wdProteinpage.write(self.logincreds)
-        sys.exit()
         wdGenePage.write(self.logincreds)
         sys.exit()
