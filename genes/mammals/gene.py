@@ -31,14 +31,10 @@ import PBB_Core
 import PBB_Debug
 import PBB_login
 import PBB_settings
-import PBB_Functions
 import ProteinBoxBotKnowledge
 import requests
-import urllib3
-import certifi
 import copy
 import traceback
-import sys
 import mygene_info_settings
 from time import gmtime, strftime
 
@@ -231,7 +227,8 @@ class mammal_gene(object):
         prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo["wdid"], prop_nr='P703', references=gene_reference)]
         prep['P353'] = [PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=gene_reference)]   
         prep['P351'] = [PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=gene_reference)]
-        
+        prep["P279"] = []
+        prep['P279'].append(PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference))
         if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
                 for i in range(len(self.type_of_gene)):
@@ -246,7 +243,7 @@ class mammal_gene(object):
         if "ensembl_transcript" in vars(self):
             if self.ensembl_transcript != None:
                 prep['P704'] = []
-                for ensemblt in self.ensembl_gene:
+                for ensemblt in self.ensembl_transcript:
                     prep['P704'].append(PBB_Core.WDString(value=ensemblt, prop_nr='P704', references=gene_reference))
                     
         if "hgnc" in vars(self):
@@ -322,12 +319,6 @@ class mammal_gene(object):
             # print(self.wd_json_representation)
             wdPage.write(self.logincreds)
         else:
-            for key in data2add.keys():
-                if len(data2add[key]) == 0:
-                    data2add.pop(key, None)
-            for key in references.keys():
-                if len(references[key]) == 0:
-                    references.pop(key, None)
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="genes")
             wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
             if self.synonyms != None:

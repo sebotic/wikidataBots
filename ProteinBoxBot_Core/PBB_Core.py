@@ -43,6 +43,7 @@ import pprint
 import wd_property_store
 import json
 
+
 '''
 class BotMainLog():
     def __init__(self):
@@ -491,10 +492,24 @@ class WDItemEngine(object):
         if 'sitelinks' not in self.wd_json_representation:
             self.wd_json_representation['sitelinks'] = {}
 
+
         self.wd_json_representation['sitelinks'][site] = {
             'site': site,
             'title': title
         }
+
+    def get_sitelink(self, site):
+        """
+        A method to access the interwiki links in the json.model
+        :return:
+        """
+        if "sitelinks" in self.wd_json_representation.keys():
+            if site in self.wd_json_representation['sitelinks']:
+                return self.wd_json_representation['sitelinks'][site]
+            else:
+                return None
+        else:
+            return None
 
     def write(self, login):
         """
