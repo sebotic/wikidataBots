@@ -48,13 +48,15 @@ try:
     speciesInfo["human"]["name"] = "human"
     speciesInfo["human"]["release"] = "Q20950174"
     speciesInfo["human"]["genome_assembly"] = "Q20966585"
-    
+    speciesInfo["human"]["genome_assembly_previous"] = "Q21067546"
+
     speciesInfo["mouse"]["taxid"] = "10090"
     speciesInfo["mouse"]["wdid"] = "Q83310"
     speciesInfo["mouse"]["name"] = "mouse"
     speciesInfo["mouse"]["release"] = "Q20973051"
     speciesInfo["mouse"]["genome_assembly"] = "Q20973075"
-    
+    speciesInfo["mouse"]["genome_assembly_previous"] = "Q20973075"
+
     speciesInfo["rat"]["taxid"] = "10114"
     speciesInfo["rat"]["wdid"] = "Q36396"
     speciesInfo["rat"]["name"] = "rat"
