@@ -28,9 +28,10 @@ import time
 import datetime
 import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+import PBB_login
+import PBB_settings
 import PBB_Core
 import PBB_Debug
-import urllib2
 import xml.etree.cElementTree as ET
 import sys
 import DiseaseOntology_settings
@@ -39,27 +40,25 @@ try:
     import simplejson as json
 except ImportError as e:
     import json
-import PBB_login
-import PBB_settings
 import copy
 import traceback
+from time import gmtime, strftime
+
 
 class diseaseOntology():
     def __init__(self):      
         counter = 0
         self.content = ET.fromstring(self.download_disease_ontology())
-        self.version_date = self.getWDDiseaseOntologyTimeStamp()
-        self.version_iri = self.getDiseaseOntologyVersionIRI()
+        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         # self.wd_search_term = self.getWDSearchTerm()
         # updateDiseaseOntologyVersionInWD()
         self.updateDiseaseOntologyVersion()
-        print self.doVersionID
 
         # Get all WikiData entries that contain a WikiData ID
-        print "Getting all terms with a Disease Ontology ID in WikiData"
+        print("Getting all terms with a Disease Ontology ID in WikiData")
         doWikiData_id = dict()
         DoInWikiData = PBB_Core.WDItemList("CLAIM[699]", "699")
-        self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+
 
         for diseaseItem in DoInWikiData.wditems["props"]["699"]:
            #print diseaseItem[2]
@@ -76,16 +75,12 @@ class diseaseOntology():
             
             diseaseClass = disease(disVars)          
             
-            print "do_id: "+diseaseClass.do_id
-            print diseaseClass.wdid
-            print diseaseClass.name
-            print diseaseClass.synonyms
-            print diseaseClass.xrefs
-            counter = counter +1
+            print("do_id: "+diseaseClass.do_id)
+            print(diseaseClass.wdid)
+            print(diseaseClass.name)
+            print(diseaseClass.synonyms)
+            print(diseaseClass.xrefs)
           except:
-              print "There has been an except"
-              print "Unexpected error:", sys.exc_info()[0]
-
               f = open('/tmp/Diseaseexceptions.txt', 'a')
               # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
               # f.write(diseaseClass.do_id+"\n")
@@ -96,128 +91,9 @@ class diseaseOntology():
         """
         Downloads the latest version of disease ontology from the URL specified in DiseaseOntology_settings
         """
-        request = urllib2.Request(DiseaseOntology_settings.getdoUrl())
-        u = urllib2.urlopen(request)
-        do = u.read()
-        return do
-     
-    def getDiseaseOntologyTimeStamp(self):
-        """
-        Extract the version date from Disease Ontology
-        """
-        doDate =  self.content.findall('.//oboInOwl:date', DiseaseOntology_settings.getDoNameSpaces())
-        return doDate
-        
-    def getWDDiseaseOntologyTimeStamp(self):
-        """
-        Converts a Disease Ontology version date to the format recognized by WikiData
-        """
-        doDate = self.getDiseaseOntologyTimeStamp()
-        dateList = doDate[0].text.split(' ')[0].split(":")
-        timeList = doDate[0].text.split(' ')[1].split(":")
-        return "+0000000"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"T"+"00:00:00Z"  
-    
-    def getDiseaseOntologyVersionIRI(self):
-        """
-        Extracts the URL from where the disease ontology version applicable
-        """
-        return self.content.findall('.//owl:versionIRI', DiseaseOntology_settings.getDoNameSpaces())
-        #for name, value in doversion[0].items():
-        #    doUrlversion = value
-        #return doUrlversion
-    
-    def addNewLabel(self, localdata, label):
-        englishLabel = dict()
-        englishLabel['language']='en'
-        englishLabel['value']=label
-        englishLabels=dict()
-        englishLabels['en']=englishLabel
-        localdata['entities']['labels']=englishLabels
-        return localdata
-        
-    def addNewClaims(self, localdata, property, values, datatype, stated=True):
-        localdata["entities"]["claims"][property] = []
-        localvalues = []
-        if isinstance(values, list):
-            localvalues = values
-        else:
-            localvalues.append(values)
+        r = requests.get(DiseaseOntology_settings.getdoUrl())
+        return r.text
 
-        for value in localvalues:
-            statement = dict()
-            statement["rank"]="normal"
-            statement["type"]="statement"
-            mainsnak =dict()
-            statement["mainsnak"]=mainsnak
-            # mainsnak["datatype"]=datatype 
-            mainsnak['property']=property
-            mainsnak['datavalue']=dict()
-            if datatype=='string':
-                mainsnak['datavalue']['type']='string'
-                mainsnak['datavalue']['value']=value
-                mainsnak['snaktype']='value'
-            elif datatype=='wikibase-entityid':
-                mainsnak['datavalue']['type']='wikibase-entityid'
-                mainsnak['datavalue']['value']=dict()
-                mainsnak['datavalue']['value']['entity-type']='item'
-                mainsnak['datavalue']['value']['numeric-id']=value
-                mainsnak['snaktype']='value'
-            mainsnak["type"]="statement"
-            mainsnak["rank"]="normal"
-            statement["references"]=[]
-            statement["references"]=self.addReference(statement["references"], 'P143', 5282129)
-            localdata["entities"]["claims"][property].append(statement)
-        return localdata  
-        
-    def addReference(self, references, property, itemId):
-        found = False
-        for ref in references:
-          if property in ref["snaks"]:
-            for snak in ref["snaks"][property]:
-              if snak["datavalue"]["value"]["numeric-id"]==itemId:
-                ref = setDateRetrievedTimestamp(ref)
-                found = True
-                break
-        if not found:    
-            reference = dict()
-            snaks = dict()
-            reference["snaks"] = snaks
-            snaks[property]=[]
-            reference['snaks-order']=['P143']
-            snak=dict()
-            snaks[property].append(snak)
-            snak['property']=property
-            snak["snaktype"]='value'
-            snak["datatype"]='wikibase-item'
-            snak["datavalue"]=dict()
-            snak["datavalue"]["type"]='wikibase-entityid'
-            snak["datavalue"]["value"]=dict()
-            snak["datavalue"]["value"]["entity-type"]='item'
-            snak["datavalue"]["value"]["numeric-id"]=itemId
-            reference = self.setDateRetrievedTimestamp(reference)
-            references.append(reference)
-        return references  
-        
-    def setDateRetrievedTimestamp(self, reference):
-        ts = time.time()
-        timestamp = datetime.datetime.fromtimestamp(ts).strftime('+0000000%Y-%m-%dT00:00:00Z')
-        wdTimestamp = dict()
-        reference["snaks-order"]=['P143', 'P813']                 
-        wdTimestamp["datatype"]='time'
-        wdTimestamp["property"]='P813'
-        wdTimestamp["snaktype"]='value'
-        wdTimestamp["datavalue"]=dict()
-        wdTimestamp["datavalue"]["type"]='time'
-        wdTimestamp["datavalue"]["value"]=dict()
-        wdTimestamp["datavalue"]["value"]["after"]=0
-        wdTimestamp["datavalue"]["value"]["before"]=0
-        wdTimestamp["datavalue"]["value"]["calendarmodel"]='http://www.wikidata.org/entity/Q1985727'
-        wdTimestamp["datavalue"]["value"]["precision"]=11
-        wdTimestamp["datavalue"]["value"]["time"]=timestamp
-        wdTimestamp["datavalue"]["value"]["timezone"]=0
-        reference["snaks"]['P813']=[wdTimestamp]
-        return reference
-        
     def updateDiseaseOntologyVersion(self):   
         diseaseOntology = self.content   
         namespaces = {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
@@ -241,39 +117,22 @@ class diseaseOntology():
         #PBB_Debug.prettyPrint(reply)
         self.doVersionID = None
         if len(reply['search']) == 0:
-                login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-                cookies = login.get_edit_cookie()
-                edit_token = login.get_edit_token()
-                metadata={   u'entities': {   }}
-                metadata["entities"]["claims"]=dict()
-                metadata = self.addNewLabel(metadata, searchTerm)
-                metadata = self.addNewClaims(metadata, 'P856', ["http://disease-ontology.org"], 'string', False) # official website P856
-                metadata = self.addNewClaims(metadata, 'P1065', ["http://purl.obolibrary.org/obo/doid/releases/"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"/doid.owl"], 'string', False) # archive URL P1065
-                
-            
-                headers = {
-                    'content-type': 'application/x-www-form-urlencoded',
-                    'charset': 'utf-8'
-                }
-                payload = {
-                    u'action': u'wbeditentity',
-                    # u'data': json.dumps(self.wd_json_representation, encoding='utf-8'),
-                    u'data': json.JSONEncoder(encoding='utf-8').encode(metadata['entities']),
-                    u'new': 'item',
-                    u'format': u'json',
-                    u'token': edit_token
-                }
-                reply = requests.post('https://www.wikidata.org/w/api.php', headers=headers, data=payload, cookies=cookies)
-                # pp.pprint(data)
-                print reply.text
-                self.doVersionID = json.loads(reply.text)['entity']['id']
-                print "WikiData entry made for this version of Disease Ontology: "+self.doVersionID
+               data2add = []
+               # official website
+               data2add.append(PBB_Core.WDUrl(value="http://disease-ontology.org", prop_nr = "P856"))
+               # archive URL
+               githubURL = "https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/releases/"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"/doid.owl"
+               data2add.append(PBB_Core.WDUrl(value=githubURL, prop_nr = "P1065"))
+               doVersionPage = PBB_Core.WDItemEngine(item_name=searchTerm, data=data2add, server="www.wikidata.org", domain="disease")
+               doVersionPage.set_description(description='Release of the Disease ontology', lang='en')
+               PBB_Debug.prettyPrint(doVersionPage.get_wd_json_representation())
+               self.doVersionID = doVersionPage.write(self.logincreds)
+               print("WikiData entry made for this version of Disease Ontology: "+self.doVersionID)
         else:
             self.doVersionID = reply['search'][0]['id']
-        print self.doVersionID
+        print(self.doVersionID)
            
-    # def updateDiseaseOntologyVersionInWD(self):
-    #    pass
+
         
 class  disease(object):
     def __init__(self, object):
@@ -294,16 +153,22 @@ class  disease(object):
         self.wd_do_content = doClass
         PBB_Debug.prettyPrint(self.wd_do_content)
         self.do_id = self.getDoValue(self.wd_do_content, './/oboInOwl:id')[0].text
+        print(self.do_id)
         self.name = self.getDoValue(self.wd_do_content, './/rdfs:label')[0].text
+        print(self.name)
         classDescription = self.getDoValue(self.wd_do_content, './/oboInOwl:hasDefinition/oboInOwl:Definition/rdfs:label')
         if len(classDescription)>0:
             self.description = classDescription[0].text
 
-        
         if self.do_id in object[2].keys():
             self.wdid = "Q"+str(object[2][self.do_id])
         else:
             self.wdid = None
+
+        if self.getDoValue(self.wd_do_content, './/owl:deprecated') == "true":
+            self.rank = "deprecated"
+        else:
+            self.rank = "normal"
             
         self.synonyms = []
         for synonym in self.getDoValue(self.wd_do_content, './/oboInOwl:hasExactSynonym'):
@@ -312,102 +177,105 @@ class  disease(object):
         self.subclasses = []
         for subclass in self.getDoValue(self.wd_do_content, './/rdfs:subClassOf'):
             parts = subclass.get('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource').split("DOID_")
-            print parts[1]
             if len(parts)>1:
                 self.subclasses.append("DOID:"+parts[1])
         
         self.xrefs = dict()
         for xref in self.getDoValue(self.wd_do_content, './/oboInOwl:hasDbXref'):
-            print xref.text
             if not xref.text.split(":")[0] in self.xrefs.keys():
                 self.xrefs[xref.text.split(":")[0]] = []
             self.xrefs[xref.text.split(":")[0]].append(xref.text.split(":")[1])
-        do_reference = {
-                    'ref_properties': [u'P248', u'P143', 'TIMESTAMP'],
-                    'ref_values': [doVersionID, u'Q5282129' , 'TIMESTAMP']
-                }
-        references = dict()
-        data2add = dict()
+
+        refStatedIn = PBB_Core.WDItemID(value=doVersionID, prop_nr='P248', is_reference=True)
+        refImported = PBB_Core.WDItemID(value='Q5282129', prop_nr='P143', is_reference=True)
+        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        do_reference = [refStatedIn, refImported, refRetrieved]
+
+        prep = dict()
+        prep["P279"] = [PBB_Core.WDItemID(value='Q12136', prop_nr='P279', references=[copy.deepcopy(do_reference)])]
         # Subclass of disease
-        data2add["P279"] = ["12136"]
-        references['P279'] = [copy.deepcopy(do_reference)]
-        
         for subclass in self.subclasses:
             if subclass in self.wd_doMappings.keys():
-                data2add["P279"].append(str(self.wd_doMappings[subclass]))
-                references["P279"].append(copy.deepcopy(do_reference))
-        #disease Ontology
-        data2add["P699"] = [self.do_id]
-        references["P699"] = [copy.deepcopy(do_reference)]
-        
+                prep["P279"].append(PBB_Core.WDItemID(value=self.wd_doMappings[subclass], prop_nr='P279', references=[copy.deepcopy(do_reference)]))
+
+
         if "Orphanet" in self.xrefs.keys():
-            if isinstance(self.xrefs["Orphanet"], list): 
-                data2add['P1550'] = self.xrefs["Orphanet"]
+            if isinstance(self.xrefs["Orphanet"], list):
+                for id in self.xrefs["Orphanet"]:
+                    prep["P1550"].append(PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)]))
             else:
-                data2add['P1550'] = [self.xrefs["Orphanet"]]
-            if "P1550" not in references.keys():
-                references["P1550"] = []
-            for item in data2add['P1550']:
-                references["P1550"].append(copy.deepcopy(do_reference))
+                prep["P1550"] = [PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)])]
+
+        #disease Ontology
+
+        prep["P699"] = [PBB_Core.WDString(value=self.do_id, prop_nr='P699', references=[do_reference], rank=self.rank)]
+
+        if "url" in self.xrefs.keys():
+            if "//en.wikipedia.org/wiki/" in self.xrefs["url"]:
+                wikilink = self.xrefs["url"].replace("//en.wikipedia.org/wiki/", "").replace("_", "")
+            else:
+                wikilink = None
+        else:
+            wikilink = None
+
 
         if "ICD10CM" in self.xrefs.keys():
-            if isinstance(self.xrefs["ICD10CM"], list): 
-                data2add['P494'] = self.xrefs["ICD10CM"]
+            if isinstance(self.xrefs["ICD10CM"], list):
+                for id in self.xrefs["ICD10CM"]:
+                    prep["P494"].append(PBB_Core.WDString(value=self.xrefs["ICD10CM"], prop_nr='P494', references=[copy.deepcopy(do_reference)]))
             else:
-                data2add['P494'] = [self.xrefs["ICD10CM"]]
-            if "P494" not in references.keys():
-                references["P494"] = []
-            for item in data2add['P494']:
-                references["P494"].append(copy.deepcopy(do_reference))
+                prep["P494"] = [PBB_Core.WDString(value=self.xrefs["ICD10CM"], prop_nr='P494', references=[copy.deepcopy(do_reference)])]
 
         if "ICD9CM" in self.xrefs.keys():
-            if isinstance(self.xrefs["ICD9CM"], list): 
-                data2add['P493'] = self.xrefs["ICD9CM"]
+            if isinstance(self.xrefs["ICD9CM"], list):
+                for id in self.xrefs["ICD9CM"]:
+                    prep["P493"].append(PBB_Core.WDString(value=self.xrefs["ICD9CM"], prop_nr='P493', references=[copy.deepcopy(do_reference)]))
             else:
-                data2add['P493'] = [self.xrefs["ICD9CM"]]
-            if "P493" not in references.keys():
-                references["P493"] = []
-            for item in data2add['P493']:
-                references["P493"].append(copy.deepcopy(do_reference))
-            
+                prep["P493"] = [PBB_Core.WDString(value=self.xrefs["ICD9CM"], prop_nr='P493', references=[copy.deepcopy(do_reference)])]
+
         if "MSH" in self.xrefs.keys():
-            if isinstance(self.xrefs["MSH"], list): 
-                data2add['P486'] = self.xrefs["MSH"]
+            if isinstance(self.xrefs["MSH"], list):
+                for id in self.xrefs["MSH"]:
+                    prep["P486"].append(PBB_Core.WDString(value=self.xrefs["MSH"], prop_nr='P486', references=[copy.deepcopy(do_reference)]))
             else:
-                data2add['P486'] = [self.xrefs["MSH"]]
-            if "P486" not in references.keys():
-                references["P486"] = []
-            for item in data2add['P486']:
-                references["P486"].append(copy.deepcopy(do_reference))
+                prep["P486"] = [PBB_Core.WDString(value=self.xrefs["MSH"], prop_nr='P486', references=[copy.deepcopy(do_reference)])]
 
         if "NCI" in self.xrefs.keys():
-            if isinstance(self.xrefs["NCI"], list): 
-                data2add['P1748'] = self.xrefs["NCI"]
+            if isinstance(self.xrefs["NCI"], list):
+                for id in self.xrefs["NCI"]:
+                    prep["P1748"].append(PBB_Core.WDString(value=self.xrefs["NCI"], prop_nr='P1748', references=[copy.deepcopy(do_reference)]))
             else:
-                data2add['P1748'] = [self.xrefs["NCI"]]
-            if "P1748" not in references.keys():
-                references["P1748"] = []
-            for item in data2add['P1395']:
-                references["P1748"].append(copy.deepcopy(do_reference))
-           
-        if "OMIM" in self.xrefs.keys():
-            if isinstance(self.xrefs["OMIM"], list): 
-                data2add['P492'] = self.xrefs["OMIM"]
-            else:
-                data2add['P492'] = [self.xrefs["OMIM"]]
-            if "P492" not in references.keys():
-                references["P492"] = []
-            for item in data2add['P492']:
-                references["P492"].append(copy.deepcopy(do_reference))
-        print self.wdid
-        if self.wdid != None: 
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", references=references)
-            print self.wdid
-            self.wd_json_representation = wdPage.get_wd_json_representation() 
-            PBB_Debug.prettyPrint(self.wd_json_representation)
-            wdPage.write(self.logincreds)
+                prep["P1748"] = [PBB_Core.WDString(value=self.xrefs["NCI"], prop_nr='P1748', references=[copy.deepcopy(do_reference)])]
 
-        
+        if "OMIM" in self.xrefs.keys():
+            if isinstance(self.xrefs["OMIM"], list):
+                for id in self.xrefs["OMIM"]:
+                    prep["P492"].append(PBB_Core.WDString(value=self.xrefs["OMIM"], prop_nr='P492', references=[copy.deepcopy(do_reference)]))
+            else:
+                prep["492"] = [PBB_Core.WDString(value=self.xrefs["OMIM"], prop_nr='P492', references=[copy.deepcopy(do_reference)])]
+
+        print(self.wdid)
+        data2add = []
+        for key in prep.keys():
+            for statement in prep[key]:
+                data2add.append(statement)
+                print(statement.prop_nr, statement.value)
+
+        if self.wdid is not None:
+            wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases")
+        else:
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases")
+
+        wdPage.set_description(description='Human disease', lang='en')
+        if wikilink is not None:
+            wdPage.set_sitelink(site="enwiki", title = wikilink)
+        if self.synonyms is not None:
+             wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
+        self.wd_json_representation = wdPage.get_wd_json_representation()
+        PBB_Debug.prettyPrint(self.wd_json_representation)
+        wdPage.write(self.logincreds)
+
         
     def getDoValue(self, doClass, doNode):
         return doClass.findall(doNode, DiseaseOntology_settings.getDoNameSpaces())
