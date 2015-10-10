@@ -71,77 +71,6 @@ class genome(object):
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-        sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
-
-        print("Getting all molecular functions in Wikidata")
-        sparql.setQuery("""
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX v: <http://www.wikidata.org/prop/statement/>
-            SELECT DISTINCT ?mf ?mfLabel WHERE {
-                ?a p:P680/v:P680 ?mf .
-                ?mf rdfs:label ?mfLabel .
-                FILTER (LANG(?mfLabel) = 'en')
-            }
-        """)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        PBB_Debug.prettyPrint(results)
-        mfWikidataIds = dict()
-        for result in results["results"]["bindings"]:
-            mfWikidataIds[result["mfLabel"]["value"]] = result["mf"]["value"].replace("http://www.wikidata.org/entity/",
-                                                                                      "")
-        PBB_Debug.prettyPrint(mfWikidataIds)
-
-        print("Getting all cell components in Wikidata")
-        sparql.setQuery("""
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX v: <http://www.wikidata.org/prop/statement/>
-            SELECT DISTINCT ?cc ?ccLabel WHERE {
-                ?a p:P681/v:P681 ?cc .
-                ?cc rdfs:label ?ccLabel .
-                FILTER (LANG(?ccLabel) = 'en')
-            }
-        """)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        PBB_Debug.prettyPrint(results)
-        ccWikidataIds = dict()
-        for result in results["results"]["bindings"]:
-            ccWikidataIds[result["ccLabel"]["value"]] = result["cc"]["value"].replace("http://www.wikidata.org/entity/",
-                                                                                      "")
-        PBB_Debug.prettyPrint(ccWikidataIds)
-
-        print("Getting all biological process in Wikidata")
-        sparql.setQuery("""
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX v: <http://www.wikidata.org/prop/statement/>
-            SELECT DISTINCT ?bp ?bpLabel WHERE {
-                ?a p:P682/v:P682 ?bp .
-                ?bp rdfs:label ?bpLabel .
-                FILTER (LANG(?bpLabel) = 'en')
-            }
-        """)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        PBB_Debug.prettyPrint(results)
-        bpWikidataIds = dict()
-        for result in results["results"]["bindings"]:
-            bpWikidataIds[result["bpLabel"]["value"]] = result["bp"]["value"].replace("http://www.wikidata.org/entity/",
-                                                                                      "")
-        PBB_Debug.prettyPrint(bpWikidataIds)
-
         for gene in self.genes:
             try:
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
@@ -150,9 +79,6 @@ class genome(object):
                     gene["wdid"] = None
                 gene["logincreds"] = self.logincreds
                 gene["genomeInfo"] = self.genomeInfo
-                gene["biological_process"] = bpWikidataIds
-                gene["cell_component"] = ccWikidataIds
-                gene["molecular_function"] = mfWikidataIds
                 geneClass = mammal_gene(gene)
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                     geneClass.wdid = 'Q' + str(entrezWikidataIds[str(geneClass.entrezgene)])
@@ -191,10 +117,6 @@ class mammal_gene(object):
         self.name = object["name"]
         self.logincreds = object["logincreds"]
         gene_annotations = self.annotate_gene()
-        self.molecular_function_index = object["molecular_function"]
-        self.cell_componenent_index = object["cell_component"]
-        self.biological_process_index = object["biological_process"]
-
         self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
 
@@ -209,32 +131,6 @@ class mammal_gene(object):
                 self.hgnc = [gene_annotations["HGNC"]]
         else:
             self.hgnc = None
-
-        # GO
-        if "go" in gene_annotations:
-            if "BP" in gene_annotations["go"]:
-                # P682
-                if isinstance(gene_annotations["go"]["BP"], list):
-                    self.biological_process = gene_annotations["go"]["BP"]
-                else:
-                    self.biological_process = [gene_annotations["go"]["BP"]]
-            else:
-                self.biological_process = None
-            if "CC" in gene_annotations["go"]:
-                if isinstance(gene_annotations["go"]["CC"], list):
-                    self.cell_componenent = gene_annotations["go"]["CC"]
-                else:
-                    self.cell_componenent = [gene_annotations["go"]["CC"]]
-            else:
-                self.cell_componenent = None
-            if "MF" in gene_annotations["go"]:
-                # P680
-                if isinstance(gene_annotations["go"]["MF"], list):
-                    self.molecular_function = gene_annotations["go"]["MF"]
-                else:
-                    self.molecular_function = [gene_annotations["go"]["MF"]]
-            else:
-                self.molecular_function = None
 
         # Ensembl Gene & transcript
         if "ensembl" in gene_annotations:
@@ -356,9 +252,12 @@ class mammal_gene(object):
         # Reference section  
         # Prepare references
         refStatedIn = PBB_Core.WDItemID(value=self.genomeInfo["release"], prop_nr='P248', is_reference=True)
+        refStatedIn.overwrite_references = True
         refImported = PBB_Core.WDItemID(value='Q20641742', prop_nr='P143', is_reference=True)
+        refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        refRetrieved.overwrite_references = True
         gene_reference = [refStatedIn, refImported, refRetrieved]
 
         genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659',
@@ -379,78 +278,6 @@ class mammal_gene(object):
                 for i in range(len(self.type_of_gene)):
                     prep['P279'].append(PBB_Core.WDItemID(value=self.type_of_gene[i], prop_nr='P279',
                                                           references=[copy.deepcopy(gene_reference)]))
-        prep["P686"] = []
-        if "molecular_function" in vars(self) and self.molecular_function:
-            prep["P680"] = []
-            for mf in self.molecular_function:
-                term_reference = [copy.deepcopy(gene_reference)]
-                if "pubmed" in mf.keys():
-                    if isinstance(mf["pubmed"], list):
-                        for pubmed in mf["pubmed"]:
-                            term_reference.append(
-                                PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(pubmed),
-                                               prop_nr="P698", is_reference=True))
-                    else:
-                        term_reference.append(
-                            PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(mf["pubmed"]),
-                                           prop_nr="P698", is_reference=True))
-                if mf["term"] in self.molecular_function_index.keys():
-                    prep["P680"].append(
-                        PBB_Core.WDItemID(value=self.molecular_function_index[mf["term"]], prop_nr='P680',
-                                        references=term_reference))
-                else:
-                    raise Exception(str(self.entrezgene) + " "+mf["term"] + " is not covered in Wikidata yet")
-                prep["P686"].append(
-                       PBB_Core.WDString(value=mf["id"], prop_nr='P686', references=term_reference))
-
-        if "cell_component" in vars(self):
-            if self.cell_component != None:
-                prep["P681"] = []
-                for cc in self.cell_component:
-                    term_reference = [copy.deepcopy(gene_reference)]
-                    if "pubmed" in cc.keys():
-                        if isinstance(cc["pubmed"], list):
-                            for pubmed in cc["pubmed"]:
-                                term_reference.append(
-                                    PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(pubmed),
-                                                   prop_nr="P698", is_reference=True))
-                        else:
-                            term_reference.append(
-                                PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(cc["pubmed"]),
-                                               prop_nr="P698", is_reference=True))
-                    if cc["term"] in self.cell_componenent_index.keys():
-                        prep["P681"].append(
-                            PBB_Core.WDItemID(value=self.cell_componenent_index[cc["term"]], prop_nr='P681',
-                                              references=term_reference))
-                    else:
-                        raise Exception(str(self.entrezgene) + " "+cc["term"] + " is not covered in Wikidata yet")
-                    prep["P686"].append(
-                       PBB_Core.WDString(value=cc["id"], prop_nr='P686', references=term_reference))
-
-        if "biological_process" in vars(self) and self.biological_process is not None:
-            prep["P682"] = []
-            for bp in self.biological_process:
-                term_reference = [copy.deepcopy(gene_reference)]
-                if isinstance(bp, dict):
-                    if "pubmed" in bp.keys():
-                        if isinstance(bp["pubmed"], list):
-                            for pubmed in bp["pubmed"]:
-                                term_reference.append(
-                                    PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(pubmed),
-                                                   prop_nr="P698", is_reference=True))
-                        else:
-                            term_reference.append(
-                                PBB_Core.WDUrl(value="http://www.ncbi.nlm.nih.gov/pubmed/" + str(bp["pubmed"]),
-                                               prop_nr="P698", is_reference=True))
-
-                    if bp["term"] in self.biological_process_index.keys():
-                        prep["P682"].append(
-                            PBB_Core.WDItemID(value=self.biological_process_index[bp["term"]], prop_nr='P682',
-                                              references=term_reference))
-                    else:
-                        raise Exception(str(self.entrezgene) + " "+bp["term"] + " is not covered in Wikidata yet")
-                    prep["P686"].append(
-                       PBB_Core.WDString(value=bp["id"], prop_nr='P686', references=term_reference))
 
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
@@ -564,7 +391,7 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(self.wd_json_representation)
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
-            # wdPage.write(self.logincreds)
+            wdPage.write(self.logincreds)
         else:
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
@@ -575,7 +402,7 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(self.wd_json_representation)
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
-            # wdPage.write(self.logincreds)
+            wdPage.write(self.logincreds)
 
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     
