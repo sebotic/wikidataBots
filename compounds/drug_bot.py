@@ -20,14 +20,14 @@ class DrugBot(object):
     def __init__(self, user, pwd):
         properties = ['P279', 'P769', 'P31', 'P636', 'P267', 'P231', 'P486', 'P672', 'P662', 'P661', 'P652', 'P665', 'P683',
                       'P274', 'P715', 'P646', 'P592', 'P233', 'P234', 'P235',
-                      'P18', 'P373', 'P1805', 'P657', 'P595']
+                      'P18', 'P373', 'P1805', 'P657', 'P595', 'P2115']
         # these property names do not match those in Wikidata!!
         property_names = ['subclass of', 'significant drug interaction', 'instance of', 'route of administration', 'ATC code',
                           'CAS number', 'MeSH ID', 'MeSH Code',
                           'PubChem ID (CID)', 'ChemSpider', 'UNII', 'KEGG Drug', 'ChEBI', 'Molecular Formula', 'Drugbank ID',
                           'Freebase identifier', 'ChEMBL',
                           'SMILES', 'InChI', 'InChIKey', 'image', 'Commons category',
-                          'WHO INN', 'RTECS Number', 'Guide to Pharmacology']
+                          'WHO INN', 'RTECS Number', 'Guide to Pharmacology', 'NDF-RT NUI']
 
         prop_to_name = dict(zip(properties, property_names))
         name_to_prop = dict(zip(property_names, properties))
@@ -69,7 +69,7 @@ class DrugBot(object):
 
         # Iterate though all drugbank compounds and add those to Wikidata which are either FDA-approved or have been
         # withdrawn from the market. Add all non-missing values for each drug to Wikidata.
-        for count in drug_data.index:
+        for count in drug_data.index[5570:5575]:
             print('Count is:', count)
 
             if drug_data.loc[count, 'Status'] == 'approved' or drug_data.loc[count, 'Status'] == 'withdrawn':
@@ -107,7 +107,8 @@ class DrugBot(object):
 
                 drugbank_source = ['instance of', 'ATC code', 'CAS number', 'Drugbank ID', 'Molecular Formula',  'InChI', 'InChIKey']
                 chembl_source = ['ChEMBL', 'ChemSpider', 'KEGG Drug', 'ChEBI', 'SMILES', 'WHO INN', 'Guide to Pharmacology']
-                pubchem_source = ['MeSH ID', 'PubChem ID (CID)', 'UNII']
+                pubchem_source = ['MeSH ID', 'PubChem ID (CID)']
+                ndfrt_source = ['NDF-RT NUI', 'UNII']
 
                 for i in data:
                     if i.get_prop_nr() in [name_to_prop[x] for x in chembl_source]:
@@ -117,13 +118,15 @@ class DrugBot(object):
                             continue
                         i.set_references(self.make_reference(stated_in='Q6120337',
                                                              source_element=drug_data.loc[count, 'ChEMBL'],
-                                                             source_element_name=drug_data.loc[count, 'Name']))
+                                                             source_element_name=drug_data.loc[count, 'Name'],
+                                                             source_element_prop=name_to_prop['ChEMBL']))
 
                 for i in data:
                     if i.get_prop_nr() in [name_to_prop[x] for x in drugbank_source]:
                         i.set_references(self.make_reference(stated_in='Q1122544',
                                                              source_element=drug_data.loc[count, 'Drugbank ID'],
                                                              source_element_name=drug_data.loc[count, 'Name'],
+                                                             source_element_prop=name_to_prop['Drugbank ID'],
                                                              date=self.drugbank_date,
                                                              date_property='P577'))
 
@@ -131,7 +134,15 @@ class DrugBot(object):
                     if i.get_prop_nr() in [name_to_prop[x] for x in pubchem_source] and pd.notnull(drug_data.loc[count, 'PubChem ID (CID)']):
                         i.set_references(self.make_reference(stated_in='Q278487',
                                                              source_element=drug_data.loc[count, 'PubChem ID (CID)'],
-                                                             source_element_name=drug_data.loc[count, 'Name']))
+                                                             source_element_name=drug_data.loc[count, 'Name'],
+                                                             source_element_prop=name_to_prop['PubChem ID (CID)']))
+
+                for i in data:
+                    if i.get_prop_nr() in [name_to_prop[x] for x in ndfrt_source] and pd.notnull(drug_data.loc[count, 'NDF-RT NUI']):
+                        i.set_references(self.make_reference(stated_in='Q21008030',
+                                                             source_element=drug_data.loc[count, 'NDF-RT NUI'],
+                                                             source_element_name=drug_data.loc[count, 'Name'].upper(),
+                                                             source_element_prop=name_to_prop['NDF-RT NUI']))
 
                 label = drug_data.loc[count, 'Name']
                 domain = 'drugs'
@@ -195,16 +206,19 @@ class DrugBot(object):
                 end = time.time()
                 print('Time elapsed:', end - start)
 
-    def make_reference(self, stated_in, source_element, source_element_name, date=time.strftime('+%Y-%m-%dT00:00:00Z'),
+    def make_reference(self, stated_in, source_element, source_element_name, source_element_prop, date=time.strftime('+%Y-%m-%dT00:00:00Z'),
                        date_property='P813'):
         ref = [[
             PBB_Core.WDItemID(value=stated_in, prop_nr='P248', is_reference=True),  # stated in
-            PBB_Core.WDString(value=source_element, prop_nr='P715', is_reference=True),  # source element
+            PBB_Core.WDString(value=source_element, prop_nr=source_element_prop, is_reference=True),  # source element
             PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of work
             PBB_Core.WDMonolingualText(value=source_element_name, language='en',
-                                       prop_nr='P1476', is_reference=True)
-        ], [
+                                       prop_nr='P1476', is_reference=True),
             PBB_Core.WDTime(time=date, prop_nr=date_property, is_reference=True)  # publication date
         ]]
+
+        # this will overwrite all existing references of a WD claim value.
+        for x in ref[0]:
+            x.overwrite_references = True
 
         return ref
