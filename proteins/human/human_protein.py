@@ -67,16 +67,16 @@ class human_proteome():
             r = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e%0d%0aPREFIX+taxonomy%3a%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+database%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fdatabase%2f%3e%0d%0aSELECT+%3funiprot+%3fplabel+%3fecName+%3fupversion+%0d%0a+++++++(group_concat(distinct+%3fencodedBy%3b+separator%3d%22%3b+%22)+as+%3fencoded_by)%0d%0a+++++++(group_concat(distinct+%3falias%3b+separator%3d%22%3b+%22)+as+%3fupalias)%0d%0a+++++++(group_concat(distinct+%3fpdb%3b+separator%3d%22%3b+%22)+as+%3fpdbid)%0d%0a+++++++(group_concat(distinct+%3frefseq%3b+separator%3d%22%3b+%22)+as+%3frefseqid)%0d%0a+++++++(group_concat(distinct+%3fensP%3b+separator%3d%22%3b+%22)+as+%3fensemblp)%0d%0aWHERE%0d%0a%7b%0d%0a%09%09VALUES+%3funiprot+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f"+
                               str(uniprotWDQId)+
                               "%3e%7d%0d%0a++++++++%3funiprot+rdfs%3alabel+%3fplabel+.%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.+%0d%0a++++++++%3funiprot+up%3aencodedBy+%3fgene+.%0d%0a%09%09%3fgene+skos%3aprefLabel+%3fencodedBy+.%0d%0a++++++++optional%7b%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++%3fupAlias+up%3aecName+%3fecName+.%7d%0d%0a++++++++%0d%0a++++++++OPTIONAL%7b+%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++++%7b%3fupAlias+up%3afullName+%3falias+.%7d+UNION%0d%0a++++++++%7b%3fupAlias+up%3ashortName+%3falias+.%7d%7d%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fpdb+.%0d%0a++++++++%3fpdb+up%3adatabase+database%3aPDB+.%7d%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3frefseq+.%0d%0a++++++++%3frefseq+up%3adatabase+database%3aRefSeq+.%7d++%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fensT+.%0d%0a++++++++%3fensT+up%3adatabase+database%3aEnsembl+.%0d%0a++++++++%3fensT+up%3atranslatedTo+%3fensP+.%7d%0d%0a%7d%0d%0agroup+by+%3fupAlias+%3funiprot+%3fencodedBy+%3fplabel+%3fecName+%3fupversion&format=srj")
-            """
-            r = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e%0d%0aPREFIX+taxonomy%3a%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+database%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fdatabase%2f%3e%0d%0aSELECT+%3funiprot+%3fplabel+%3fecName+%3fupversion+%3fgwiki%0d%0a+++++++(group_concat(distinct+%3fencodedBy%3b+separator%3d%22%3b+%22)+as+%3fencoded_by)%0d%0a+++++++(group_concat(distinct+%3falias%3b+separator%3d%22%3b+%22)+as+%3fupalias)%0d%0a+++++++(group_concat(distinct+%3fpdb%3b+separator%3d%22%3b+%22)+as+%3fpdbid)%0d%0a+++++++(group_concat(distinct+%3frefseq%3b+separator%3d%22%3b+%22)+as+%3frefseqid)%0d%0a+++++++(group_concat(distinct+%3fensP%3b+separator%3d%22%3b+%22)+as+%3fensemblp)%0d%0aWHERE%0d%0a%7b%0d%0a%09%09geneUES+%3funiprot+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f"+
-                              str(uniprotWDQId)+
-                             "%3e%7d%0d%0a++++++++%3funiprot+rdfs%3alabel+%3fplabel+.%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.+%0d%0a++++++++%3funiprot+up%3aencodedBy+%3fgene+.%0d%0a%09%09%3fgene+skos%3aprefLabel+%3fencodedBy+.%0d%0a++++++++%3funiprot+rdfs%3aseeAlso+%3fgwiki+.%0d%0a++++++++%3fgwiki+up%3adatabase+database%3aGeneWiki+.%0d%0a++++++++optional%7b%3funiprot+up%3aalternativeName+%3fupAlias1+.%0d%0a++++++++%3fupAlias1+up%3aecName+%3fecName+.%7d%0d%0a++++++++%7b%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++++%3fupAlias+up%3afullName+%3falias+.%7d+UNION%0d%0a+++++++%7b%3funiprot+up%3aalternativeName+%3fupAlias+.+%0d%0a++++++++++%3fupAlias+up%3ashortName+%3falias+.%7d%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fpdb+.%0d%0a++++++++%3fpdb+up%3adatabase+database%3aPDB+.%7d%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3frefseq+.%0d%0a++++++++%3frefseq+up%3adatabase+database%3aRefSeq+.%7d++%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fensT+.%0d%0a++++++++%3fensT+up%3adatabase+database%3aEnsembl+.%0d%0a++++++++%3fensT+up%3atranslatedTo+%3fensP+.%7d%0d%0a%7d%0d%0agroup+by+%3funiprot+%3fgwiki+%3fencodedBy+%3fplabel+%3fecName+%3fupversion&format=srj")
-            """
 
-            # print r.text
+            r2 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e+%0d%0aSELECT+DISTINCT+%3fprotein+%3fgo+%3fgoLabel+%3fparentLabel%0d%0aWHERE%0d%0a%7b%0d%0a++%09%09VALUES+%3fprotein+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f"+
+                              str(uniprotWDQId)+
+                              "%3e%7d%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++%09%09%3fprotein+up%3aclassifiedWith+%3fgo+.+++%0d%0a++++++++%3fgo+rdfs%3alabel+%3fgoLabel+.%0d%0a++++++++%3fgo+rdfs%3asubClassOf*+%3fparent+.%0d%0a++++++++%3fparent+rdfs%3alabel+%3fparentLabel+.%0d%0a++++++++optional+%7b%3fparent+rdfs%3asubClassOf+%3fgrandParent+.%7d%0d%0a++++++++FILTER+(!bound(%3fgrandParent))%0d%0a%7d&format=srj")
+
             print(r.status_code)
             protein = r.json()
+            goTerms = r2.json()
             PBB_Debug.prettyPrint(protein)
+            protein["goTerms"] = goTerms
             protein["logincreds"] = self.logincreds
             protein["wdid"] = 'Q'+str(uniprotWikidataIds[uniprotWDQId])
             # print protein
@@ -107,6 +107,7 @@ class human_protein(object):
         self.geneSymbols = object["geneSymbols"]
         print(object["geneSymbols"])
         self.logincreds = object["logincreds"]
+        self.goTerms = object["goTerms"]
         self.version = object["results"]["bindings"][0]["upversion"]["value"]
         self.wdid = object["wdid"]
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
@@ -197,6 +198,40 @@ class human_protein(object):
                 proteinPrep['P702'].append(PBB_Core.WDItemID(value=self.encoded_by[0], prop_nr='P702', references=protein_reference))
                 genePrep[self.encoded_by[0]] = [PBB_Core.WDItemID(value=self.wdid, prop_nr='P688', references=protein_reference)]
 
+        # P686 = Gene Ontology ID
+        proteinPrep["P680"] = []
+        proteinPrep["P681"] = []
+        proteinPrep["P682"] = []
+
+        for result in self.goTerms["results"]["bindings"]:
+            # proteinPrep['P686'].append(PBB_Core.WDString(value=result["go"]["value"].replace("'http://purl.obolibrary.org/obo/'", "").replace("_", ":"), prop_nr='P686', references=protein_reference))
+            url = 'https://{}/w/api.php'.format("www.wikidata.org")
+            params = {
+                'action': 'wbsearchentities',
+                'language': 'en',
+                'search': result["goLabel"]["value"],
+                'format': 'json'
+            }
+
+            reply = requests.get(url, params=params)
+            search_results = reply.json()
+
+            if len(search_results["search"]) == 0:
+               statement = [PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/", "").replace("_", ":"), prop_nr='P686', references=protein_reference)]
+               goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"],data=statement, server="www.wikidata.org", references=protein_reference, domain="proteins")
+               goWdPage.set_description("Gene Ontology term")
+               js = goWdPage.get_wd_json_representation()
+               goWdId = goWdPage.write(self.logincreds)
+            else:
+               goWdId = search_results["search"][0]["id"]
+
+            if result["parentLabel"]["value"] == "molecular_function":
+                proteinPrep["P680"].append(PBB_Core.WDItemID(value=goWdId,prop_nr='P680', references=protein_reference))
+            if result["parentLabel"]["value"] == "cellular_component":
+                proteinPrep["P681"].append(PBB_Core.WDItemID(value=goWdId,prop_nr='P681', references=protein_reference))
+            if result["parentLabel"]["value"] == "biological_process":
+                proteinPrep["P682"].append(PBB_Core.WDItemID(value=goWdId,prop_nr='P682', references=protein_reference))
+
         proteinData2Add = []
         for key in proteinPrep.keys():
             for statement in proteinPrep[key]:
@@ -216,10 +251,10 @@ class human_protein(object):
         '''
         Adding the encodes property to gene pages
         '''
-        for key in genePrep.keys():
-            genePrep[key].append(PBB_Core.WDItemID(value=self.wdid, prop_nr='P688', references=protein_reference))
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key,  data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="proteins", append_value=['P688'])
-            wdGenePage.write(self.logincreds)
+        #for key in genePrep.keys():
+        #    genePrep[key].append(PBB_Core.WDItemID(value=self.wdid, prop_nr='P688', references=protein_reference))
+        #    wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key,  data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="proteins", append_value=['P688'])
+        #    wdGenePage.write(self.logincreds)
 
         wdProteinpage.write(self.logincreds)
 
