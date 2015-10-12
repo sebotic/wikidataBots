@@ -56,9 +56,9 @@ class human_proteome():
         print('Getting all proteins with a uniprot ID in Wikidata')
         InWikiData = PBB_Core.WDItemList("CLAIM[703:5] AND CLAIM[352]", "352")
         print("Getting all human gene symbols in Wikidata")
-        GeneSymbolMapping = PBB_Core.WDItemList("CLAIM[279:7187] AND CLAIM[353] AND CLAIM[703:5]", "353")
+        GeneSymbolMapping = PBB_Core.WDItemList("CLAIM[353] AND CLAIM[703:5]", "353")
         for geneSymbol in GeneSymbolMapping.wditems["props"]["353"]:
-            GeneSymbolWdMapping[str(geneSymbol[2]).lower()] = geneSymbol[0]
+            GeneSymbolWdMapping[str(geneSymbol[2])] = geneSymbol[0]
         for proteinItem in InWikiData.wditems["props"]["352"]:
             uniprotWikidataIds[str(proteinItem[2])] = proteinItem[0]
         for uniprotWDQId in uniprotWikidataIds.keys():
@@ -112,8 +112,10 @@ class human_protein(object):
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
         self.uniprotId = object["results"]["bindings"][0]["uniprot"]["value"].replace("http://purl.uniprot.org/uniprot/", "").replace(" ", "")
         self.name = object["results"]["bindings"][0]["plabel"]["value"]
+
         if "ecName" in object["results"]["bindings"][0].keys():
-            self.ecname = object["results"]["bindings"][0]["ecName"]["value"]
+            self.ecname = []
+            self.ecname.append(object["results"]["bindings"][0]["ecName"]["value"])
         self.alias = []
         for syn in object["results"]["bindings"][0]["upalias"]["value"].split(";"):
             if syn != "":
@@ -126,22 +128,27 @@ class human_protein(object):
             self.refseq = []
             for refseqId in object["results"]["bindings"][0]["refseqid"]["value"].split(";"):
                 self.refseq.append(refseqId.replace("http://purl.uniprot.org/refseq/", "").replace(" ", ""))
-        self.ensemblp = []
-        for ensP in object["results"]["bindings"][0]["ensemblp"]["value"].split(";"):
-            self.ensemblp.append(ensP.replace("http://purl.uniprot.org/ensembl/", "").replace(" ", ""))
-        self.encoded_by = []
-        for encodedBy in object["results"]["bindings"][0]["encoded_by"]["value"].split(";"):
-            if str(encodedBy).lower() in self.geneSymbols.keys():
-                self.encoded_by.append('Q'+str(self.geneSymbols[str(encodedBy).lower()]))
-
+        if "ensemblp" in object["results"]["bindings"][0].keys() and object["results"]["bindings"][0]["ensemblp"]["value"] != "":
+            self.ensemblp = []
+            for ensP in object["results"]["bindings"][0]["ensemblp"]["value"].split(";"):
+                self.ensemblp.append(ensP.replace("http://purl.uniprot.org/ensembl/", "").replace(" ", ""))
+        if "encoded_by" in object["results"]["bindings"][0].keys() and object["results"]["bindings"][0]["encoded_by"]["value"] != "":
+            self.encoded_by = []
+            for encodedBy in object["results"]["bindings"][0]["encoded_by"]["value"].split(";"):
+                print(self.geneSymbols[str(encodedBy)])
+                if str(encodedBy) in self.geneSymbols.keys():
+                    self.encoded_by.append('Q'+str(self.geneSymbols[str(encodedBy)]))
 
         # Prepare references
         refURL = "http://www.uniprot.org/uniprot/"+self.uniprotId+".txt?"+str(self.version)
         #refStatedIn = PBB_Core.WDItemID(value=refURL, prop_nr='P248', is_reference=True)
         refReferenceURL = PBB_Core.WDUrl(value=refURL, prop_nr='P854', is_reference=True)
+        refReferenceURL.overwrite_references = True
         refImported = PBB_Core.WDItemID(value='Q905695', prop_nr='P143', is_reference=True)
+        refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        refRetrieved.overwrite_references = True
         protein_reference =  [[refImported, refRetrieved, refReferenceURL]]
 
         references = dict()
@@ -196,27 +203,22 @@ class human_protein(object):
                 proteinData2Add.append(statement)
                 print(statement.prop_nr, statement.value)
 
-
+        print (self.wdid)
         wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add, server="www.wikidata.org", references=protein_reference, domain="proteins")
         if len(self.alias) >0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
         wdProteinpage.set_description(description='human protein', lang='en')
         self.wd_json_representation = wdProteinpage.get_wd_json_representation()
-
-
         PBB_Debug.prettyPrint(self.wd_json_representation)
+        print (wdProteinpage.wd_item_id)
+
         print("===============")
         '''
         Adding the encodes property to gene pages
         '''
         for key in genePrep.keys():
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key,  data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="proteins", )
-
-            if 'P688' in wdGenePage.get_wd_json_representation["claims"]:
-                for encodes in wdGenePage.get_wd_json_representation["claims"]['P688']:
-                    if self.wdid != 'Q'+str(encodes["mainsnak"]["datavalue"]["value"]["numeric-id"]):
-                        genePrep[key].append(PBB_Core.WDItemID(value='Q'+str(encodes["mainsnak"]["datavalue"]["value"]["numeric-id"]), prop_nr='P688', references=protein_reference))
-            PBB_Debug.prettyPrint(wdGenePage.get_wd_json_representation())
+            genePrep[key].append(PBB_Core.WDItemID(value=self.wdid, prop_nr='P688', references=protein_reference))
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key,  data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="proteins", append_value=['P688'])
             wdGenePage.write(self.logincreds)
 
         wdProteinpage.write(self.logincreds)
