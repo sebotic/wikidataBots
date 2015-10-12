@@ -217,7 +217,7 @@ class human_protein(object):
             search_results = reply.json()
 
             if len(search_results["search"]) == 0:
-               statement = [PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/", "").replace("_", ":"), prop_nr='P686', references=protein_reference)]
+               statement = [PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""), prop_nr='P686', references=protein_reference)]
                goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"],data=statement, server="www.wikidata.org", references=protein_reference, domain="proteins")
                goWdPage.set_description("Gene Ontology term")
                js = goWdPage.get_wd_json_representation()
