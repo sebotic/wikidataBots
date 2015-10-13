@@ -33,7 +33,7 @@ from datetime import date, datetime, timedelta
 
 
 try:
-    print("Getting human proteins from mygene.info")
+    print("Getting human proteins from uniprot")
     human_proteome = human_protein.human_proteome()
     print(human_proteome.protein_count)
 

@@ -19,51 +19,17 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 '''
-# Load the path to the PBB_Core library
-import sys
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core/")
-import PBB_Core
-import PBB_Debug
-import PBB_Functions
-import PBB_login
-import PBB_settings
 
 # Resource specific 
 import DiseaseOntology
-
-from raven import Client
 import traceback
-from datetime import date, datetime, timedelta
-
-# main_log = PBB_Core.BotMainLog()
-# main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-# Login to WikiData
-# login_values = PBB_login.login(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-
-# Login to getSentry service
-# client = Client(PBB_settings.getSentryKey())
-
 
 
 try:
-    print "Getting the Disease Ontology"
+    print("Getting the Disease Ontology")
     do = DiseaseOntology.diseaseOntology()
-    print do.version_date
-    
-    '''
-    # Update the WikiData entry for this version of Disease ontology 
-    print "Update the latest version of Disease Ontology on Wikidata"
-    updateDiseaseOntologyVersion(site, repo, diseaseOntology)
-    
-    # Get a WDItem
-    PBB_Debug.prettyPrint(PBB_Core.WDItem('Q42').properties)
-    main_log.bot = __file__
-    main_log.finish_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    main_log.addTuple()
-    '''
-        
-    
-except Exception, err:
-    print traceback.format_exc()
+#    print(do.version_date)
+
+except Exception as err:
+    print(traceback.format_exc())
     # client.captureException()

@@ -26,7 +26,8 @@ __license__ = 'GPL'
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
 import PBB_Core
 import PBB_Debug
 import PBB_login
@@ -37,19 +38,20 @@ import copy
 import traceback
 import mygene_info_settings
 from time import gmtime, strftime
-
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
     import simplejson as json
 except ImportError as e:
     import json
-    
+
 """
 This is the human-genome specific part of the ProteinBoxBot. Its purpose is to enrich Wikidata with
 human gene and known external identifiers.
   
 """
-    
+
+
 class genome(object):
     def __init__(self, object):
         counter = 0
@@ -70,29 +72,29 @@ class genome(object):
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
         for gene in self.genes:
-          try:         
+            try:
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
-                   gene["wdid"] = 'Q'+str(entrezWikidataIds[str(gene["entrezgene"])])
+                    gene["wdid"] = 'Q' + str(entrezWikidataIds[str(gene["entrezgene"])])
                 else:
-                   gene["wdid"] = None 
+                    gene["wdid"] = None
                 gene["logincreds"] = self.logincreds
                 gene["genomeInfo"] = self.genomeInfo
                 geneClass = mammal_gene(gene)
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
-                    geneClass.wdid = 'Q'+str(entrezWikidataIds[str(geneClass.entrezgene)])
-                else: 
-                    geneClass.wdid = None 
-                counter = counter +1
+                    geneClass.wdid = 'Q' + str(entrezWikidataIds[str(geneClass.entrezgene)])
+                else:
+                    geneClass.wdid = None
+                counter = counter + 1
                 if counter == 100:
-                    self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-                
-          except:
-              f = open('/tmp/exceptions_{}.txt'.format(self.genomeInfo["name"]), 'a')
-              f.write(str(gene["entrezgene"])+"\n")
-              # f.write()
-              traceback.print_exc(file=f)
-              f.close()
-              
+                    self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(),
+                                                        PBB_settings.getWikiDataPassword())
+
+            except:
+                f = open('/tmp/exceptions_{}.txt'.format(self.genomeInfo["name"]), 'a')
+                f.write(str(gene["entrezgene"]) + "\n")
+                # f.write()
+                traceback.print_exc(file=f)
+                f.close()
 
     def download_genes(self, species):
         """
@@ -101,43 +103,47 @@ class genome(object):
         print(mygene_info_settings.getGenesUrl().format(species))
         r = requests.get(mygene_info_settings.getGenesUrl().format(species))
         return r.json()
-        
+
+
 class mammal_gene(object):
     def __init__(self, object):
+        """
+
+        :type self: object
+        """
         self.genomeInfo = object["genomeInfo"]
         self.content = object
         self.entrezgene = object["entrezgene"]
         self.name = object["name"]
         self.logincreds = object["logincreds"]
         gene_annotations = self.annotate_gene()
-
         self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
-        
+
         # symbol:
         self.symbol = object["symbol"]
-        
+
         # HGNC
         if "HGNC" in gene_annotations:
-            if isinstance(gene_annotations["HGNC"], list): 
+            if isinstance(gene_annotations["HGNC"], list):
                 self.hgnc = gene_annotations["HGNC"]
             else:
                 self.hgnc = [gene_annotations["HGNC"]]
         else:
             self.hgnc = None
-            
+
         # Ensembl Gene & transcript
         if "ensembl" in gene_annotations:
             if "gene" in gene_annotations["ensembl"]:
-                if isinstance(gene_annotations["ensembl"]["gene"], list): 
+                if isinstance(gene_annotations["ensembl"]["gene"], list):
                     self.ensembl_gene = gene_annotations["ensembl"]["gene"]
                 else:
                     self.ensembl_gene = [gene_annotations["ensembl"]["gene"]]
             else:
                 self.ensembl_gene = None
-            
+
             if "transcript" in gene_annotations["ensembl"]:
-                if isinstance(gene_annotations["ensembl"]["transcript"], list): 
+                if isinstance(gene_annotations["ensembl"]["transcript"], list):
                     self.ensembl_transcript = gene_annotations["ensembl"]["transcript"]
                 else:
                     self.ensembl_transcript = [gene_annotations["ensembl"]["transcript"]]
@@ -145,7 +151,7 @@ class mammal_gene(object):
                 self.ensembl_transcript = None
         # Homologene
         if "homologene" in gene_annotations:
-            if isinstance(gene_annotations["homologene"]["id"], list): 
+            if isinstance(gene_annotations["homologene"]["id"], list):
                 self.homologene = [str(i) for i in gene_annotations["homologene"]["id"]]
             else:
                 self.homologene = [str(gene_annotations["homologene"]["id"])]
@@ -154,224 +160,252 @@ class mammal_gene(object):
         # Refseq 
         if "refseq" in gene_annotations:
             if "rna" in gene_annotations["refseq"]:
-                if isinstance(gene_annotations["refseq"]["rna"], list): 
+                if isinstance(gene_annotations["refseq"]["rna"], list):
                     self.refseq_rna = gene_annotations["refseq"]["rna"]
                 else:
                     self.refseq_rna = [gene_annotations["refseq"]["rna"]]
-            else :
+            else:
                 self.refseq_rna = None
-        else :
-            self.refseq_rna = None 
-         
-         # MGI
-        if "MGI" in gene_annotations:
-             if isinstance(gene_annotations["MGI"], list): 
-                 self.MGI = gene_annotations["MGI"]
-             else:
-                 self.MGI = [gene_annotations["MGI"]]
         else:
-             self.MGI = None
-             
+            self.refseq_rna = None
+
+            # MGI
+        if "MGI" in gene_annotations:
+            if isinstance(gene_annotations["MGI"], list):
+                self.MGI = gene_annotations["MGI"]
+            else:
+                self.MGI = [gene_annotations["MGI"]]
+        else:
+            self.MGI = None
+
         self.chromosome = None
         self.startpost = None
-        self.endpos = None          
+        self.endpos = None
         if "genomic_pos" in gene_annotations:
-            if (isinstance(gene_annotations["genomic_pos"], list)): 
+            if isinstance(gene_annotations["genomic_pos"], list):
                 self.chromosome = []
                 self.startpos = []
-                self.endpos = [] 
+                self.endpos = []
                 for i in range(len(gene_annotations["genomic_pos"])):
-                    if gene_annotations["genomic_pos"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
-                           self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos"][i]["chr"]])
-                           self.startpos.append(gene_annotations["genomic_pos"][i]["start"])
-                           self.endpos.append(gene_annotations["genomic_pos"][i]["end"])
+                    if gene_annotations["genomic_pos"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[
+                        self.genomeInfo["name"]].keys():
+                        self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][
+                                                   gene_annotations["genomic_pos"][i]["chr"]])
+                        self.startpos.append(gene_annotations["genomic_pos"][i]["start"])
+                        self.endpos.append(gene_annotations["genomic_pos"][i]["end"])
             else:
                 self.chromosome = []
                 self.startpos = []
                 self.endpos = []
-                if gene_annotations["genomic_pos"]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
-                       self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos"]["chr"]])
-                       self.startpos.append(gene_annotations["genomic_pos"]["start"])
-                       self.endpos.append(gene_annotations["genomic_pos"]["end"])
+                if gene_annotations["genomic_pos"]["chr"] in ProteinBoxBotKnowledge.chromosomes[
+                    self.genomeInfo["name"]].keys():
+                    self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][
+                                               gene_annotations["genomic_pos"]["chr"]])
+                    self.startpos.append(gene_annotations["genomic_pos"]["start"])
+                    self.endpos.append(gene_annotations["genomic_pos"]["end"])
 
         self.chromosomeHg19 = None
         self.startposHg19 = None
         self.endposHg19 = None
         if "genomic_pos_hg19" in gene_annotations:
-            if (isinstance(gene_annotations["genomic_pos_hg19"], list)):
+            if isinstance(gene_annotations["genomic_pos_hg19"], list):
                 self.chromosomeHg19 = []
                 self.startposHg19 = []
                 self.endposHg19 = []
                 for i in range(len(gene_annotations["genomic_pos_hg19"])):
-                    if gene_annotations["genomic_pos_hg19"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
-                           self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos_hg19"][i]["chr"]])
-                           self.startposHg19.append(gene_annotations["genomic_pos_hg19"][i]["start"])
-                           self.endposHg19.append(gene_annotations["genomic_pos_hg19"][i]["end"])
+                    if gene_annotations["genomic_pos_hg19"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[
+                        self.genomeInfo["name"]].keys():
+                        self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][
+                                                       gene_annotations["genomic_pos_hg19"][i]["chr"]])
+                        self.startposHg19.append(gene_annotations["genomic_pos_hg19"][i]["start"])
+                        self.endposHg19.append(gene_annotations["genomic_pos_hg19"][i]["end"])
             else:
                 self.chromosomeHg19 = []
                 self.startposHg19 = []
                 self.endposHg19 = []
-                if gene_annotations["genomic_pos_hg19"]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
-                       self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos_hg19"]["chr"]])
-                       self.startposHg19.append(gene_annotations["genomic_pos_hg19"]["start"])
-                       self.endposHg19.append(gene_annotations["genomic_pos_hg19"]["end"])
-        
+                if gene_annotations["genomic_pos_hg19"]["chr"] in ProteinBoxBotKnowledge.chromosomes[
+                    self.genomeInfo["name"]].keys():
+                    self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][
+                                                   gene_annotations["genomic_pos_hg19"]["chr"]])
+                    self.startposHg19.append(gene_annotations["genomic_pos_hg19"]["start"])
+                    self.endposHg19.append(gene_annotations["genomic_pos_hg19"]["end"])
+
         # type of Gene
         if "type_of_gene" in gene_annotations:
             self.type_of_gene = []
-            if gene_annotations["type_of_gene"]=="ncRNA":
+            if gene_annotations["type_of_gene"] == "ncRNA":
                 self.type_of_gene.append("Q427087")
-            if gene_annotations["type_of_gene"]=="snRNA":
-                self.type_of_gene.append("Q284578") 
-            if gene_annotations["type_of_gene"]=="snoRNA":
+            if gene_annotations["type_of_gene"] == "snRNA":
+                self.type_of_gene.append("Q284578")
+            if gene_annotations["type_of_gene"] == "snoRNA":
                 self.type_of_gene.append("Q284416")
-            if gene_annotations["type_of_gene"]=="rRNA":
+            if gene_annotations["type_of_gene"] == "rRNA":
                 self.type_of_gene.append("Q215980")
-            if gene_annotations["type_of_gene"]=="tRNA":
+            if gene_annotations["type_of_gene"] == "tRNA":
                 self.type_of_gene.append("Q201448")
-            if gene_annotations["type_of_gene"]=="pseudo":
-                self.type_of_gene.append("Q277338") 
-            if gene_annotations["type_of_gene"]=="protein-coding":
-                self.type_of_gene.append("Q20747295")                          
+            if gene_annotations["type_of_gene"] == "pseudo":
+                self.type_of_gene.append("Q277338")
+            if gene_annotations["type_of_gene"] == "protein-coding":
+                self.type_of_gene.append("Q20747295")
         else:
             self.type_of_gene = None
         # Reference section  
         # Prepare references
         refStatedIn = PBB_Core.WDItemID(value=self.genomeInfo["release"], prop_nr='P248', is_reference=True)
+        refStatedIn.overwrite_references = True
         refImported = PBB_Core.WDItemID(value='Q20641742', prop_nr='P143', is_reference=True)
+        refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
-        gene_reference =  [[refStatedIn, refImported, refRetrieved]]
-        
-        genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659', is_qualifier=True)
-        genomeBuildPreviousQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly_previous"], prop_nr='P659', is_qualifier=True)
-        prep = dict()
+        refRetrieved.overwrite_references = True
+        gene_reference = [refStatedIn, refImported, refRetrieved]
 
-        prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo["wdid"], prop_nr='P703', references=gene_reference)]
-        prep['P353'] = [PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=gene_reference)]   
-        prep['P351'] = [PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=gene_reference)]
-        prep['P279'] = [PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference)]
+        genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659',
+                                                 is_qualifier=True)
+        genomeBuildPreviousQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly_previous"],
+                                                         prop_nr='P659', is_qualifier=True)
+
+        prep = dict()
+        prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo['wdid'], prop_nr='P703',
+                                          references=[copy.deepcopy(gene_reference)])]
+        prep['P353'] = [
+            PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=[copy.deepcopy(gene_reference)])]
+        prep['P351'] = [
+            PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=[copy.deepcopy(gene_reference)])]
+        prep['P279'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(gene_reference)])]
         if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
                 for i in range(len(self.type_of_gene)):
-                    prep['P279'].append(PBB_Core.WDItemID(value=self.type_of_gene[i], prop_nr='P279', references=gene_reference))
-                    
+                    prep['P279'].append(PBB_Core.WDItemID(value=self.type_of_gene[i], prop_nr='P279',
+                                                          references=[copy.deepcopy(gene_reference)]))
+
         if "ensembl_gene" in vars(self):
             if self.ensembl_gene != None:
                 prep['P594'] = []
                 for ensemblg in self.ensembl_gene:
-                    prep['P594'].append(PBB_Core.WDString(value=ensemblg, prop_nr='P594', references=gene_reference))
-   
+                    prep['P594'].append(
+                        PBB_Core.WDString(value=ensemblg, prop_nr='P594', references=[copy.deepcopy(gene_reference)]))
+
         if "ensembl_transcript" in vars(self):
             if self.ensembl_transcript != None:
                 prep['P704'] = []
                 for ensemblt in self.ensembl_transcript:
-                    prep['P704'].append(PBB_Core.WDString(value=ensemblt, prop_nr='P704', references=gene_reference))
-                    
+                    prep['P704'].append(
+                        PBB_Core.WDString(value=ensemblt, prop_nr='P704', references=[copy.deepcopy(gene_reference)]))
+
         if "hgnc" in vars(self):
             if self.hgnc != None:
                 prep['P354'] = []
                 for hugo in self.hgnc:
-                    prep['P354'].append(PBB_Core.WDString(value=hugo, prop_nr='P354', references=gene_reference))
-                
+                    prep['P354'].append(
+                        PBB_Core.WDString(value=hugo, prop_nr='P354', references=[copy.deepcopy(gene_reference)]))
+
         if "homologene" in vars(self):
             if self.homologene != None:
                 prep['P593'] = []
                 for ortholog in self.homologene:
-                    prep['P593'].append(PBB_Core.WDString(value=ortholog, prop_nr='P593', references=gene_reference))
+                    prep['P593'].append(
+                        PBB_Core.WDString(value=ortholog, prop_nr='P593', references=[copy.deepcopy(gene_reference)]))
 
         if "refseq_rna" in vars(self):
             if self.refseq_rna != None:
                 prep['P639'] = []
                 for refseq in self.refseq_rna:
-                    prep['P639'].append(PBB_Core.WDString(value=refseq, prop_nr='P639', references=gene_reference))
+                    prep['P639'].append(
+                        PBB_Core.WDString(value=refseq, prop_nr='P639', references=[copy.deepcopy(gene_reference)]))
 
         if "chromosome" in vars(self):
             prep['P1057'] = []
             if self.chromosome != None:
                 for chrom in list(set(self.chromosome)):
-                     prep['P1057'].append(PBB_Core.WDItemID(value=chrom, prop_nr='P1057', references=gene_reference))
-            
+                    prep['P1057'].append(
+                        PBB_Core.WDItemID(value=chrom, prop_nr='P1057', references=[copy.deepcopy(gene_reference)]))
+
         if "startpos" in vars(self):
-            prep['P644'] = [] 
+            if not 'P644' in prep.keys():
+                prep['P644'] = []
             if self.startpos != None:
                 for pos in self.startpos:
-                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference,
-                                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
+                    prep['P644'].append(
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
         if "endpos" in vars(self):
-            prep['P645'] = [] 
+            if not 'P645' in prep.keys():
+                prep['P645'] = []
             if self.endpos != None:
                 for pos in self.endpos:
-                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference,
-                                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
+                    prep['P645'].append(
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                                          qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
 
         if "startposHg19" in vars(self):
+            if not 'P644' in prep.keys():
+                prep['P644'] = []
             if self.startposHg19 != None:
                 for pos in self.startposHg19:
-                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference,
-                                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
+                    prep['P644'].append(
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
         if "endposHg19" in vars(self):
+            if not 'P644' in prep.keys():
+                prep['P645'] = []
             if self.endposHg19 != None:
                 for pos in self.endposHg19:
-                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference,
-                                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
-                              
+                    prep['P645'].append(
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
+
         if "MGI" in vars(self):
             prep['P671'] = []
             if self.MGI != None:
                 for mgi in self.MGI:
-                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'), references=gene_reference)
-        
+                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'),
+                                        references=[copy.deepcopy(gene_reference)])
+
         if "alias" in gene_annotations.keys():
             if isinstance(gene_annotations["alias"], list):
                 self.synonyms = []
                 for alias in gene_annotations["alias"]:
                     self.synonyms.append(alias)
             else:
-               self.synonyms = [gene_annotations["alias"]]
+                self.synonyms = [gene_annotations["alias"]]
             self.synonyms.append(self.symbol)
             print(self.synonyms)
         else:
             self.synonyms = None
-            
+
         data2add = []
         for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
                 print(statement.prop_nr, statement.value)
-             
-        if self.wdid != None:   
-            wdPage = PBB_Core.WDItemEngine(self.wdid, self.name, data = data2add, server="www.wikidata.org", domain="genes")
-            wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
+
+        if self.wdid != None:
+            wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org",
+                                           domain="genes")
+            wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
             if self.synonyms != None:
                 wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             print(self.wdid)
             self.wd_json_representation = wdPage.get_wd_json_representation()
-            PBB_Debug.prettyPrint(self.wd_json_representation) 
-            PBB_Debug.prettyPrint(data2add)
-            # print(self.wd_json_representation)
-            wdPage.write(self.logincreds)
-        else:
-            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="genes")
-            wdPage.set_description(description=self.genomeInfo['name']+' gene', lang='en')
-            if self.synonyms != None:
-                wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
-            self.wd_json_representation = wdPage.get_wd_json_representation() 
             PBB_Debug.prettyPrint(self.wd_json_representation)
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
             wdPage.write(self.logincreds)
-               
+        else:
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org",
+                                           domain="genes")
+            wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
+            if self.synonyms != None:
+                wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
+            self.wd_json_representation = wdPage.get_wd_json_representation()
+            PBB_Debug.prettyPrint(self.wd_json_representation)
+            PBB_Debug.prettyPrint(data2add)
+            # print(self.wd_json_representation)
+            wdPage.write(self.logincreds)
+
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     
-        r = requests.get(mygene_info_settings.getGeneAnnotationsURL()+str(self.entrezgene))
+        r = requests.get(mygene_info_settings.getGeneAnnotationsURL() + str(self.entrezgene))
         return r.json()
         # return request.data
-        
-        
- 
-        
-        
-        
-        
-        
