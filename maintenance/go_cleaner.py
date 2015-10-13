@@ -6,6 +6,10 @@ import pprint
 
 __author__ = 'Sebastian Burgstaller'
 
+"""
+This script retrieves Wikidata GO terms which do not match the current formatter URL (without GO: prefix) and fix those.
+It will only work if the GO term ID is the last digits of a string.
+"""
 
 class GOCleaner(object):
     def __init__(self, login):
@@ -16,30 +20,36 @@ class GOCleaner(object):
         wd_go_terms = list(map(lambda z: z[2], wdq_results['props']['686']))
         go_qid_list = list(map(lambda z: 'Q{}'.format(z[0]), wdq_results['props']['686']))
 
+        qids_to_clean = set()
+
         for count, go_term in enumerate(wd_go_terms):
-            start = time.time()
             curr_qid = go_qid_list[wd_go_terms.index(go_term)]
 
-            is_clean = True
             try:
                 int(go_term)
             except ValueError as e:
-                is_clean = False
+                qids_to_clean.add(curr_qid)
 
-            if not is_clean:
-                new_go_term = go_term[-7:]
-                data = [PBB_Core.WDString(value=new_go_term, prop_nr='P686')]
-            else:
-                continue
+        for curr_qid in qids_to_clean:
+            start = time.time()
+            clean_gos = []
+
+            cleanup_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid)
+            for wd_value in cleanup_item.statements:
+                if wd_value.get_prop_nr() == 'P686':
+                    go_value = wd_value.get_value()
+                    try:
+                        int(go_value)
+                    except ValueError as e:
+                        clean_gos.append(PBB_Core.WDString(value=go_value[-7:], prop_nr='P686'))
 
             try:
-                go_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid, data=data)
-                # pprint.pprint(gene_item.get_wd_json_representation())
+                go_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid, data=clean_gos)
+                # pprint.pprint(go_item.get_wd_json_representation())
 
                 go_item.write(self.login_obj)
 
-                PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                        main_data_id=new_go_term,
+                PBB_Core.WDItemEngine.log('INFO', '"{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         exception_type='',
                         message='success',
                         wd_id=curr_qid,
@@ -48,9 +58,8 @@ class GOCleaner(object):
                 print(count, 'success', curr_qid, go_item.get_label(lang='en'))
 
             except Exception as e:
-                print(count, 'error', curr_qid, go_term)
-                PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                    main_data_id=new_go_term,
+                print(count, 'error', curr_qid)
+                PBB_Core.WDItemEngine.log('ERROR', '"{exception_type}", "{message}", {wd_id}, {duration}'.format(
                     exception_type=type(e),
                     message=e.__str__(),
                     wd_id=curr_qid,
