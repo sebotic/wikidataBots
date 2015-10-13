@@ -192,7 +192,29 @@ class mammal_gene(object):
                 if gene_annotations["genomic_pos"]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
                        self.chromosome.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos"]["chr"]])
                        self.startpos.append(gene_annotations["genomic_pos"]["start"])
-                       self.endpos.append(gene_annotations["genomic_pos"]["end"])     
+                       self.endpos.append(gene_annotations["genomic_pos"]["end"])
+
+        self.chromosomeHg19 = None
+        self.startposHg19 = None
+        self.endposHg19 = None
+        if "genomic_pos_hg19" in gene_annotations:
+            if (isinstance(gene_annotations["genomic_pos_hg19"], list)):
+                self.chromosomeHg19 = []
+                self.startposHg19 = []
+                self.endposHg19 = []
+                for i in range(len(gene_annotations["genomic_pos_hg19"])):
+                    if gene_annotations["genomic_pos_hg19"][i]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
+                           self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos_hg19"][i]["chr"]])
+                           self.startposHg19.append(gene_annotations["genomic_pos_hg19"][i]["start"])
+                           self.endposHg19.append(gene_annotations["genomic_pos_hg19"][i]["end"])
+            else:
+                self.chromosomeHg19 = []
+                self.startposHg19 = []
+                self.endposHg19 = []
+                if gene_annotations["genomic_pos_hg19"]["chr"] in ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]].keys():
+                       self.chromosomeHg19.append(ProteinBoxBotKnowledge.chromosomes[self.genomeInfo["name"]][gene_annotations["genomic_pos_hg19"]["chr"]])
+                       self.startposHg19.append(gene_annotations["genomic_pos_hg19"]["start"])
+                       self.endposHg19.append(gene_annotations["genomic_pos_hg19"]["end"])
         
         # type of Gene
         if "type_of_gene" in gene_annotations:
@@ -222,13 +244,13 @@ class mammal_gene(object):
         gene_reference =  [[refStatedIn, refImported, refRetrieved]]
         
         genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659', is_qualifier=True)
-        prep = dict()           
-        prep['P279'] = [PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference)]
+        genomeBuildPreviousQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly_previous"], prop_nr='P659', is_qualifier=True)
+        prep = dict()
+
         prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo["wdid"], prop_nr='P703', references=gene_reference)]
         prep['P353'] = [PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=gene_reference)]   
         prep['P351'] = [PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=gene_reference)]
-        prep["P279"] = []
-        prep['P279'].append(PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference))
+        prep['P279'] = [PBB_Core.WDItemID(value="Q7187", prop_nr='P279', references=gene_reference)]
         if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
                 for i in range(len(self.type_of_gene)):
@@ -282,6 +304,17 @@ class mammal_gene(object):
                 for pos in self.endpos:
                     prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference,
                                                           qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
+
+        if "startposHg19" in vars(self):
+            if self.startposHg19 != None:
+                for pos in self.startposHg19:
+                    prep['P644'].append(PBB_Core.WDString(value=str(pos), prop_nr='P644', references=gene_reference,
+                                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
+        if "endposHg19" in vars(self):
+            if self.endposHg19 != None:
+                for pos in self.endposHg19:
+                    prep['P645'].append(PBB_Core.WDString(value=str(pos), prop_nr='P645', references=gene_reference,
+                                                          qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
                               
         if "MGI" in vars(self):
             prep['P671'] = []
