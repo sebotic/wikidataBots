@@ -26,7 +26,8 @@ __license__ = 'GPL'
 
 import time
 import sys
-sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot_Core")
 import PBB_login
 import PBB_settings
 import PBB_Core
