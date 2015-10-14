@@ -43,15 +43,15 @@ except ImportError as e:
 import copy
 import traceback
 from time import gmtime, strftime
+import os
+import pprint
 
 
 class diseaseOntology():
-    def __init__(self):      
-        counter = 0
+    def __init__(self):
+        self.start = time.time()
         self.content = ET.fromstring(self.download_disease_ontology())
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        # self.wd_search_term = self.getWDSearchTerm()
-        # updateDiseaseOntologyVersionInWD()
         self.updateDiseaseOntologyVersion()
 
         # Get all WikiData entries that contain a WikiData ID
@@ -61,7 +61,6 @@ class diseaseOntology():
 
 
         for diseaseItem in DoInWikiData.wditems["props"]["699"]:
-           #print diseaseItem[2]
            doWikiData_id[str(diseaseItem[2])]=diseaseItem[0] # diseaseItem[2] = DO identifier, diseaseItem[0] = WD identifier
        
         for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
@@ -71,7 +70,7 @@ class diseaseOntology():
             disVars.append(self.doVersionID)
             disVars.append(doWikiData_id)
             disVars.append(self.logincreds)
-            disVars.append(doWikiData_id)
+            disVars.append(self.start)
             
             diseaseClass = disease(disVars)          
             
@@ -80,7 +79,14 @@ class diseaseOntology():
             print(diseaseClass.name)
             print(diseaseClass.synonyms)
             print(diseaseClass.xrefs)
-          except:
+          except Exception as e:
+              PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=diseaseClass.do_id,
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='-',
+                        duration=time.time() - self.start
+                    ))
               f = open('/tmp/Diseaseexceptions.txt', 'a')
               # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
               f.write(diseaseClass.do_id+"\n")
@@ -145,11 +151,13 @@ class  disease(object):
         :param synonyms: All synonyms for the disease captured in the Disease Ontology
         :param xrefs: a dictionary with all external references of the Disease captured in the Disease Ontology
         """
-        # Reference section  
+        # Reference section
+        start = time.time()
         doVersionID = object[1]
         doClass = object[0]         
         self.logincreds = object[3]
-        self.wd_doMappings = object[4]
+        self.wd_doMappings = object[2]
+        self.start = object[4]
         
         self.wd_do_content = doClass
         PBB_Debug.prettyPrint(self.wd_do_content)
@@ -180,6 +188,8 @@ class  disease(object):
             parts = subclass.get('{http://www.w3.org/1999/02/22-rdf-syntax-ns#}resource').split("DOID_")
             if len(parts)>1:
                 self.subclasses.append("DOID:"+parts[1])
+            if "DOID:4" in self.subclasses:
+                self.subclasses.remove("DOID:4")
         
         self.xrefs = dict()
         for xref in self.getDoValue(self.wd_do_content, './/oboInOwl:hasDbXref'):
@@ -221,7 +231,8 @@ class  disease(object):
                 for i in self.xrefs["url"]:
                     if "//en.wikipedia.org/wiki/" in i:
                         wikilink = self.i.replace("//en.wikipedia.org/wiki/", "").replace("_", "")
-                    else wikilink = None
+                    else:
+                        wikilink = None
             else:
                 if "//en.wikipedia.org/wiki/" in xrefs["url"]:
                     wikilink = xrefs["url"].replace("//en.wikipedia.org/wiki/", "").replace("_", "")
@@ -289,7 +300,20 @@ class  disease(object):
              wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
         self.wd_json_representation = wdPage.get_wd_json_representation()
         PBB_Debug.prettyPrint(self.wd_json_representation)
-        wdPage.write(self.logincreds)
+        #wdPage.write(self.logincreds)
+        if not os.path.exists('./json_dumps'):
+            os.makedirs('./json_dumps')
+        f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')
+        pprint.pprint(self.wd_json_representation, stream = f)
+        f.close()
+
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=self.do_id,
+                        exception_type='',
+                        message=f.name,
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
 
         
     def getDoValue(self, doClass, doNode):
