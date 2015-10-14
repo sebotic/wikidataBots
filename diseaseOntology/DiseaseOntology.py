@@ -25,7 +25,6 @@ __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
 
 import time
-import datetime
 import sys
 sys.path.append("/Users/andra/wikidatabots/ProteinBoxBot_Core")
 import PBB_login
@@ -300,7 +299,7 @@ class  disease(object):
              wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
         self.wd_json_representation = wdPage.get_wd_json_representation()
         PBB_Debug.prettyPrint(self.wd_json_representation)
-        #wdPage.write(self.logincreds)
+        wdPage.write(self.logincreds)
         if not os.path.exists('./json_dumps'):
             os.makedirs('./json_dumps')
         f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')

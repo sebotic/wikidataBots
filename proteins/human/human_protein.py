@@ -36,6 +36,8 @@ import traceback
 import sys
 import mygene_info_settings
 from time import gmtime, strftime
+import time
+import pprint
 
 try:
     import simplejson as json
@@ -56,6 +58,7 @@ def searchWD(searchTerm):
 
 class human_proteome():
     def __init__(self):
+        self.start = time.time()
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
         uniprotWikidataIds = dict()
         GeneSymbolWdMapping = dict()
@@ -98,11 +101,19 @@ class human_proteome():
             protein["logincreds"] = self.logincreds
             protein["label"] = up["label"]
             protein["id"] = up["id"]
+            protein["start"] = self.start
             # print protein
             protein["geneSymbols"] = GeneSymbolWdMapping
             proteinClass = human_protein(protein)
        
-          except:
+          except Exception as e:
+            PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=protein["id"],
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='-',
+                        duration=time.time() - self.start
+                    ))
             f = open('/tmp/protein_exceptions.txt', 'a')
             # f.write("Unexpected error:", sys.exc_info()[0]+'\n')
             f.write(str(protein["results"]["bindings"][0]["uniprot"]["value"])+"\n")
@@ -131,6 +142,7 @@ class human_protein(object):
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
         self.uniprotId = object["id"]
         self.name = object["label"]
+        self.start = object["start"]
 
         up_in_wd = searchWD(self.name)
         self.wdid = None
@@ -293,6 +305,18 @@ class human_protein(object):
         PBB_Debug.prettyPrint(self.wd_json_representation)
         wdProteinpage.write(self.logincreds)
         print (wdProteinpage.wd_item_id)
+        if not os.path.exists('./json_dumps'):
+            os.makedirs('./json_dumps')
+        f = open('./json_dumps/'+self.uniprotId+'.json', 'w+')
+        pprint.pprint(self.wd_json_representation, stream = f)
+        f.close()
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=self.uniprotId,
+                        exception_type='',
+                        message=f.name,
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
         print("===============")
 
         if "encoded_by" in vars(self) and len(self.encoded_by) > 0:
@@ -307,5 +331,12 @@ class human_protein(object):
             genePrep[key].append(PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
             wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key,  data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="proteins", append_value=['P688'])
             wdGenePage.write(self.logincreds)
+            PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=self.uniprotId,
+                        exception_type='',
+                        message="Gene "+key+ " get updated with encoded property",
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
 
 
