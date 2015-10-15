@@ -38,6 +38,8 @@ import copy
 import traceback
 import mygene_info_settings
 from time import gmtime, strftime
+import time
+import pprint
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
@@ -55,6 +57,7 @@ human gene and known external identifiers.
 class genome(object):
     def __init__(self, object):
         counter = 0
+        self.start = time.time()
         self.genomeInfo = object
         print("Getting all {} genes in Wikidata".format(self.genomeInfo["name"]))
         self.content = self.download_genes(self.genomeInfo["name"])
@@ -79,6 +82,7 @@ class genome(object):
                     gene["wdid"] = None
                 gene["logincreds"] = self.logincreds
                 gene["genomeInfo"] = self.genomeInfo
+                gene["start"] = self.start
                 geneClass = mammal_gene(gene)
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
                     geneClass.wdid = 'Q' + str(entrezWikidataIds[str(geneClass.entrezgene)])
@@ -89,12 +93,14 @@ class genome(object):
                     self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(),
                                                         PBB_settings.getWikiDataPassword())
 
-            except:
-                f = open('/tmp/exceptions_{}.txt'.format(self.genomeInfo["name"]), 'a')
-                f.write(str(gene["entrezgene"]) + "\n")
-                # f.write()
-                traceback.print_exc(file=f)
-                f.close()
+            except Exception as e:
+                PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=gene["entrezgene"],
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='-',
+                        duration=time.time() - self.start
+                    ))
 
     def download_genes(self, species):
         """
@@ -111,6 +117,7 @@ class mammal_gene(object):
 
         :type self: object
         """
+        self.start = object["start"]
         self.genomeInfo = object["genomeInfo"]
         self.content = object
         self.entrezgene = object["entrezgene"]
@@ -402,7 +409,20 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(self.wd_json_representation)
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
-            wdPage.write(self.logincreds)
+            self.wdid = wdPage.write(self.logincreds)
+        if not os.path.exists('./json_dumps'):
+            os.makedirs('./json_dumps')
+
+        f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
+        pprint.pprint(self.wd_json_representation, stream = f)
+        f.close()
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=str(self.entrezgene),
+                        exception_type='',
+                        message=f.name,
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
 
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     
