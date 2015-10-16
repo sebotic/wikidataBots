@@ -118,17 +118,18 @@ class mammal_gene(object):
         :type self: object
         """
         self.start = object["start"]
-        self.genomeInfo = object["genomeInfo"]
-        self.content = object
         self.entrezgene = object["entrezgene"]
-        self.name = object["name"]
-        self.logincreds = object["logincreds"]
         gene_annotations = self.annotate_gene()
-        self.annotationstimestamp = gene_annotations["_timestamp"]
+        self.genomeInfo = object["genomeInfo"][str(gene_annotations['taxid'])]
+        self.content = object
+        self.name = gene_annotations["name"]
+        self.logincreds = object["logincreds"]
+        if "_timestamp" in gene_annotations.keys():
+            self.annotationstimestamp = gene_annotations["_timestamp"]
         self.wdid = object["wdid"]
 
         # symbol:
-        self.symbol = object["symbol"]
+        self.symbol = gene_annotations["symbol"]
 
         # HGNC
         if "HGNC" in gene_annotations:
