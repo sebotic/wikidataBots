@@ -40,7 +40,9 @@ try:
 
     speciesInfo = dict()
     speciesInfo["human"] = dict()
+    speciesInfo["9606"] = dict()
     speciesInfo["mouse"] = dict()
+    speciesInfo["10090"] = dict()
     speciesInfo["rat"] = dict()
     
     speciesInfo["human"]["taxid"] = "9606"
@@ -50,12 +52,26 @@ try:
     speciesInfo["human"]["genome_assembly"] = "Q20966585"
     speciesInfo["human"]["genome_assembly_previous"] = "Q21067546"
 
+    speciesInfo["9606"]["taxid"] = "9606"
+    speciesInfo["9606"]["wdid"] = "Q5"
+    speciesInfo["9606"]["name"] = "human"
+    speciesInfo["9606"]["release"] = "Q20950174"
+    speciesInfo["9606"]["genome_assembly"] = "Q20966585"
+    speciesInfo["9606"]["genome_assembly_previous"] = "Q21067546"
+
     speciesInfo["mouse"]["taxid"] = "10090"
     speciesInfo["mouse"]["wdid"] = "Q83310"
     speciesInfo["mouse"]["name"] = "mouse"
     speciesInfo["mouse"]["release"] = "Q20973051"
     speciesInfo["mouse"]["genome_assembly"] = "Q20973075"
     speciesInfo["mouse"]["genome_assembly_previous"] = "Q20973075"
+
+    speciesInfo["10090"]["taxid"] = "10090"
+    speciesInfo["10090"]["wdid"] = "Q83310"
+    speciesInfo["10090"]["name"] = "mouse"
+    speciesInfo["10090"]["release"] = "Q20973051"
+    speciesInfo["10090"]["genome_assembly"] = "Q20973075"
+    speciesInfo["10090"]["genome_assembly_previous"] = "Q20973075"
 
     speciesInfo["rat"]["taxid"] = "10114"
     speciesInfo["rat"]["wdid"] = "Q36396"
@@ -70,8 +86,11 @@ try:
         if not sys.argv[1] in speciesInfo.keys():
             print(sys.argv[1] + " is not (yet) supported.")
             sys.exit()
-    
-    genome = gene.genome(speciesInfo[sys.argv[1]])
+
+    tempvar = dict()
+    tempvar["speciesInfo"] = speciesInfo
+    tempvar["species"] = sys.argv[1]
+    genome = gene.genome(tempvar)
     
       
 except (Exception):

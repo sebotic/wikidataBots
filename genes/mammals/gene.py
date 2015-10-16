@@ -58,7 +58,8 @@ class genome(object):
     def __init__(self, object):
         counter = 0
         self.start = time.time()
-        self.genomeInfo = object
+        self.genomeInfo = object["speciesInfo"][object["species"]]
+        self.speciesInfo = object["speciesInfo"]
         print("Getting all {} genes in Wikidata".format(self.genomeInfo["name"]))
         self.content = self.download_genes(self.genomeInfo["name"])
         self.gene_count = self.content["total"]
@@ -66,6 +67,7 @@ class genome(object):
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
         entrezWikidataIds = dict()
+        print("wdq 1")
         wdqQuery = "CLAIM[703:{}] AND CLAIM[351]".format(self.genomeInfo["wdid"].replace("Q", ""))
         InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
         '''
@@ -82,6 +84,7 @@ class genome(object):
                     gene["wdid"] = None
                 gene["logincreds"] = self.logincreds
                 gene["genomeInfo"] = self.genomeInfo
+                gene["speciesInfo"] = self.speciesInfo
                 gene["start"] = self.start
                 geneClass = mammal_gene(gene)
                 if str(geneClass.entrezgene) in entrezWikidataIds.keys():
@@ -94,6 +97,7 @@ class genome(object):
                                                         PBB_settings.getWikiDataPassword())
 
             except Exception as e:
+                print(traceback.format_exc())
                 PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=gene["entrezgene"],
                         exception_type=type(e),
@@ -120,7 +124,7 @@ class mammal_gene(object):
         self.start = object["start"]
         self.entrezgene = object["entrezgene"]
         gene_annotations = self.annotate_gene()
-        self.genomeInfo = object["genomeInfo"][str(gene_annotations['taxid'])]
+        self.genomeInfo = object["speciesInfo"][str(gene_annotations['taxid'])]
         self.content = object
         self.name = gene_annotations["name"]
         self.logincreds = object["logincreds"]
@@ -130,7 +134,7 @@ class mammal_gene(object):
 
         # symbol:
         self.symbol = gene_annotations["symbol"]
-
+        print(self.symbol)
         # HGNC
         if "HGNC" in gene_annotations:
             if isinstance(gene_annotations["HGNC"], list):
@@ -367,8 +371,8 @@ class mammal_gene(object):
             prep['P671'] = []
             if self.MGI != None:
                 for mgi in self.MGI:
-                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671'),
-                                        references=[copy.deepcopy(gene_reference)])
+                    prep['P671'].append(PBB_Core.WDString(value=mgi, prop_nr='P671',
+                                        references=[copy.deepcopy(gene_reference)]))
 
         if "alias" in gene_annotations.keys():
             if isinstance(gene_annotations["alias"], list):

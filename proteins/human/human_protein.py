@@ -152,16 +152,22 @@ class human_protein(object):
                 hitPage = PBB_Core.WDItemEngine(item_name = up_in_wd["search"][i]["label"], wd_item_id=up_in_wd["search"][i]["id"],    data=[], server="www.wikidata.org", domain="proteins")
                 json_rep = hitPage.get_wd_json_representation()
                 proteinClaim = False
+                geneClaim = False
                 if "P279" in json_rep["claims"].keys():
                     for it in json_rep["claims"]["P279"]:
                         if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8054:
                             proteinClaim = True
+                            break
+                        if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8054:
+                            geneClaim = True
                             break
 
                 if len(json_rep["claims"]) == 0:
                     raise Exception(up_in_wd["search"][i]["id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
                 elif "P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim:
                     valid.append(up_in_wd["search"][i]["id"])
+                elif geneClaim:
+                    self.wdid = None
                 else:
                     raise Exception(up_in_wd["search"][i]["id"] + " has an identical label as " + self.uniprotId + " but with no valid protein claims")
             if len(valid) == 1:

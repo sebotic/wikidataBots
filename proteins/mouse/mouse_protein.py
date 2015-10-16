@@ -59,6 +59,9 @@ class mouse_proteome():
         uniprotWikidataIds = dict()
         print "Getting all proteins with a uniprot ID in Wikidata"
         InWikiData = PBB_Core.WDItemList("CLAIM[703:83310] AND CLAIM[352]", "352")
+
+        r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a10090+.%0d%0a%7d&format=srj")
+
         for proteinItem in InWikiData.wditems["props"]["352"]:
           try:
             uniprotWikidataIds[str(proteinItem[2])] = proteinItem[0]

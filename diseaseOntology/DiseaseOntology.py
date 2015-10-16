@@ -162,6 +162,7 @@ class  disease(object):
         self.wd_do_content = doClass
         PBB_Debug.prettyPrint(self.wd_do_content)
         self.do_id = self.getDoValue(self.wd_do_content, './/oboInOwl:id')[0].text
+
         print(self.do_id)
         self.name = self.getDoValue(self.wd_do_content, './/rdfs:label')[0].text
         print(self.name)
