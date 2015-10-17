@@ -379,4 +379,4 @@ class HumanProtein(object):
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
-        return self.wdid
+        
