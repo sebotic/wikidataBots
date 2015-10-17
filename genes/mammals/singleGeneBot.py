@@ -99,8 +99,12 @@ if str(object["entrezgene"]) in entrezWikidataIds.keys():
 else:
     object["wdid"] = None
 
+tempvar = dict()
+tempvar["speciesInfo"] = speciesInfo
+
 object["logincreds"] = logincreds
-object["genomeInfo"] = speciesInfo
+object["speciesInfo"] = tempvar["speciesInfo"]
 object["start"] = start
+
 
 geneClass = gene.mammal_gene(object)
