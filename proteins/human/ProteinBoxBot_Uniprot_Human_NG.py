@@ -27,14 +27,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../ProteinBoxBot
 import PBB_Core
 
 # Resource specific 
-import human_protein
+import humanprotein
 import traceback
 from datetime import date, datetime, timedelta
 
 
 try:
     print("Getting human proteins from uniprot")
-    human_proteome = human_protein.human_proteome()
+    human_proteome = humanprotein.HumanProteome()
     print(human_proteome.protein_count)
 
 except Exception as err:
