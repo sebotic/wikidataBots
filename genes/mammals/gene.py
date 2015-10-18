@@ -186,7 +186,7 @@ class mammal_gene(object):
             if isinstance(gene_annotations["MGI"], list):
                 self.MGI = gene_annotations["MGI"]
             else:
-                self.MGI = [gene_annotations["MGI"]]
+                self.MGI = [gene_annotations["MGI"].replace("MGI:", "")]
         else:
             self.MGI = None
 
@@ -280,8 +280,9 @@ class mammal_gene(object):
         prep = dict()
         prep['P703'] = [PBB_Core.WDItemID(value=self.genomeInfo['wdid'], prop_nr='P703',
                                           references=[copy.deepcopy(gene_reference)])]
-        prep['P353'] = [
-            PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=[copy.deepcopy(gene_reference)])]
+        if self.genomeInfo["name"] == "human":
+            prep['P353'] = [
+                PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=[copy.deepcopy(gene_reference)])]
         prep['P351'] = [
             PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=[copy.deepcopy(gene_reference)])]
         prep['P279'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(gene_reference)])]
