@@ -34,6 +34,7 @@ import PBB_login
 import PBB_settings
 import requests
 import traceback
+import copy
 import sys
 import mygene_info_settings
 from time import gmtime, strftime
@@ -76,8 +77,7 @@ class HumanProteome():
             genesymbolwdmapping[str(genesymbol[2])] = genesymbol[0]
 
         print("Getting all human proteins from Uniprot...")
-        r0 = requests.get(
-            "http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
+        r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
         prot_results = r0.json()
         uniprot_ids = []
         for protein in prot_results["results"]["bindings"]:
@@ -89,7 +89,7 @@ class HumanProteome():
 
         for up in uniprot_ids:
             try:
-                if up["id"] not in uniprotwikidataids:
+                #if up["id"] not in uniprotwikidataids:
                     '''
                     Get protein annotations from Uniprot
                     '''
@@ -118,8 +118,8 @@ class HumanProteome():
                     protein["start"] = self.start
                     protein["geneSymbols"] = genesymbolwdmapping
                     protein_class = HumanProtein(protein)
-                else:
-                    print(up["id"]+" already covered in wikidata")
+                #else:
+                    #print(up["id"]+" already covered in wikidata")
 
             except Exception as e:
                 print(traceback.format_exc())
@@ -220,16 +220,17 @@ class HumanProtein(object):
                     self.encoded_by.append('Q' + str(self.geneSymbols[str(encodedBy)]))
 
         # Prepare references
+        refStatedIn = PBB_Core.WDItemID(value=2629752, prop_nr='P248', is_reference=True)
+        refStatedIn.overwrite_references = True
         refURL = "http://www.uniprot.org/uniprot/" + self.uniprotId + ".txt?" + str(self.version)
-        # refStatedIn = PBB_Core.WDItemID(value=refURL, prop_nr='P248', is_reference=True)
         refReferenceURL = PBB_Core.WDUrl(value=refURL, prop_nr='P854', is_reference=True)
         refReferenceURL.overwrite_references = True
-        refImported = PBB_Core.WDItemID(value='Q905695', prop_nr='P143', is_reference=True)
+        refImported = PBB_Core.WDItemID(value=905695, prop_nr='P143', is_reference=True)
         refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         refRetrieved.overwrite_references = True
-        protein_reference = [[refImported, refRetrieved, refReferenceURL]]
+        protein_reference = [[refStatedIn, refImported, refRetrieved, refReferenceURL]]
 
         references = dict()
         proteinPrep = dict()
@@ -370,6 +371,12 @@ class HumanProtein(object):
                 PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
             wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org",
                                                references=protein_reference, domain="proteins", append_value=['P688'])
+            gene_wd_json_representation = wdGenePage.get_wd_json_representation()
+            encodes_set = False
+            for encodes in gene_wd_json_representation["claims"]["P688"]:
+                if encodes is None:
+                    pass
+
             wdGenePage.write(self.logincreds)
             PBB_Core.WDItemEngine.log('INFO',
                                       '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
