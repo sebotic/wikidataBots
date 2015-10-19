@@ -220,8 +220,9 @@ class HumanProtein(object):
                     self.encoded_by.append('Q' + str(self.geneSymbols[str(encodedBy)]))
 
         # Prepare references
+        refStatedIn = PBB_Core.WDItemID(value=2629752, prop_nr='P248', is_reference=True)
+        refStatedIn.overwrite_references = True
         refURL = "http://www.uniprot.org/uniprot/" + self.uniprotId + ".txt?" + str(self.version)
-        # refStatedIn = PBB_Core.WDItemID(value=refURL, prop_nr='P248', is_reference=True)
         refReferenceURL = PBB_Core.WDUrl(value=refURL, prop_nr='P854', is_reference=True)
         refReferenceURL.overwrite_references = True
         refImported = PBB_Core.WDItemID(value=905695, prop_nr='P143', is_reference=True)
@@ -229,10 +230,8 @@ class HumanProtein(object):
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         refRetrieved.overwrite_references = True
-        protein_reference = [[refImported, refRetrieved, refReferenceURL]]
+        protein_reference = [[refStatedIn, refImported, refRetrieved, refReferenceURL]]
 
-        # Prepare qualifier
-        swissprot_qualifier = PBB_Core.WDItemID(value=2629752, prop_nr='P248', is_qualifier=True)
         references = dict()
         proteinPrep = dict()
         genePrep = dict()
@@ -244,7 +243,7 @@ class HumanProtein(object):
         proteinPrep['P703'] = [PBB_Core.WDItemID(value="Q5", prop_nr='P703', references=protein_reference)]
 
         # P352 = UniprotID
-        proteinPrep['P352'] = [PBB_Core.WDString(value=self.uniprotId, prop_nr='P352', references=protein_reference, qualifiers=[copy.deepcopy(swissprot_qualifier)])]
+        proteinPrep['P352'] = [PBB_Core.WDString(value=self.uniprotId, prop_nr='P352', references=protein_reference)]
 
         # P591 = EC number
         if "ecname" in vars(self):
