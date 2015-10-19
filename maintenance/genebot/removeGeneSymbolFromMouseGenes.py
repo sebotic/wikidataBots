@@ -32,19 +32,14 @@ import PBB_Core
 import PBB_Debug
 import PBB_login
 import PBB_settings
-import requests
-import copy
-import traceback
-from time import gmtime, strftime
-import time
 import pprint
-from SPARQLWrapper import SPARQLWrapper, JSON
-
+import time
 try:
     import simplejson as json
 except ImportError as e:
     import json
 
+start = time.time()
 entrezWikidataIds = dict()
 wdqQuery = "CLAIM[703:83310] AND CLAIM[353]"
 InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="353")
@@ -54,6 +49,7 @@ pprint.pprint(entrezWikidataIds)
 print(len(entrezWikidataIds))
 
 for symbol in entrezWikidataIds.keys():
+  try:
     data2add = [PBB_Core.WDBaseDataType.delete_statement(prop_nr='P353')]
     wdPage = PBB_Core.WDItemEngine('Q'+str(entrezWikidataIds[symbol]), data=data2add, server="www.wikidata.org",
                                            domain="genes")
@@ -61,4 +57,18 @@ for symbol in entrezWikidataIds.keys():
     print('Q'+str(entrezWikidataIds[symbol]))
     wdPage.write(login)
     print('Q'+str(entrezWikidataIds[symbol]))
-    break
+    PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id='Q'+str(entrezWikidataIds[symbol]),
+                        exception_type='',
+                        message='',
+                        wd_id='Q'+str(entrezWikidataIds[symbol]),
+                        duration=time.time()-start
+                    ))
+  except Exception as e:
+                PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id='Q'+str(entrezWikidataIds[symbol]),
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='-',
+                        duration=time.time() - start
+                    ))
