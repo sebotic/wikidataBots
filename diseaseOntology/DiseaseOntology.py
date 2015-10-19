@@ -198,9 +198,9 @@ class  disease(object):
                 self.xrefs[xref.text.split(":")[0]] = []
             self.xrefs[xref.text.split(":")[0]].append(xref.text.split(":")[1])
 
-        refStatedIn = PBB_Core.WDItemID(value=doVersionID, prop_nr='P248', is_reference=True)
+        refStatedIn = PBB_Core.WDItemID(value=int(doVersionID.replace("Q", "")), prop_nr='P248', is_reference=True)
         refStatedIn.overwrite_references = True
-        refImported = PBB_Core.WDItemID(value='Q5282129', prop_nr='P143', is_reference=True)
+        refImported = PBB_Core.WDItemID(value=5282129, prop_nr='P143', is_reference=True)
         refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
