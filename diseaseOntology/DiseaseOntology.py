@@ -152,7 +152,6 @@ class  disease(object):
         :param xrefs: a dictionary with all external references of the Disease captured in the Disease Ontology
         """
         # Reference section
-        start = time.time()
         doVersionID = object[1]
         doClass = object[0]         
         self.logincreds = object[3]
@@ -294,7 +293,7 @@ class  disease(object):
         else:
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases")
 
-        wdPage.set_description(description='Human disease', lang='en')
+        # wdPage.set_description(description='Human disease', lang='en')
         if wikilink is not None:
             wdPage.set_sitelink(site="enwiki", title = wikilink)
         if self.synonyms is not None:
