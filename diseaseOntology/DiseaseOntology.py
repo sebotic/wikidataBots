@@ -130,7 +130,7 @@ class diseaseOntology():
                # archive URL
                githubURL = "https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/master/releases/"+dateList[2]+"-"+dateList[1]+"-"+dateList[0]+"/doid.owl"
                data2add.append(PBB_Core.WDUrl(value=githubURL, prop_nr = "P1065"))
-               doVersionPage = PBB_Core.WDItemEngine(item_name=searchTerm, data=data2add, server="www.wikidata.org", domain="disease")
+               doVersionWD = PBB_Core.WDItemEngine(item_name=searchTerm, data=data2add, server="www.wikidata.org", domain="disease")
                doVersionPage.set_description(description='Release of the Disease ontology', lang='en')
                PBB_Debug.prettyPrint(doVersionPage.get_wd_json_representation())
                self.doVersionID = doVersionPage.write(self.logincreds)
