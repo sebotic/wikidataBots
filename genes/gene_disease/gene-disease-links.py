@@ -117,7 +117,8 @@ for line in result.iter_lines():
     pprint.pprint(wd_json_representation)
 
     # Write to Wikidata
-    wd_gene_page.write(login)
+    # UNCOMMENT ONLY IF CONFIDENT ENOUGH ON CONTENT BEING ADDED (i.e. wd_json_representation
+    # wd_gene_page.write(login)
 
 
 
