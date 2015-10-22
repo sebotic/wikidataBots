@@ -113,7 +113,7 @@ class HumanProteome():
 
                     protein["goTerms"] = go_terms
                     protein["logincreds"] = self.logincreds
-                    protein["label"] = up["label"]
+                    # protein["label"] = up["label"]
                     protein["id"] = up["id"]
                     protein["start"] = self.start
                     protein["geneSymbols"] = genesymbolwdmapping
@@ -151,16 +151,21 @@ class HumanProtein(object):
         self.version = object["results"]["bindings"][0]["upversion"]["value"]
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
         self.uniprotId = object["id"]
-        self.name = object["label"]
+        self.name = object["results"]["bindings"][0]["plabel"]["value"]
         self.start = object["start"]
 
         up_in_wd = search_wd(self.name)
         self.wdid = None
-        if len(up_in_wd["search"]) > 0:
+        hits = []
+        for result in up_in_wd["search"]:
+            if result["match"]["text"] == up_in_wd["searchinfo"]["search"]:
+                hits.append(result)
+                print(result["match"]["text"])
+        if len(hits) > 0:
             valid = []
-            for i in range(len(up_in_wd["search"])):
-                hitPage = PBB_Core.WDItemEngine(item_name=up_in_wd["search"][i]["label"],
-                                                wd_item_id=up_in_wd["search"][i]["id"], data=[],
+            for hit in hits:
+                hitPage = PBB_Core.WDItemEngine(item_name=hit["label"],
+                                                wd_item_id=hit["id"], data=[],
                                                 server="www.wikidata.org", domain="proteins")
                 json_rep = hitPage.get_wd_json_representation()
                 proteinClaim = False
@@ -175,15 +180,13 @@ class HumanProtein(object):
                             break
 
                 if len(json_rep["claims"]) == 0:
-                    raise Exception(up_in_wd["search"][i][
-                                        "id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
+                    raise Exception(hit["id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
                 elif "P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim:
-                    valid.append(up_in_wd["search"][i]["id"])
+                    valid.append(hit["id"])
                 elif geneClaim:
                     self.wdid = None
                 else:
-                    raise Exception(up_in_wd["search"][i][
-                                        "id"] + " has an identical label as " + self.uniprotId + " but with no valid protein claims")
+                    raise Exception(hit["id"] + " has an identical label as " + self.uniprotId + " but with no valid protein claims")
             if len(valid) == 1:
                 self.wdid = valid[0]
             elif len(valid)>1:
