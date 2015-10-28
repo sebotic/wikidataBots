@@ -29,6 +29,15 @@ class PDBImageFix(object):
             image_names = image_data.loc[index, 'other_images']
 
             preferred_image = image_data.loc[index, 'primary_image']
+
+            image_file_extension = ['.png', '.jpg', '.jpeg', '.pdf']
+            if pd.notnull(preferred_image) and '|' in preferred_image:
+                for splt in preferred_image.split('|'):
+                    for ending in image_file_extension:
+                        if ending in splt:
+                            preferred_image = splt
+                            break
+
             entrez = image_data.loc[index, 'entrez']
             # print(entrez)
 
@@ -62,6 +71,10 @@ class PDBImageFix(object):
             for sub_string in image_names.split('|'):
                 if 'PBB GE ' in sub_string:
                     value = sub_string[5:]
+
+                    if value[-6:-4] == 'tn':
+                        value = value[:-6] + 'fs' + value[-4:]
+
 
                     # Gene Expression reference: https://www.wikidata.org/wiki/Q21074956
 
