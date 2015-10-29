@@ -88,19 +88,23 @@ Below a mapping is created between entrez gene ids and wikidata identifiers.
 for geneItem in InWikiData.wditems["props"]["351"]:
     entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-object=dict()
-object["entrezgene"] = str(sys.argv[1])
-if str(object["entrezgene"]) in entrezWikidataIds.keys():
-    object["wdid"] = 'Q' + str(entrezWikidataIds[str(object["entrezgene"])])
-else:
-    object["wdid"] = None
+fo = open("/tmp/genebotRun.txt", "r+")
+for line in fo.readlines():
+  try:
+    print(str(line.rstrip()))
+    object=dict()
+    # object["entrezgene"] = str(sys.argv[1])
+    object["entrezgene"] = str(line.rstrip())
+    if str(object["entrezgene"]) in entrezWikidataIds.keys():
+        object["wdid"] = 'Q' + str(entrezWikidataIds[str(object["entrezgene"])])
+    else:
+        object["wdid"] = None
 
-tempvar = dict()
-tempvar["speciesInfo"] = speciesInfo
-
-object["logincreds"] = logincreds
-object["speciesInfo"] = tempvar["speciesInfo"]
-object["start"] = start
-
-
-geneClass = gene.mammal_gene(object)
+    tempvar = dict()
+    tempvar["speciesInfo"] = speciesInfo
+    object["logincreds"] = logincreds
+    object["speciesInfo"] = tempvar["speciesInfo"]
+    object["start"] = start
+    geneClass = gene.mammal_gene(object)
+  except:
+      pass

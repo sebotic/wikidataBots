@@ -178,6 +178,18 @@ class HumanProtein(object):
                         if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 7187:
                             geneClaim = True
                             break
+                        if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 407355:
+                            proteinClaim = True
+                            break
+                if "P31" in json_rep["claims"].keys():
+                    for it in json_rep["claims"]["P31"]:
+                        if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8047:
+                            proteinClaim = True
+                            break
+                        if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8054:
+                            proteinClaim = True
+                            break
+
 
                 if len(json_rep["claims"]) == 0:
                     raise Exception(hit["id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
@@ -225,7 +237,7 @@ class HumanProtein(object):
         # Prepare references
         refStatedIn = PBB_Core.WDItemID(value=2629752, prop_nr='P248', is_reference=True)
         refStatedIn.overwrite_references = True
-        refURL = "http://www.uniprot.org/uniprot/" + self.uniprotId + ".txt?" + str(self.version)
+        refURL = "http://www.uniprot.org/uniprot/" + self.uniprotId + ".txt?version=" + str(self.version)
         refReferenceURL = PBB_Core.WDUrl(value=refURL, prop_nr='P854', is_reference=True)
         refReferenceURL.overwrite_references = True
         refImported = PBB_Core.WDItemID(value=905695, prop_nr='P143', is_reference=True)
@@ -308,14 +320,30 @@ class HumanProtein(object):
                 goWdId = search_results["search"][0]["id"]
 
             if result["parentLabel"]["value"] == "molecular_function":
-                proteinPrep["P680"].append(
-                    PBB_Core.WDItemID(value=goWdId, prop_nr='P680', references=protein_reference))
+                exists = False
+                for i in range(len(proteinPrep["P680"])):
+                    if proteinPrep["P680"][i].value == goWdId:
+                        exists = True
+                if not exists:
+                    proteinPrep["P680"].append(
+                        PBB_Core.WDItemID(value=goWdId, prop_nr='P680', references=protein_reference))
             if result["parentLabel"]["value"] == "cellular_component":
-                proteinPrep["P681"].append(
-                    PBB_Core.WDItemID(value=goWdId, prop_nr='P681', references=protein_reference))
+                exists = False
+                for i in range(len(proteinPrep["P681"])):
+                    if proteinPrep["P681"][i].value == goWdId:
+                        exists = True
+                if not exists:
+                    proteinPrep["P681"].append(
+                        PBB_Core.WDItemID(value=goWdId, prop_nr='P681', references=protein_reference))
             if result["parentLabel"]["value"] == "biological_process":
-                proteinPrep["P682"].append(
-                    PBB_Core.WDItemID(value=goWdId, prop_nr='P682', references=protein_reference))
+                exists = False
+                for i in range(len(proteinPrep["P682"])):
+                    if proteinPrep["P682"][i].value == goWdId:
+                        exists = True
+                if not exists:
+                    proteinPrep["P682"].append(
+                        PBB_Core.WDItemID(value=goWdId, prop_nr='P682', references=protein_reference))
+
 
         # P702 = Encoded by
         if "encoded_by" in vars(self) and len(self.encoded_by) > 0:
@@ -333,11 +361,11 @@ class HumanProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                  references=protein_reference, domain="proteins")
+                                                  references=protein_reference, domain="proteins", append_value=['P279'])
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
                                                   server="www.wikidata.org", references=protein_reference,
-                                                  domain="proteins")
+                                                  domain="proteins", append_value=['P279'])
 
         if len(self.alias) > 0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
