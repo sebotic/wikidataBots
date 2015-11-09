@@ -155,7 +155,47 @@ print("Mouse gene triples: " + str(mouse_gene_counts))
 f.write("<tr><td>Mouse gene triples</td><td>"+ str(mouse_gene_counts) + "</td></tr>\n")
 
 ########
-# Microbial bacteria
+# Microbial proteins
+########
+sparql.setQuery("""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+    PREFIX wd: <http://www.wikidata.org/entity/>
+    PREFIX p: <http://www.wikidata.org/prop/>
+    SELECT DISTINCT ?protein ?taxa WHERE {
+    {?protein wdt:P31 wd:Q8054 }
+    UNION
+    {?protein wdt:P279 wd:Q8054 } .
+    ?protein wdt:P703 ?taxa .
+    ?taxa wdt:P171* wd:Q10876
+}
+""")
+sparql.setReturnFormat(JSON)
+results = sparql.query().convert()
+gene_counts = len(results["results"]["bindings"])
+print("Microbial genes: " + str(gene_counts))
+f.write("<tr><td>Microbial genes</td><td>"+ str(gene_counts) + "</td></tr>\n")
+
+
+sparql.setQuery("""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+    PREFIX wd: <http://www.wikidata.org/entity/>
+    PREFIX p: <http://www.wikidata.org/prop/>
+    SELECT ?protein ?taxa WHERE {
+    {?protein wdt:P31 wd:Q8054 }
+    UNION
+    {?protein wdt:P279 wd:Q8054 } .
+    ?gene wdt:P703 ?taxa .
+    ?gene ?p ?o .
+    ?taxa wdt:P171* wd:Q10876
+}
+""")
+sparql.setReturnFormat(JSON)
+results = sparql.query().convert()
+gene_counts = len(results["results"]["bindings"])
+total_triples = total_triples + gene_counts
+print("Microbial gene triples: " + str(gene_counts))
+f.write("<tr><td>Microbial gene triples</td><td>"+ str(gene_counts) + "</td></tr>\n")
+
+########
+# Microbial genes
 ########
 sparql.setQuery("""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
     PREFIX wd: <http://www.wikidata.org/entity/>

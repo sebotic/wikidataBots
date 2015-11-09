@@ -30,22 +30,11 @@ import PBB_login
 import PBB_settings
 
 # Resource specific 
-import mouse_protein
+import mouseprotein
 
 import traceback
 from datetime import date, datetime, timedelta
 
-main_log = PBB_Core.BotMainLog()
-main_log.start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-try:
-    print "Getting mouse proteins from mygene.info"
-    mouse_proteome = mouse_protein.mouse_proteome()
-    print mouse_proteome.protein_count 
-    
-
-    
-      
-except Exception, err:
-    print traceback.format_exc()
-    # client.captureException()  
+print("Getting mouse proteins from Uniprot")
+mouse_proteome = mouseprotein.MouseProteome()
+print(mouse_proteome.protein_count)
