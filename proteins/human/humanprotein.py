@@ -71,10 +71,17 @@ class HumanProteome():
         for proteinItem in inwikidata.wditems["props"]["352"]:
             uniprotwikidataids[str(proteinItem[2])] = proteinItem[0]
 
-        print("Getting all human gene symbols in Wikidata...")
-        gene_symbol_mapping = PBB_Core.WDItemList("CLAIM[353] AND CLAIM[703:5]", "353")
-        for genesymbol in gene_symbol_mapping.wditems["props"]["353"]:
-            genesymbolwdmapping[str(genesymbol[2])] = genesymbol[0]
+        print('Getting all human genes with a ncbi gene ID in Wikidata...')
+        entrezWikidataIds = dict()
+        print("wdq 1")
+        wdqQuery = "CLAIM[703:5] AND CLAIM[351]"
+
+        InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
+        '''
+        Below a mapping is created between entrez gene ids and wikidata identifiers.
+        '''
+        for geneItem in InWikiData.wditems["props"]["351"]:
+            entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
         print("Getting all human proteins from Uniprot...")
         r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
@@ -93,10 +100,16 @@ class HumanProteome():
                     '''
                     Get protein annotations from Uniprot
                     '''
+                    #r = requests.get(
+                    #    "http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e%0d%0aPREFIX+taxonomy%3a%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+database%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fdatabase%2f%3e%0d%0aSELECT+%3funiprot+%3fplabel+%3fecName+%3fupversion+%0d%0a+++++++(group_concat(distinct+%3fencodedBy%3b+separator%3d%22%3b+%22)+as+%3fencoded_by)%0d%0a+++++++(group_concat(distinct+%3falias%3b+separator%3d%22%3b+%22)+as+%3fupalias)%0d%0a+++++++(group_concat(distinct+%3fpdb%3b+separator%3d%22%3b+%22)+as+%3fpdbid)%0d%0a+++++++(group_concat(distinct+%3frefseq%3b+separator%3d%22%3b+%22)+as+%3frefseqid)%0d%0a+++++++(group_concat(distinct+%3fensP%3b+separator%3d%22%3b+%22)+as+%3fensemblp)%0d%0aWHERE%0d%0a%7b%0d%0a%09%09VALUES+%3funiprot+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f" +
+                    #    str(up["id"]) +
+                    #    "%3e%7d%0d%0a++++++++%3funiprot+rdfs%3alabel+%3fplabel+.%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.+%0d%0a++++++++%3funiprot+up%3aencodedBy+%3fgene+.%0d%0a%09%09%3fgene+skos%3aprefLabel+%3fencodedBy+.%0d%0a++++++++optional%7b%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++%3fupAlias+up%3aecName+%3fecName+.%7d%0d%0a++++++++%0d%0a++++++++OPTIONAL%7b+%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++++%7b%3fupAlias+up%3afullName+%3falias+.%7d+UNION%0d%0a++++++++%7b%3fupAlias+up%3ashortName+%3falias+.%7d%7d%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fpdb+.%0d%0a++++++++%3fpdb+up%3adatabase+database%3aPDB+.%7d%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3frefseq+.%0d%0a++++++++%3frefseq+up%3adatabase+database%3aRefSeq+.%7d++%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fensT+.%0d%0a++++++++%3fensT+up%3adatabase+database%3aEnsembl+.%0d%0a++++++++%3fensT+up%3atranslatedTo+%3fensP+.%7d%0d%0a%7d%0d%0agroup+by+%3fupAlias+%3funiprot+%3fencodedBy+%3fplabel+%3fecName+%3fupversion&format=srj")
+
                     r = requests.get(
-                        "http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e%0d%0aPREFIX+taxonomy%3a%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+database%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fdatabase%2f%3e%0d%0aSELECT+%3funiprot+%3fplabel+%3fecName+%3fupversion+%0d%0a+++++++(group_concat(distinct+%3fencodedBy%3b+separator%3d%22%3b+%22)+as+%3fencoded_by)%0d%0a+++++++(group_concat(distinct+%3falias%3b+separator%3d%22%3b+%22)+as+%3fupalias)%0d%0a+++++++(group_concat(distinct+%3fpdb%3b+separator%3d%22%3b+%22)+as+%3fpdbid)%0d%0a+++++++(group_concat(distinct+%3frefseq%3b+separator%3d%22%3b+%22)+as+%3frefseqid)%0d%0a+++++++(group_concat(distinct+%3fensP%3b+separator%3d%22%3b+%22)+as+%3fensemblp)%0d%0aWHERE%0d%0a%7b%0d%0a%09%09VALUES+%3funiprot+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f" +
+                        "http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e%0d%0aPREFIX+skos%3a%3chttp%3a%2f%2fwww.w3.org%2f2004%2f02%2fskos%2fcore%23%3e%0d%0aPREFIX+taxonomy%3a%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+database%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fdatabase%2f%3e%0d%0aSELECT+%3funiprot+%3fplabel+%3fecName+%3fupversion+%0d%0a+++++++(group_concat(distinct+%3fencodedBy%3b+separator%3d%22%3b+%22)+as+%3fencoded_by)%0d%0a+++++++(group_concat(distinct+%3fncbiGene%3b+separator%3d%22%3b+%22)+as+%3fgene_id)%0d%0a+++++++(group_concat(distinct+%3falias%3b+separator%3d%22%3b+%22)+as+%3fupalias)%0d%0a+++++++(group_concat(distinct+%3fpdb%3b+separator%3d%22%3b+%22)+as+%3fpdbid)%0d%0a+++++++(group_concat(distinct+%3frefseq%3b+separator%3d%22%3b+%22)+as+%3frefseqid)%0d%0a+++++++(group_concat(distinct+%3fensP%3b+separator%3d%22%3b+%22)+as+%3fensemblp)%0d%0aWHERE%0d%0a%7b%0d%0a%09%09VALUES+%3funiprot+%7b%3chttp%3a%2f%2fpurl.uniprot.org%2funiprot%2f" +
                         str(up["id"]) +
-                        "%3e%7d%0d%0a++++++++%3funiprot+rdfs%3alabel+%3fplabel+.%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.+%0d%0a++++++++%3funiprot+up%3aencodedBy+%3fgene+.%0d%0a%09%09%3fgene+skos%3aprefLabel+%3fencodedBy+.%0d%0a++++++++optional%7b%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++%3fupAlias+up%3aecName+%3fecName+.%7d%0d%0a++++++++%0d%0a++++++++OPTIONAL%7b+%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++++%7b%3fupAlias+up%3afullName+%3falias+.%7d+UNION%0d%0a++++++++%7b%3fupAlias+up%3ashortName+%3falias+.%7d%7d%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fpdb+.%0d%0a++++++++%3fpdb+up%3adatabase+database%3aPDB+.%7d%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3frefseq+.%0d%0a++++++++%3frefseq+up%3adatabase+database%3aRefSeq+.%7d++%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fensT+.%0d%0a++++++++%3fensT+up%3adatabase+database%3aEnsembl+.%0d%0a++++++++%3fensT+up%3atranslatedTo+%3fensP+.%7d%0d%0a%7d%0d%0agroup+by+%3fupAlias+%3funiprot+%3fencodedBy+%3fplabel+%3fecName+%3fupversion&format=srj")
+                        "%3e%7d%0d%0a++++++++%3funiprot+rdfs%3alabel+%3fplabel+.%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.+%0d%0a++++++++%3funiprot+up%3aencodedBy+%3fgene+.%0d%0a%09++++%3fgene+skos%3aprefLabel+%3fencodedBy+.%0d%0a++++++++optional%7b%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++%3fupAlias+up%3aecName+%3fecName+.%7d%0d%0a++++++++optional%7b%3funiprot+rdfs%3aseeAlso+%3fncbiGene+.%0d%0a++++++++%3fncbiGene+up%3adatabase+database%3aGeneID+.%7d%0d%0a++++++++%0d%0a++++++++OPTIONAL%7b+%3funiprot+up%3aalternativeName+%3fupAlias+.%0d%0a++++++++++%7b%3fupAlias+up%3afullName+%3falias+.%7d+UNION%0d%0a++++++++%7b%3fupAlias+up%3ashortName+%3falias+.%7d%7d%0d%0a++++++++%3funiprot+up%3aversion+%3fupversion+.%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fpdb+.%0d%0a++++++++%3fpdb+up%3adatabase+database%3aPDB+.%7d%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3frefseq+.%0d%0a++++++++%3frefseq+up%3adatabase+database%3aRefSeq+.%7d++%0d%0a++++++++OPTIONAL%7b%3funiprot+rdfs%3aseeAlso+%3fensT+.%0d%0a++++++++%3fensT+up%3adatabase+database%3aEnsembl+.%0d%0a++++++++%3fensT+up%3atranslatedTo+%3fensP+.%7d%0d%0a%7d%0d%0agroup+by+%3fupAlias+%3funiprot+%3fencodedBy+%3fplabel+%3fecName+%3fupversion&format=srj")
+
                     protein = r.json()
                     if len(protein["results"]["bindings"])==0:
                         raise Exception("Communication error on " + up["id"])
@@ -117,6 +130,7 @@ class HumanProteome():
                     protein["id"] = up["id"]
                     protein["start"] = self.start
                     protein["geneSymbols"] = genesymbolwdmapping
+                    protein["entrezWikidataIds"] = entrezWikidataIds
                     protein_class = HumanProtein(protein)
                 #else:
                     #print(up["id"]+" already covered in wikidata")
@@ -133,15 +147,6 @@ class HumanProteome():
                                           ))
 
 
-    def download_human_proteins(self):
-        """
-        Downloads the latest list of human proteins from uniprot through the URL specified in mygene_info_settings
-        """
-        print("Getting content from Uniprot")
-        r = requests.get(mygene_info_settings.getUniprotUrl())
-        return r.json()
-
-
 class HumanProtein(object):
     def __init__(self, object):
         # Populate variables with different values
@@ -153,6 +158,7 @@ class HumanProtein(object):
         self.uniprotId = object["id"]
         self.name = object["results"]["bindings"][0]["plabel"]["value"]
         self.start = object["start"]
+        self.entrezWikidataIds = object["entrezWikidataIds"]
 
         up_in_wd = search_wd(self.name)
         self.wdid = None
@@ -170,6 +176,7 @@ class HumanProtein(object):
                 json_rep = hitPage.get_wd_json_representation()
                 proteinClaim = False
                 geneClaim = False
+                speciesClaim = False
                 if "P279" in json_rep["claims"].keys():
                     for it in json_rep["claims"]["P279"]:
                         if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8054:
@@ -189,11 +196,15 @@ class HumanProtein(object):
                         if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 8054:
                             proteinClaim = True
                             break
-
+                if "P703" in json_rep["claims"].keys():
+                    for it in json_rep["claims"]["P703"]:
+                        if it["mainsnak"]["datavalue"]["value"]["numeric-id"] == 5:
+                            speciesClaim = True
+                            break
 
                 if len(json_rep["claims"]) == 0:
                     raise Exception(hit["id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
-                elif "P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim:
+                elif ("P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim):
                     valid.append(hit["id"])
                 elif geneClaim:
                     self.wdid = None
@@ -204,6 +215,12 @@ class HumanProtein(object):
             elif len(valid)>1:
                 raise Exception(
                     self.uniprotId + " There are multiple valid Wikidata items that might be applicable. " + str(valid))
+
+        if "gene_id" in object["results"]["bindings"][0].keys():
+            self.gene_id = []
+            for geneId in object["results"]["bindings"][0]["gene_id"]["value"].split(";"):
+                if geneId != "":
+                    self.gene_id.append(geneId)
 
         if "ecName" in object["results"]["bindings"][0].keys():
             self.ecname = []
@@ -226,13 +243,6 @@ class HumanProtein(object):
             self.ensemblp = []
             for ensP in object["results"]["bindings"][0]["ensemblp"]["value"].split(";"):
                 self.ensemblp.append(ensP.replace("http://purl.uniprot.org/ensembl/", "").replace(" ", ""))
-        if "encoded_by" in object["results"]["bindings"][0].keys() and object["results"]["bindings"][0]["encoded_by"][
-            "value"] != "":
-            self.encoded_by = []
-            for encodedBy in object["results"]["bindings"][0]["encoded_by"]["value"].split(";"):
-                print(self.geneSymbols[str(encodedBy)])
-                if str(encodedBy) in self.geneSymbols.keys():
-                    self.encoded_by.append('Q' + str(self.geneSymbols[str(encodedBy)]))
 
         # Prepare references
         refStatedIn = PBB_Core.WDItemID(value=2629752, prop_nr='P248', is_reference=True)
@@ -346,13 +356,13 @@ class HumanProtein(object):
 
 
         # P702 = Encoded by
-        if "encoded_by" in vars(self) and len(self.encoded_by) > 0:
+        if "gene_id" in vars(self) and len(self.gene_id) > 0:
             proteinPrep['P702'] = []
-            if len(self.encoded_by) > 1:
+            if len(self.gene_id) > 1:
                 raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
             else:
                 proteinPrep['P702'].append(
-                    PBB_Core.WDItemID(value=self.encoded_by[0], prop_nr='P702', references=protein_reference))
+                    PBB_Core.WDItemID(value=self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")], prop_nr='P702', references=protein_reference))
 
         proteinData2Add = []
         for key in proteinPrep.keys():
@@ -388,11 +398,15 @@ class HumanProtein(object):
         ))
         print("===============")
 
-        if "encoded_by" in vars(self) and len(self.encoded_by) > 0:
-            if len(self.encoded_by) > 1:
+        '''
+        Adding the encodes property to gene pages
+        '''
+
+        if "gene_id" in vars(self) and len(self.gene_id) > 0:
+            if len(self.gene_id) > 1:
                 raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
             else:
-                genePrep[self.encoded_by[0]] = [
+                genePrep['Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])] = [
                     PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference)]
         '''
         Adding the encodes property to gene pages
@@ -401,7 +415,7 @@ class HumanProtein(object):
             genePrep[key].append(
                 PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
             wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org",
-                                               references=protein_reference, domain="proteins", append_value=['P688'])
+                                               references=protein_reference, domain="genes", append_value=['P688'])
             gene_wd_json_representation = wdGenePage.get_wd_json_representation()
             encodes_set = False
             for encodes in gene_wd_json_representation["claims"]["P688"]:
@@ -417,4 +431,5 @@ class HumanProtein(object):
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
+
 

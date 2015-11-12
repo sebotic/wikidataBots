@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ProteinBoxBot_Core")
 import PBB_Core
 import mygene_info_settings
 import requests
