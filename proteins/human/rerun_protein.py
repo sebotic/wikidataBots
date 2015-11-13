@@ -98,12 +98,24 @@ for up in uniprot_ids:
                         str(up) +
                         "%3e%7d%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++%09%09%3fprotein+up%3aclassifiedWith+%3fgo+.+++%0d%0a++++++++%3fgo+rdfs%3alabel+%3fgoLabel+.%0d%0a++++++++%3fgo+rdfs%3asubClassOf*+%3fparent+.%0d%0a++++++++%3fparent+rdfs%3alabel+%3fparentLabel+.%0d%0a++++++++optional+%7b%3fparent+rdfs%3asubClassOf+%3fgrandParent+.%7d%0d%0a++++++++FILTER+(!bound(%3fgrandParent))%0d%0a%7d&format=srj")
 
+                    print('Getting all human genes with a ncbi gene ID in Wikidata...')
+                    entrezWikidataIds = dict()
+                    print("wdq 1")
+                    wdqQuery = "CLAIM[703:5] AND CLAIM[351]"
+
+                    InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
+                    '''
+                    Below a mapping is created between entrez gene ids and wikidata identifiers.
+                    '''
+                    for geneItem in InWikiData.wditems["props"]["351"]:
+                        entrezWikidataIds[str(geneItem[2])] = geneItem[0]
                     go_terms = r2.json()
                     protein["goTerms"] = go_terms
                     protein["logincreds"] = logincreds
                     protein["id"] = up
                     protein["start"] = start
                     protein["geneSymbols"] = genesymbolwdmapping
+                    protein["entrezWikidataIds"] = entrezWikidataIds
                     protein_class = humanprotein.HumanProtein(protein)
 
                 #else:

@@ -234,7 +234,7 @@ class HumanProtein(object):
             self.pdb = []
             for pdbId in object["results"]["bindings"][0]["pdbid"]["value"].split(";"):
                 self.pdb.append(pdbId.replace("http://rdf.wwpdb.org/pdb/", "").replace(" ", ""))
-        if "refseq" in object["results"]["bindings"][0].keys():
+        if "refseqid" in object["results"]["bindings"][0].keys():
             self.refseq = []
             for refseqId in object["results"]["bindings"][0]["refseqid"]["value"].split(";"):
                 self.refseq.append(refseqId.replace("http://purl.uniprot.org/refseq/", "").replace(" ", ""))
