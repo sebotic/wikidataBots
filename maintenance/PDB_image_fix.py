@@ -72,8 +72,8 @@ class PDBImageFix(object):
                 if 'PBB GE ' in sub_string:
                     value = sub_string[5:]
 
-                    if value[-6:-4] == 'tn':
-                        value = value[:-6] + 'fs' + value[-4:]
+                    # if value[-6:-4] == 'tn':
+                    #     value = value[:-6] + 'fs' + value[-4:]
 
 
                     # Gene Expression reference: https://www.wikidata.org/wiki/Q21074956
