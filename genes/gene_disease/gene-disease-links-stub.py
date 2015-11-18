@@ -41,21 +41,22 @@ import pprint
 
 # login to Wikidata
 login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-item_name = 'apolipoprotein L, 2'
-value = PBB_Core.WDItemID(value='Q1897', prop_nr='P631') # using a non-existent property ID, as appropriate
+#item_name = 'apolipoprotein L, 2'
+value = PBB_Core.WDItemID(value="Q41112", prop_nr="P2293") # using a non-existent property ID, as appropriate
 						        # property not yet approved
 	    # https://www.wikidata.org/wiki/Wikidata:Property_proposal/Natural_science#genetic_Association
 	    # note: property now approved: P2293. id for schiz: 41112
 # Get a pointer to the Wikidata page on the gene under scrutiny
 #wd_gene_page = PBB_Core.WDItemEngine(item_name=item_name, data=[value], server='test.wikidata.org', domain='genes')
-wd_gene_page = PBB_Core.WDItemEngine(wd_item_id='Q1896', data=[value], server='test.wikidata.org', domain='genes')
+wd_gene_page = PBB_Core.WDItemEngine(wd_item_id="Q18031520", data=[value], server="wikidata.org", domain="genes")
 #Q18037645 <- id for apol2
-wd_json_representation = wd_gene_page.get_wd_json_representation()
-pprint.pprint(wd_json_representation)
+#Q18031520 <- id for slc1a1
+#wd_json_representation = wd_gene_page.get_wd_json_representation()
+#pprint.pprint(wd_json_representation)
 
 # Write to Wikidata
 # UNCOMMENT ONLY IF CONFIDENT ENOUGH ON CONTENT BEING ADDED (i.e. wd_json_representation
-#wd_gene_page.write(login)
+wd_gene_page.write(login)
 
 
 
