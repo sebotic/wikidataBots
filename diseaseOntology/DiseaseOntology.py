@@ -173,11 +173,11 @@ class  disease(object):
             self.wdid = "Q"+str(object[2][self.do_id])
         else:
             self.wdid = None
-
-        if self.getDoValue(self.wd_do_content, './/owl:deprecated') == "true":
+        if self.getDoValue(self.wd_do_content, './/owl:deprecated')[0].text == "true":
             self.rank = "deprecated"
         else:
             self.rank = "normal"
+
             
         self.synonyms = []
         for synonym in self.getDoValue(self.wd_do_content, './/oboInOwl:hasExactSynonym'):
@@ -207,20 +207,20 @@ class  disease(object):
         do_reference = [refStatedIn, refImported, refRetrieved]
 
         prep = dict()
-        prep["P279"] = [PBB_Core.WDItemID(value='Q12136', prop_nr='P279', references=[copy.deepcopy(do_reference)])]
+        prep["P279"] = [PBB_Core.WDItemID(value='Q12136', prop_nr='P279', references=[copy.deepcopy(do_reference)], rank=self.rank)]
         # Subclass of disease
         for subclass in self.subclasses:
             if subclass in self.wd_doMappings.keys():
-                prep["P279"].append(PBB_Core.WDItemID(value=self.wd_doMappings[subclass], prop_nr='P279', references=[copy.deepcopy(do_reference)]))
+                prep["P279"].append(PBB_Core.WDItemID(value=self.wd_doMappings[subclass], prop_nr='P279', references=[copy.deepcopy(do_reference)], rank=self.rank))
 
 
         if "Orphanet" in self.xrefs.keys():
             prep["P1550"] = []
             if isinstance(self.xrefs["Orphanet"], list):
                 for id in self.xrefs["Orphanet"]:
-                    prep["P1550"].append(PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)]))
+                    prep["P1550"].append(PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P1550"] = [PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)])]
+                prep["P1550"] = [PBB_Core.WDString(value=self.xrefs["Orphanet"], prop_nr='P1550', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         #disease Ontology
 
@@ -245,41 +245,41 @@ class  disease(object):
             prep["P494"] = []
             if isinstance(self.xrefs["ICD10CM"], list):
                 for id in self.xrefs["ICD10CM"]:
-                    prep["P494"].append(PBB_Core.WDString(value=id, prop_nr='P494', references=[copy.deepcopy(do_reference)]))
+                    prep["P494"].append(PBB_Core.WDString(value=id, prop_nr='P494', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P494"] = [PBB_Core.WDString(value=self.xrefs["ICD10CM"], prop_nr='P494', references=[copy.deepcopy(do_reference)])]
+                prep["P494"] = [PBB_Core.WDString(value=self.xrefs["ICD10CM"], prop_nr='P494', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         if "ICD9CM" in self.xrefs.keys():
             prep["P493"] = []
             if isinstance(self.xrefs["ICD9CM"], list):
                 for id in self.xrefs["ICD9CM"]:
-                    prep["P493"].append(PBB_Core.WDString(value=id, prop_nr='P493', references=[copy.deepcopy(do_reference)]))
+                    prep["P493"].append(PBB_Core.WDString(value=id, prop_nr='P493', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P493"] = [PBB_Core.WDString(value=self.xrefs["ICD9CM"], prop_nr='P493', references=[copy.deepcopy(do_reference)])]
+                prep["P493"] = [PBB_Core.WDString(value=self.xrefs["ICD9CM"], prop_nr='P493', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         if "MSH" in self.xrefs.keys():
             prep["P486"] = []
             if isinstance(self.xrefs["MSH"], list):
                 for id in self.xrefs["MSH"]:
-                    prep["P486"].append(PBB_Core.WDString(value=id, prop_nr='P486', references=[copy.deepcopy(do_reference)]))
+                    prep["P486"].append(PBB_Core.WDString(value=id, prop_nr='P486', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P486"] = [PBB_Core.WDString(value=self.xrefs["MSH"], prop_nr='P486', references=[copy.deepcopy(do_reference)])]
+                prep["P486"] = [PBB_Core.WDString(value=self.xrefs["MSH"], prop_nr='P486', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         if "NCI" in self.xrefs.keys():
             prep["P1748"] = []
             if isinstance(self.xrefs["NCI"], list):
                 for id in self.xrefs["NCI"]:
-                    prep["P1748"].append(PBB_Core.WDString(value=id, prop_nr='P1748', references=[copy.deepcopy(do_reference)]))
+                    prep["P1748"].append(PBB_Core.WDString(value=id, prop_nr='P1748', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P1748"] = [PBB_Core.WDString(value=self.xrefs["NCI"], prop_nr='P1748', references=[copy.deepcopy(do_reference)])]
+                prep["P1748"] = [PBB_Core.WDString(value=self.xrefs["NCI"], prop_nr='P1748', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         if "OMIM" in self.xrefs.keys():
             prep["P492"] = []
             if isinstance(self.xrefs["OMIM"], list):
                 for id in self.xrefs["OMIM"]:
-                    prep["P492"].append(PBB_Core.WDString(value=id, prop_nr='P492', references=[copy.deepcopy(do_reference)]))
+                    prep["P492"].append(PBB_Core.WDString(value=id, prop_nr='P492', references=[copy.deepcopy(do_reference)], rank=self.rank))
             else:
-                prep["P492"] = [PBB_Core.WDString(value=self.xrefs["OMIM"], prop_nr='P492', references=[copy.deepcopy(do_reference)])]
+                prep["P492"] = [PBB_Core.WDString(value=self.xrefs["OMIM"], prop_nr='P492', references=[copy.deepcopy(do_reference)], rank=self.rank)]
 
         print(self.wdid)
         data2add = []
