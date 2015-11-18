@@ -204,7 +204,9 @@ class MouseProtein(object):
 
                 if len(json_rep["claims"]) == 0:
                     raise Exception(hit["id"] + " has an indentical label as " + self.uniprotId + ", but with no claims")
-                elif ("P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim) and speciesClaim:
+                elif not speciesClaim:
+                    self.wdid = None
+                elif "P352" in json_rep["claims"].keys() or "P705" in json_rep["claims"].keys() or proteinClaim:
                     valid.append(hit["id"])
                 elif geneClaim:
                     self.wdid = None

@@ -289,9 +289,9 @@ class  disease(object):
                 print(statement.prop_nr, statement.value)
 
         if self.wdid is not None:
-            wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases")
+            wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases",append_value=['P279'])
         else:
-            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases")
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases", append_value=['P279'])
 
         # wdPage.set_description(description='Human disease', lang='en')
         if wikilink is not None:

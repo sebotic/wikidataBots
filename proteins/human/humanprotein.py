@@ -234,7 +234,7 @@ class HumanProtein(object):
             self.pdb = []
             for pdbId in object["results"]["bindings"][0]["pdbid"]["value"].split(";"):
                 self.pdb.append(pdbId.replace("http://rdf.wwpdb.org/pdb/", "").replace(" ", ""))
-        if "refseq" in object["results"]["bindings"][0].keys():
+        if "refseqid" in object["results"]["bindings"][0].keys():
             self.refseq = []
             for refseqId in object["results"]["bindings"][0]["refseqid"]["value"].split(";"):
                 self.refseq.append(refseqId.replace("http://purl.uniprot.org/refseq/", "").replace(" ", ""))
@@ -414,8 +414,8 @@ class HumanProtein(object):
         for key in genePrep.keys():
             genePrep[key].append(
                 PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org",
-                                               references=protein_reference, domain="genes", append_value=['P688'])
+            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes", append_value=['P688'])
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes")
             gene_wd_json_representation = wdGenePage.get_wd_json_representation()
             encodes_set = False
             for encodes in gene_wd_json_representation["claims"]["P688"]:
