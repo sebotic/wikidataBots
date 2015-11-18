@@ -48,7 +48,7 @@ value = PBB_Core.WDItemID(value="Q41112", prop_nr="P2293") # using a non-existen
 	    # note: property now approved: P2293. id for schiz: 41112
 # Get a pointer to the Wikidata page on the gene under scrutiny
 #wd_gene_page = PBB_Core.WDItemEngine(item_name=item_name, data=[value], server='test.wikidata.org', domain='genes')
-wd_gene_page = PBB_Core.WDItemEngine(wd_item_id="Q18031520", data=[value], server="wikidata.org", domain="genes")
+wd_gene_page = PBB_Core.WDItemEngine(wd_item_id="Q18031520", data=[value], server="www.wikidata.org", domain="genes")
 #Q18037645 <- id for apol2
 #Q18031520 <- id for slc1a1
 #wd_json_representation = wd_gene_page.get_wd_json_representation()
