@@ -86,20 +86,7 @@ total_items = total_items + human_gene_counts
 print("Human genes: " + str(human_gene_counts))
 f.write("<tr><td>Human genes</td><td>"+ str(human_gene_counts) + "</td></tr>\n")
 
-sparql.setQuery("""PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-    PREFIX wd: <http://www.wikidata.org/entity/>
-    PREFIX p: <http://www.wikidata.org/prop/>
-    PREFIX v: <http://www.wikidata.org/prop/statement/>
-    PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX reference: <http://www.wikidata.org/prop/reference/>
-    SELECT ?ncbigeneId WHERE {
-    ?gene wdt:P279 wd:Q7187 .
-    ?gene p:P351 ?ncbigeneId .
-    ?gene wdt:P703 wd:Q5 .
-    ?gene ?p ?o .
-    ?o prov:wasDerivedFrom ?derivedFrom .
-    ?derivedFrom reference:P143 wd:Q20641742 .
-}
+sparql.setQuery("""a
 """)
 sparql.setReturnFormat(JSON)
 results = sparql.query().convert()
