@@ -302,13 +302,13 @@ class  disease(object):
             PBB_Debug.prettyPrint(self.wd_json_representation)
 
             wdPage.write(self.logincreds)
-        if not os.path.exists('./json_dumps'):
-            os.makedirs('./json_dumps')
-        f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')
-        pprint.pprint(self.wd_json_representation, stream = f)
-        f.close()
+            if not os.path.exists('./json_dumps'):
+                os.makedirs('./json_dumps')
+            f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')
+            pprint.pprint(self.wd_json_representation, stream = f)
+            f.close()
 
-        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+            PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=self.do_id,
                         exception_type='',
                         message=f.name,
