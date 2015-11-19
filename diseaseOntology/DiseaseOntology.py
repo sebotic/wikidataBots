@@ -287,28 +287,27 @@ class  disease(object):
             for statement in prep[key]:
                 data2add.append(statement)
                 print(statement.prop_nr, statement.value)
-        if self.rank == "deprecated":
-            if self.wdid is not None:
-                wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases",append_value=['P279'])
-            else:
-                wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases", append_value=['P279'])
 
-            # wdPage.set_description(description='Human disease', lang='en')
-            if wikilink is not None:
-                wdPage.set_sitelink(site="enwiki", title = wikilink)
-            if self.synonyms is not None:
-                wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
-            self.wd_json_representation = wdPage.get_wd_json_representation()
-            PBB_Debug.prettyPrint(self.wd_json_representation)
+        if self.wdid is not None:
+            wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases",append_value=['P279'])
+        else:
+            wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases", append_value=['P279'])
 
-            wdPage.write(self.logincreds)
-            if not os.path.exists('./json_dumps'):
-                os.makedirs('./json_dumps')
-            f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')
-            pprint.pprint(self.wd_json_representation, stream = f)
-            f.close()
+        # wdPage.set_description(description='Human disease', lang='en')
+        if wikilink is not None:
+            wdPage.set_sitelink(site="enwiki", title = wikilink)
+        if self.synonyms is not None:
+             wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
+        self.wd_json_representation = wdPage.get_wd_json_representation()
+        PBB_Debug.prettyPrint(self.wd_json_representation)
+        wdPage.write(self.logincreds)
+        if not os.path.exists('./json_dumps'):
+            os.makedirs('./json_dumps')
+        f = open('./json_dumps/'+self.do_id.replace(":", "_")+'.json', 'w+')
+        pprint.pprint(self.wd_json_representation, stream = f)
+        f.close()
 
-            PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=self.do_id,
                         exception_type='',
                         message=f.name,
