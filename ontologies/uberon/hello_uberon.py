@@ -17,5 +17,5 @@ for uberon in graph.subjects(RDF.type, cls):
     print(graph.label(URIRef(uberon)))
     for bla in graph.objects(URIRef(uberon), subcls):
         print(bla)
-    print("======")
+        print("======")
 
