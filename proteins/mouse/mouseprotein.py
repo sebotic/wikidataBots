@@ -318,7 +318,7 @@ class MouseProtein(object):
             reply = requests.get(url, params=params)
             search_results = reply.json()
 
-            if len(search_results["search"]) == 0:
+            if (len(search_results["search"]) == 0) or search_results["search"][0]["label"] != search_results["searchinfo"]["search"]:
                 statement = [
                     PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""),
                                       prop_nr='P686', references=protein_reference)]
