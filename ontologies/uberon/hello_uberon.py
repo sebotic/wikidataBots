@@ -12,7 +12,6 @@ print("ja")
 graph.parse(data=ubUrl.text, format="application/rdf+xml")
 print(len(graph))
 print(list(graph)[:10])
-sys.exit()
 cls = URIRef("http://www.w3.org/2002/07/owl#Class")
 subcls = URIRef("http://www.w3.org/2000/01/rdf-schema#subClassOf")
 for uberon in graph.subjects(RDF.type, cls):
