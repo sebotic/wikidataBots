@@ -35,25 +35,26 @@ import requests
 import copy
 import pprint
 
-# This is a stub bot that is inteneded to extend just the gene APOL2 in Wikidata with a gene-disease
-# link from the OMIM data source in Phenocarta. This suitably provides disease information to be pulled 
-# into the gene infobox for APOL2 on Wikipedia.
+# This is a stub bot that was run and successfully extended just the gene SLC1A1 in Wikidata with a
+# gene-disease link from the OMIM data source in Phenocarta. This suitably provides disease information
+# to be pulled into the gene infobox for SLC1A1 on Wikipedia.
 
 # login to Wikidata
 login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-item_name = 'apolipoprotein L, 2'
-value = PBB_Core.WDItemID(value='Q41112', prop_nr='P0') # using a non-existent property ID, as appropriate
-						        # property not yet approved
+value = PBB_Core.WDItemID(value="Q41112", prop_nr="P2293")
 	    # https://www.wikidata.org/wiki/Wikidata:Property_proposal/Natural_science#genetic_Association
+	    # note: property now approved: P2293. id for schiz: Q41112
 
 # Get a pointer to the Wikidata page on the gene under scrutiny
-wd_gene_page = PBB_Core.WDItemEngine(item_name=item_name, data=[value], server="www.wikidata.org", domain="genes")
+wd_gene_page = PBB_Core.WDItemEngine(wd_item_id="Q18031520", data=[value], server="www.wikidata.org", domain="genes")
+#Q18037645 <- id for apol2
+#Q18031520 <- id for slc1a1
 wd_json_representation = wd_gene_page.get_wd_json_representation()
 pprint.pprint(wd_json_representation)
 
 # Write to Wikidata
 # UNCOMMENT ONLY IF CONFIDENT ENOUGH ON CONTENT BEING ADDED (i.e. wd_json_representation
-# wd_gene_page.write(login)
+#wd_gene_page.write(login)
 
 
 
