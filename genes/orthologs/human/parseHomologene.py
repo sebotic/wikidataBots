@@ -115,7 +115,7 @@ for ortholog in humanOrthologs.keys():
             MouseOrthoLogClass = orthologClass(mouseOrtholog)
   except Exception as e:
               PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                        main_data_id=MouseOrthoLogClass.source,
+                        main_data_id='',
                         exception_type=type(e),
                         message=e.__str__(),
                         wd_id='-',
