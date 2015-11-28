@@ -77,7 +77,14 @@ try:
     speciesInfo["rat"]["wdid"] = "Q36396"
     speciesInfo["rat"]["name"] = "rat"
     speciesInfo["rat"]["release"] = "Q19296606"
-    
+
+    speciesInfo["10114"]["taxid"] = "10114"
+    speciesInfo["10114"]["wdid"] = "Q36396"
+    speciesInfo["10114"]["name"] = "rat"
+    speciesInfo["10114"]["release"] = "Q19296606"
+
+
+
     if len(sys.argv) == 1:
         print("Please provide one of the following species as argument: "+ str(speciesInfo.keys()))
         print("Example: python ProteinBoxBot_EntrezGene.py human")
