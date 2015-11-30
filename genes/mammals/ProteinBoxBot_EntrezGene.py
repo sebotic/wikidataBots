@@ -44,6 +44,7 @@ try:
     speciesInfo["mouse"] = dict()
     speciesInfo["10090"] = dict()
     speciesInfo["rat"] = dict()
+    speciesInfo["10116"] = dict()
     
     speciesInfo["human"]["taxid"] = "9606"
     speciesInfo["human"]["wdid"] = "Q5"
@@ -73,11 +74,20 @@ try:
     speciesInfo["10090"]["genome_assembly"] = "Q20973075"
     speciesInfo["10090"]["genome_assembly_previous"] = "Q20973075"
 
-    speciesInfo["rat"]["taxid"] = "10114"
-    speciesInfo["rat"]["wdid"] = "Q36396"
+    speciesInfo["rat"]["taxid"] = "10116"
+    speciesInfo["rat"]["wdid"] = "Q184224"
     speciesInfo["rat"]["name"] = "rat"
     speciesInfo["rat"]["release"] = "Q19296606"
-    
+    speciesInfo["rat"]["genome_assembly"] = "Q21578759"
+    speciesInfo["rat"]["genome_assembly_previous"] = "None"
+
+    speciesInfo["10116"]["taxid"] = "10116"
+    speciesInfo["10116"]["wdid"] = "Q184224"
+    speciesInfo["10116"]["name"] = "rat"
+    speciesInfo["10116"]["release"] = "Q19296606"
+    speciesInfo["10116"]["genome_assembly"] = "Q21578759"
+    speciesInfo["10116"]["genome_assembly_previous"] = "None"
+
     if len(sys.argv) == 1:
         print("Please provide one of the following species as argument: "+ str(speciesInfo.keys()))
         print("Example: python ProteinBoxBot_EntrezGene.py human")

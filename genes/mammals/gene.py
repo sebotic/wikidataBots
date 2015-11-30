@@ -73,8 +73,9 @@ class genome(object):
         '''
         Below a mapping is created between entrez gene ids and wikidata identifiers.
         '''
-        for geneItem in InWikiData.wditems["props"]["351"]:
-            entrezWikidataIds[str(geneItem[2])] = geneItem[0]
+        if InWikiData.wditems != None:
+            for geneItem in InWikiData.wditems["props"]["351"]:
+                entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
         for gene in self.genes:
             try:
