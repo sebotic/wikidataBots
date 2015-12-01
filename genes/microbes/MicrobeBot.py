@@ -1,4 +1,4 @@
-__author__ = 'timputman'
+from SPARQLWrapper import SPARQLWrapper, JSON
 import csv
 import requests
 import urllib.request
@@ -11,8 +11,38 @@ import ast
 import gzip
 import time
 from time import gmtime, strftime
+import copy
+__author__ = 'timputman'
+
 
 login = PBB_login.WDLogin(sys.argv[3], sys.argv[4])
+
+class WDProp2QID_SPARQL(object):
+    def __init__(self, prop='', string=''):
+        self.qid = self.SPARQL_for_qidbyprop(prop, string)
+
+    def SPARQL_for_qidbyprop(self, prop, string):
+        """
+        :param prop: 'P351' Entrez gene id (ex. print( SPARQL_for_qidbyprop('P351','899959')))
+        :param string: '899959' String value
+        :return: QID Q21514037
+        """
+        sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
+        prefix = 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>'
+        arguments = '?gene wdt:{} "{}"'.format(prop, string)
+        select_where = 'SELECT * WHERE {{{}}}'.format(arguments)
+        query = prefix + " " + select_where
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        final_qid =[]
+        try:
+            rawqid = results['results']['bindings'][0]['gene']['value']
+            qid_list = rawqid.split('/')
+            final_qid.append(qid_list[-1])
+        except Exception:
+            final_qid.append('none')
+        return final_qid[0]
 
 
 class WDLabel2QID(object): # This is where i left off...current label finder is not specific
@@ -113,8 +143,9 @@ class NCBIReferenceGenomoes(object):
                 all_strain_data.append(strain_data)
         chlam = []
         for thing in all_strain_data:
-
-            if thing[1] == '471472': # This is a testing filter to restrict bot run to chlamydia only
+            #if thing[1] == '471472': # This is a testing filter to restrict bot run to chlamydia only 471472
+            #    return [thing]
+            if thing[1] == '85962': # This is a testing filter to restrict bot run to Helicobacter only 85962
                 return [thing]
         #return all_strain_data
 
@@ -122,8 +153,27 @@ class NCBIReferenceGenomoes(object):
 class WDStrainItem(object):
     def __init__(self, ref_orgs):
 
-        self.login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
         self.ref_orgs = ref_orgs
+
+    def wd_species_items(self):
+        species = list(self.ref_orgs)
+        description = "species of prokaryote"
+
+        for i in species:
+            data = list()
+            species_all = i[2].split(" ")
+            species = " ".join(species_all[0:2])
+            item_name = species
+            alias = [i[-1]]
+            spec_tid = str(i[0])
+            data.append(PBB_Core.WDString(value=spec_tid, prop_nr='P685')) # Species taxid
+            data.append(PBB_Core.WDString(value=species, prop_nr='P225')) # Taxon name
+            data.append(PBB_Core.WDItemID(value='Q7432', prop_nr='P105')) #Taxon Rank species
+            wd_item = PBB_Core.WDItemEngine(item_name=item_name, domain='genomes', data=data)
+            wd_item.set_aliases(alias)
+            wd_item.set_description(description)
+            pprint.pprint(wd_item.get_wd_json_representation())
+            wd_item.write(login)
 
     def wd_strain_genome_items(self):
         """
@@ -137,45 +187,25 @@ class WDStrainItem(object):
         for i in genomes:
 
             try:
+                data = list()
                 item_name = i[2]
                 alias = [i[-1]]
                 spec_tid = str(i[0])
-                parent_qid = WDProp2QID(spec_tid, '685')
-                parent_taxon = PBB_Core.WDItemID(value=parent_qid.qid, prop_nr='P171')
+                parent_qid = WDProp2QID_SPARQL(prop='P685',string=spec_tid)
+                data.append(PBB_Core.WDItemID(value=parent_qid.qid, prop_nr='P171')) # Parent QID
                 tid = str(i[1])
-                taxid = PBB_Core.WDString(value=tid, prop_nr='P685')
-                taxonname = PBB_Core.WDString(value=i[2], prop_nr='P225')
-                instance_of = PBB_Core.WDItemID(value='Q855769', prop_nr='P31')
-                wd_item = PBB_Core.WDItemEngine(item_name=item_name, domain='genomes', data=[taxid, taxonname,
-                                                                                            parent_taxon,
-                                                                                             instance_of])
+                data.append(PBB_Core.WDString(value=tid, prop_nr='P685')) # Tax id
+                data.append(PBB_Core.WDString(value=i[2], prop_nr='P225')) # Taxon name
+                data.append(PBB_Core.WDItemID(value='Q855769', prop_nr='P105')) #Taxon Rank strain
+                wd_item = PBB_Core.WDItemEngine(item_name=item_name, domain='genomes', data=data)
                 wd_item.set_aliases(alias)
                 wd_item.set_description(description)
                 pprint.pprint(wd_item.get_wd_json_representation())
-                wd_item.write(self.login)
+                wd_item.write(login)
 
             except IndexError:
                 print("{} didn't have a parent".format(i[2]))
-
-    def wd_species_items(self):
-        species = list(self.ref_orgs)
-        description = "species of prokaryote"
-
-        for i in species:
-            species_all = i[2].split(" ")
-            species = " ".join(species_all[0:2])
-            item_name = species
-            alias = [i[-1]]
-            spec_tid = str(i[0])
-            species_taxid = PBB_Core.WDString(value=spec_tid, prop_nr='P685')
-            taxonname = PBB_Core.WDString(value=species, prop_nr='P225')
-            instance_of = PBB_Core.WDItemID(value='Q16521', prop_nr='P31')
-            wd_item = PBB_Core.WDItemEngine(item_name=item_name, domain='genomes', data=[species_taxid, taxonname,
-                                                                                         instance_of])
-            wd_item.set_aliases(alias)
-            wd_item.set_description(description)
-            pprint.pprint(wd_item.get_wd_json_representation())
-            #wd_item.write(self.login)
+                continue
 
 
 class WDGeneProteinItemDownload(object):
@@ -232,7 +262,7 @@ class WDGeneProteinItemDownload(object):
                         continue
 
                 taxid = str(i['taxid'])
-                strain = WDProp2QID(taxid, '685')
+                strain = WDProp2QID_SPARQL(prop='P685',string=taxid)
                 strain = strain.qid
                 q2label = WDQID2Label(strain)
                 gene_description = "microbial gene found in " + q2label.label
@@ -246,8 +276,8 @@ class WDGeneProteinItemDownload(object):
                     'name': name,
                     'uniprot': uniprot,
                     'RSprotein': i['refseq']['protein'],
-                    'genstart': i['genomic_pos']['start'],
-                    'genstop': i['genomic_pos']['end'],
+                    'genstart': str(i['genomic_pos']['start']),
+                    'genstop': str(i['genomic_pos']['end']),
                     'strand': i['genomic_pos']['strand'],
                     'RSgenomic': i['genomic_pos']['chr'],
                     'strain': strain,
@@ -310,7 +340,7 @@ class WDGeneProteinItemDownload(object):
 
 class WDWriteGeneProteinItems(object):
     def __init__(self):
-        self.dbdata = open("mgi_uniprot_combined_1445503753.042013_L2434.dict", "r")
+        self.dbdata = open("Sources/middle10_hpylori", "r") #{'gene_symbol': 'HP1382', 'protein_description': 'microbial protein found in Helicobacter pylori 26695', 'genstop': 1446476, 'Uniprotid': 'O25933', 'RSgenomic': 'NC_000915.1', 'type_of_gene': 'protein-coding', 'taxid': '85962', 'strand': -1, 'strain': 'Q21065231', 'cell_component': '', 'uniprot': 'O25933', '_geneid': '900298', 'biological_process': '', 'RSprotein': 'NP_208173', 'gene_description': 'microbial gene found in Helicobacter pylori 26695', 'molecular_function': 'hydrolase activity [GO:0016787]; metal ion binding [GO:0046872]; nucleic acid binding [GO:0003676]', 'genstart': 1446084, 'protein_symbol': 'HP1382', 'name': 'hypothetical protein'}
 
     def write_gene_item(self):
         """
@@ -320,10 +350,8 @@ class WDWriteGeneProteinItems(object):
         zwd_write_data = self.dbdata
         count = 0
         for i in zwd_write_data:
-            i = i.strip()
+            wd_write_data = ast.literal_eval(i)
 
-            start = time.time()
-            wd_write_data= ast.literal_eval(i)
             if '_geneid' not in wd_write_data.keys():
                 continue
             else:
@@ -332,31 +360,39 @@ class WDWriteGeneProteinItems(object):
                 item_name = wd_write_data['name'] + "  " + wd_write_data['gene_symbol']
                 description = wd_write_data['gene_description']
 
-                NCBIgenerefStated = PBB_Core.WDItemID(value=20641742, prop_nr='P248', is_reference=True)
+                NCBIgenerefStated = PBB_Core.WDItemID(value='Q20641742', prop_nr='P248', is_reference=True)
                 NCBIgenerefStated.overwrite_references = True
                 timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
                 refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
                 refRetrieved.overwrite_references = True
-                uniprot_protein_reference = [[NCBIgenerefStated, refRetrieved]]
+                uniprot_protein_reference = [NCBIgenerefStated, refRetrieved]
+
+
+
 
                 statements = dict()
-                statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703',references=uniprot_protein_reference)] #Found in taxon
-                #statements['symbol'] = [PBB_Core.WDString(value=wd_write_data['gene_symbol'], prop_nr='P353',references=uniprot_protein_reference)]
-                statements['geneid'] = [PBB_Core.WDString(value=wd_write_data['_geneid'], prop_nr='P351',references=uniprot_protein_reference)]
-                statements['instance'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P31', references=uniprot_protein_reference)]
-                statements['genomic_start'] = [PBB_Core.WDString(value=str(wd_write_data['genstart']), prop_nr='P644', references=uniprot_protein_reference)]
-                statements['genomic_stop'] = [PBB_Core.WDString(value=str(wd_write_data['genstop']), prop_nr='P645', references=uniprot_protein_reference)]
+                statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703', references=[copy.deepcopy(uniprot_protein_reference)])] #Found in taxon
+                statements['geneid'] = [PBB_Core.WDString(value=wd_write_data['_geneid'], prop_nr='P351', references=[copy.deepcopy(uniprot_protein_reference)])]
+                statements['subclass'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)])]
+                statements['genomic_start'] = [PBB_Core.WDString(value=wd_write_data['genstart'], prop_nr='P644', references=[copy.deepcopy(uniprot_protein_reference)])]
+                statements['genomic_stop'] = [PBB_Core.WDString(value=wd_write_data['genstop'], prop_nr='P645', references=[copy.deepcopy(uniprot_protein_reference)])]
+
 
                 try:
-                    gene_product = WDProp2QID(wd_write_data['RSprotein'], '637')
+                    gene_product = WDProp2QID_SPARQL(prop='P637', string=wd_write_data['RSprotein'])
                     gene_product = gene_product.qid
-                    statements['encodes'] = [PBB_Core.WDItemID(value=gene_product, prop_nr='P688',references=uniprot_protein_reference)]
+                    if gene_product == 'none':
+                        pass
+                    else:
+                        statements['encodes'] = [PBB_Core.WDItemID(value=gene_product, prop_nr='P688', references=[copy.deepcopy(uniprot_protein_reference)])]
+
                 except Exception as e:
                     PBB_Core.WDItemEngine.log(level='INFO', message='No protein item found {}'.format(wd_write_data['_geneid']))
 
                 final_statements = []
 
                 for key in statements.keys():
+
                     for statement in statements[key]:
                         final_statements.append(statement)
 
@@ -367,15 +403,15 @@ class WDWriteGeneProteinItems(object):
                 except Exception as e:
 
                     PBB_Core.WDItemEngine.log(level='INFO', message='gene item data discrepency {}'.format(wd_write_data['name']))
-                    continue
+
 
 
                 try:
-                    login = PBB_login.WDLogin(sys.argv[3], sys.argv[4])
+
                     wd_item_gene.set_label(item_name)
                     wd_item_gene.set_description(description)
                     wd_item_gene.set_aliases(alias_list)
-                    #pprint.pprint(wd_item_gene.get_wd_json_representation())
+                    pprint.pprint(wd_item_gene.get_wd_json_representation())
                     wd_item_gene.write(login)
                     count += 1
                     PBB_Core.WDItemEngine.log(level='INFO', message='gene item {} written successfully'.format(wd_write_data['name']))
@@ -383,6 +419,8 @@ class WDWriteGeneProteinItems(object):
                 except Exception as e:
                     PBB_Core.WDItemEngine.log(level='INFO', message='gene item write failed {}'.format(wd_write_data['name']))
                     continue
+
+
 
     def write_protein_item(self):
         """
@@ -396,6 +434,7 @@ class WDWriteGeneProteinItems(object):
             wd_write_data = ast.literal_eval(i)
             count += 1
 
+
             if '_geneid' not in wd_write_data.keys():
                 continue
             else:
@@ -405,31 +444,33 @@ class WDWriteGeneProteinItems(object):
 
                 statements = dict()
 
-                uniprotrefStated = PBB_Core.WDItemID(value=905695, prop_nr='P248', is_reference=True)
+                uniprotrefStated = PBB_Core.WDItemID(value='Q905695', prop_nr='P248', is_reference=True)
                 uniprotrefStated.overwrite_references = True
-
                 timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
                 refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
                 refRetrieved.overwrite_references = True
-
-                uniprot_protein_reference = [[uniprotrefStated, refRetrieved]]
+                uniprot_protein_reference = [uniprotrefStated, refRetrieved]
 
                 try:
-                    gene_item = WDProp2QID(wd_write_data['_geneid'], '351')
-                    gene_item = gene_item.qid
+                    gene_item = WDProp2QID_SPARQL(prop='P351',string=wd_write_data['_geneid']).qid
+                    gene_item = gene_item
                     if gene_item is not 'None':
-                        statements['encodedby'] = [PBB_Core.WDItemID(value=gene_item, prop_nr='P702', references=uniprot_protein_reference)]
+                        statements['encodedby'] = [PBB_Core.WDItemID(value=gene_item, prop_nr='P702', references=[copy.deepcopy(uniprot_protein_reference)])]
                 except Exception as e:
                     PBB_Core.WDItemEngine.log(level='INFO', message='No gene item found {}'.format(e))
-                    continue
 
-                statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703', references=uniprot_protein_reference)] #Found in taxon
-                statements['uniprotid'] = [PBB_Core.WDString(value=wd_write_data['uniprot'], prop_nr='P352', references=uniprot_protein_reference)]
-                statements['proteinid'] = [PBB_Core.WDString(value=wd_write_data['RSprotein'],prop_nr='P637')]
-                statements['instance'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P31', references=uniprot_protein_reference)]
+
+
+
+                statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703', references=[copy.deepcopy(uniprot_protein_reference)])] #Found in taxon
+                statements['uniprotid'] = [PBB_Core.WDString(value=wd_write_data['uniprot'], prop_nr='P352', references=[copy.deepcopy(uniprot_protein_reference)])]
+                statements['proteinid'] = [PBB_Core.WDString(value=wd_write_data['RSprotein'],prop_nr='P637', references=[copy.deepcopy(uniprot_protein_reference)])]
+                #statements['instance'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P31', references=uniprot_protein_reference)]
+                statements['subclass'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)])]
                 statements['molecular_function'] = []
                 statements['cell_component'] = []
                 statements['biological_process'] = []
+
 
                 mfcount = 0
                 if wd_write_data['molecular_function']:
@@ -443,7 +484,7 @@ class WDWriteGeneProteinItems(object):
                         mfsplitlist['mfgterm']=" ".join(mf[:-1])
                         mfdictlist.append(mfsplitlist)
 
-                        mfgoqid = WDProp2QID(string=mfsplitlist['mfgid'], prop='686').qid
+                        mfgoqid = WDProp2QID_SPARQL(prop='P686',string=mfsplitlist['mfgid']).qid
                         mfgolabel = WDQID2Label(qid=mfgoqid)
                         goqid =[]
 
@@ -454,8 +495,8 @@ class WDWriteGeneProteinItems(object):
 
                         if mfgoqid == 'None':
                             properties = list()
-                            properties.append(PBB_Core.WDString(value=mfsplitlist['mfgid'], prop_nr='P686', references=uniprot_protein_reference))
-                            properties.append(PBB_Core.WDItemID(value='Q14860489', prop_nr='P279', references=uniprot_protein_reference))
+                            properties.append(PBB_Core.WDString(value=mfsplitlist['mfgid'], prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
+                            properties.append(PBB_Core.WDItemID(value='Q14860489', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
                             try:
                                 goWdPage = PBB_Core.WDItemEngine(item_name=mfsplitlist['mfgterm'], data=properties,
                                                                  domain="proteins")
@@ -474,7 +515,7 @@ class WDWriteGeneProteinItems(object):
 
                         else:
                             try:
-                                statements['molecular_function'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P680', references=uniprot_protein_reference))
+                                statements['molecular_function'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P680', references=[copy.deepcopy(uniprot_protein_reference)]))
                             except Exception:
                                 pass
 
@@ -490,7 +531,7 @@ class WDWriteGeneProteinItems(object):
                         ccsplitlist['ccgterm'] = " ".join(cc[:-1])
                         ccdictlist.append(ccsplitlist)
 
-                        ccgoqid = WDProp2QID(string=ccsplitlist['ccgid'], prop='686').qid
+                        ccgoqid = WDProp2QID_SPARQL(prop='P686',string=ccsplitlist['ccgid']).qid
                         ccgolabel = WDQID2Label(qid=ccgoqid)
                         goqid =[]
                         if ccsplitlist['ccgterm'] == ccgolabel.label:
@@ -503,13 +544,13 @@ class WDWriteGeneProteinItems(object):
 
                             properties = list()
                             properties.append(PBB_Core.WDString(value=ccsplitlist['ccgid'],
-                                              prop_nr='P686', references=uniprot_protein_reference))
+                                              prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
                             properties.append(PBB_Core.WDItemID(value='Q5058355',
-                                               prop_nr='P279', references=uniprot_protein_reference))
+                                               prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
 
                             try:
                                 goWdPage = PBB_Core.WDItemEngine(item_name=ccsplitlist['ccgterm'], data=properties,
-                                                                 references=uniprot_protein_reference, domain="proteins")
+                                                                 domain="proteins")
                                 goWdPage.set_label(ccsplitlist['ccgterm'])
                                 goWdPage.set_description("Gene Ontology term")
                                 goWdPage.set_aliases([cc[-1][1:-1]])
@@ -524,7 +565,7 @@ class WDWriteGeneProteinItems(object):
                         else:
                             try:
                                 statements['cell_component'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P681',
-                                                                                   references=uniprot_protein_reference))
+                                                                                   references=[copy.deepcopy(uniprot_protein_reference)]))
                             except Exception:
                                 pass
 
@@ -540,7 +581,7 @@ class WDWriteGeneProteinItems(object):
                         bpsplitlist['bpgterm'] = " ".join(bp[:-1])
                         bpdictlist.append(bpsplitlist)
 
-                        bpgoqid = WDProp2QID(string=bpsplitlist['bpgid'], prop='686').qid
+                        bpgoqid = WDProp2QID_SPARQL(prop='P686', string=bpsplitlist['bpgid']).qid
                         bpgolabel = WDQID2Label(qid=bpgoqid)
                         goqid =[]
                         if bpsplitlist['bpgterm'] == bpgolabel.label:
@@ -551,13 +592,13 @@ class WDWriteGeneProteinItems(object):
                         if bpgoqid == 'None':
                             properties = list()
                             properties.append(PBB_Core.WDString(value=bpsplitlist['bpgid'],
-                                              prop_nr='P686', references=uniprot_protein_reference))
+                                              prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
                             properties.append(PBB_Core.WDItemID(value='Q2996394',
-                                               prop_nr='P279', references=uniprot_protein_reference))
+                                               prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
 
                             try:
                                 goWdPage = PBB_Core.WDItemEngine(item_name=bpsplitlist['bpgterm'], data=properties,
-                                                                 references=uniprot_protein_reference, domain="proteins")
+                                                                 domain="proteins")
                                 goWdPage.set_label(bpsplitlist['bpgterm'])
                                 goWdPage.set_description("Gene Ontology term")
                                 goWdPage.set_aliases([bp[-1][1:-1]])
@@ -574,10 +615,11 @@ class WDWriteGeneProteinItems(object):
                         else:
                             try:
                                 statements['biological_process'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P682',
-                                                                                          references=uniprot_protein_reference))
+                                                                                          references=[copy.deepcopy(uniprot_protein_reference)]))
 
                             except Exception:
                                 pass
+
 
 
                 final_statements = []
@@ -600,15 +642,11 @@ class WDWriteGeneProteinItems(object):
                     wd_item_protein.set_label(item_name)
                     wd_item_protein.set_description(description)
                     wd_item_protein.set_aliases(alias_list)
-                    #pprint.pprint(wd_item_protein.get_wd_json_representation())
+                    pprint.pprint(wd_item_protein.get_wd_json_representation())
                     wd_item_protein.write(login)
                     PBB_Core.WDItemEngine.log(level='INFO', message='protein item {} written successfully'.format(wd_write_data['name'] + " " + str(count)))
                     print('{} protein items written'.format(count))
                 except Exception as e:
                     PBB_Core.WDItemEngine.log(level='INFO', message='Protein error {}'.format(e))
-
                     continue
-class Statment_Removal(object):
-    def __init__(self):
-        self.dbdata = open("mgi_uniprot_combined_1445503753.042013_L2434.dict", "r")
 
