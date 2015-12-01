@@ -63,7 +63,7 @@ for result in results["results"]["bindings"]:
     # pprint.pprint(result["gene"]["value"].replace("http://www.wikidata.org/entity/", ""))
     genePage = PBB_Core.WDItemEngine(gene, server="www.wikidata.org", domain="genes")
     geneJson = genePage.get_wd_json_representation()
-    pprint.pprint(geneJson["sitelinks"])
+    # pprint.pprint(geneJson["sitelinks"])
     if "P688" in geneJson["claims"].keys():
       for item in geneJson["claims"]["P688"]:
         protein = 'Q'+str(item["mainsnak"]["datavalue"]["value"]["numeric-id"])
@@ -73,24 +73,18 @@ for result in results["results"]["bindings"]:
             pprint.pprint(proteinJson["sitelinks"])
             need2write = False
             for sitelink in proteinJson["sitelinks"].keys():
-                genePage.set
-                geneJson["sitelinks"][sitelink] = proteinJson["sitelinks"][sitelink]
+                genePage.set_sitelink(site=sitelink, title=proteinJson["sitelinks"][sitelink]["title"], badges=proteinJson["sitelinks"][sitelink]["badges"])
+                proteinPage.set_sitelink(site=sitelink, title='')
                 need2write = True
 
             if need2write:
-                proteinJson["sitelinks"][sitelink] = {}
-                genePage.wd_json_representation = geneJson
-                proteinPage.wd_json_representation = proteinJson
-                print(proteinJson)
-                pprint.pprint(genePage)
                 proteinPage.write(logincreds)
                 genePage.write(logincreds)
-                sys.exit()
+                print("JAJAJAJAJA")
 
 
             print("Protein: "+ protein)
             print(geneJson)
-            sys.exit()
     # sys.exit()
  except:
      print(traceback.format_exc())
