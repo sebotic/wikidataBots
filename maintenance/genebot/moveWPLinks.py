@@ -35,6 +35,7 @@ import PBB_settings
 from SPARQLWrapper import SPARQLWrapper, JSON
 import json
 import pprint
+import traceback
 
 human_genes_query = '''
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -54,18 +55,45 @@ sparql.setQuery(human_genes_query)
 sparql.setReturnFormat(JSON)
 results = sparql.query().convert()
 
+logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 for result in results["results"]["bindings"]:
+ try:
     gene = result["gene"]["value"].replace("http://www.wikidata.org/entity/", "")
     print("gene: "+gene)
     # pprint.pprint(result["gene"]["value"].replace("http://www.wikidata.org/entity/", ""))
     genePage = PBB_Core.WDItemEngine(gene, server="www.wikidata.org", domain="genes")
     geneJson = genePage.get_wd_json_representation()
     pprint.pprint(geneJson["sitelinks"])
-    for item in geneJson["claims"]["P688"]:
+    if "P688" in geneJson["claims"].keys():
+      for item in geneJson["claims"]["P688"]:
         protein = 'Q'+str(item["mainsnak"]["datavalue"]["value"]["numeric-id"])
         proteinPage = PBB_Core.WDItemEngine(protein, server="www.wikidata.org", domain="proteins")
         proteinJson = proteinPage.get_wd_json_representation()
-        pprint.pprint(proteinJson["sitelinks"])
-        print("Protein: "+ protein)
-    sys.exit()
+        if len(proteinJson["sitelinks"].keys()) > 0 and "enwiki" not in proteinJson["sitelinks"].keys():
+            pprint.pprint(proteinJson["sitelinks"])
+            need2write = False
+            for sitelink in proteinJson["sitelinks"].keys():
+                genePage.set
+                geneJson["sitelinks"][sitelink] = proteinJson["sitelinks"][sitelink]
+                need2write = True
+
+            if need2write:
+                proteinJson["sitelinks"][sitelink] = {}
+                genePage.wd_json_representation = geneJson
+                proteinPage.wd_json_representation = proteinJson
+                print(proteinJson)
+                pprint.pprint(genePage)
+                proteinPage.write(logincreds)
+                genePage.write(logincreds)
+                sys.exit()
+
+
+            print("Protein: "+ protein)
+            print(geneJson)
+            sys.exit()
+    # sys.exit()
+ except:
+     print(traceback.format_exc())
+     pass
+
 
