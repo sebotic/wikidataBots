@@ -1,26 +1,32 @@
-
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
 from SPARQLWrapper import SPARQLWrapper, JSON
 import csv
 import requests
 import urllib.request
 import pprint
-import sys
 import PBB_Core
 import PBB_login
-from collections import defaultdict
-import os
 import ast
 import time
 from time import gmtime, strftime
 import copy
 __author__ = 'timputman'
 
+if len(sys.argv) < 5:
+    print("   You did not supply the proper arguments!")
+    print("   Usage: MicrobeBot.py <Wikidata user name> <Wikidata Password> <Path of source files> <domain i.e. genes/proteins")
+    sys.exit()
+else:
+    pass
+
 
 next7 =[['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'], ['303', '160488', 'Pseudomonas putida KT2440', 'KT2440'],['197', '192222', 'Campylobacter jejuni subsp. jejuni NCTC 11168 = ATCC 700819', 'subsp. jejuni NCTC 11168 = ATCC 700819'], ['210', '85962', 'Helicobacter pylori 26695', '26695'], ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'], ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
-
-
-
+source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
+file_list = os.listdir(source_path)
 
 class WDProp2QID_SPARQL(object):
     def __init__(self, prop='', string=''):
@@ -148,13 +154,6 @@ class NCBIReferenceGenomoes(object):
                 all_strain_data.append(strain_data)
         return all_strain_data
 
-        #for thing in all_strain_data:
-        #    #if thing[1] == '471472': # This is a testing filter to restrict bot run to chlamydia only 471472
-        #    #    return [thing]
-        #    if thing[1] == '85962': # This is a testing filter to restrict bot run to Helicobacter only 85962
-        #        return [thing]
-        #return all_strain_data
-
 
 class WDStrainItem(object):
     def __init__(self, ref_orgs):
@@ -232,7 +231,7 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10", fields="all")
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
         r = requests.get(url, params)
 
         hits = r.json()
@@ -306,7 +305,7 @@ class WDGeneProteinItemDownload(object):
     def combine_mgi_uniprot_dicts(self):
         mgi = self.gene_record
         unip = self.goterms
-        out = open('10_test_mgi_uniprot_combined_{}_{}.dict'.format(time.time(), self.taxname +"\t"+ str(self.strain_taxid)), "w")
+        out = open(source_path+'10_test_mgi_uniprot_combined_{}_{}.dict'.format(time.time(), self.taxname +"\t"+ str(self.strain_taxid)), "w")
 
         for m in mgi:
             for u in unip:
@@ -316,10 +315,9 @@ class WDGeneProteinItemDownload(object):
             print(m, file=out)
 
 
-
 class WDWriteGeneProteinItems(object):
     def __init__(self, infile=''):
-        self.dbdata = open(infile, "r") #{'gene_symbol': 'HP1382', 'protein_description': 'microbial protein found in Helicobacter pylori 26695', 'genstop': 1446476, 'uniprot': 'O25933', 'RSgenomic': 'NC_000915.1', 'type_of_gene': 'protein-coding', 'taxid': '85962', 'strand': -1, 'strain': 'Q21065231', 'cell_component': '', 'uniprot': 'O25933', '_geneid': '900298', 'biological_process': '', 'RSprotein': 'NP_208173', 'gene_description': 'microbial gene found in Helicobacter pylori 26695', 'molecular_function': 'hydrolase activity [GO:0016787]; metal ion binding [GO:0046872]; nucleic acid binding [GO:0003676]', 'genstart': 1446084, 'protein_symbol': 'HP1382', 'name': 'hypothetical protein'}
+        self.dbdata = open(infile, "r")
 
     def write_gene_item(self):
         """
@@ -628,17 +626,17 @@ class WDWriteGeneProteinItems(object):
                     PBB_Core.WDItemEngine.log(level='INFO', message='Protein error {}'.format(e))
                     continue
 
-source_path = "/Users/timputman/working_repos/Nov16/Sources/"
-file_list = os.listdir(source_path)
-'''
+
+####Call section####
 
 #####Get current Reference Genome List from NCBI
-#genomes = NCBIReferenceGenomoes()
-#strain_data = genomes.tid_list
+genomes = NCBIReferenceGenomoes()
+strain_data = genomes.tid_list
+
 
 #####Use strain data to download gene and protein data from Mygene.info and Uniprot
 #####Generates files of data for each strain with a dictionary for each gene
-for i in next7: #strain_data for a full run
+for i in next7: #use strain_data for a full run
 
 
     genetic_data = WDGeneProteinItemDownload(i)
@@ -652,6 +650,7 @@ for i in next7: #strain_data for a full run
 for i in file_list:
     if '10_test' in i:
         a = WDWriteGeneProteinItems(infile=source_path+i)
-        a.write_gene_item()
-        #a.write_protein_item()
-'''
+        if sys.argv[4] == 'genes':
+            a.write_gene_item()
+        if sys.argv[4] =='proteins':
+            a.write_protein_item()
