@@ -12,6 +12,7 @@ import ast
 import time
 from time import gmtime, strftime
 import copy
+
 __author__ = 'timputman'
 
 if len(sys.argv) < 5:
@@ -21,8 +22,14 @@ if len(sys.argv) < 5:
 else:
     pass
 
-
-next7 =[['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'], ['303', '160488', 'Pseudomonas putida KT2440', 'KT2440'],['197', '192222', 'Campylobacter jejuni subsp. jejuni NCTC 11168 = ATCC 700819', 'subsp. jejuni NCTC 11168 = ATCC 700819'], ['210', '85962', 'Helicobacter pylori 26695', '26695'], ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'], ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+next2 = [['210', '85962', 'Helicobacter pylori 26695', '26695'],
+         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4']]
+next7 = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
+         ['303', '160488', 'Pseudomonas putida KT2440', 'KT2440'],
+         ['197', '192222', 'Campylobacter jejuni subsp. jejuni NCTC 11168 = ATCC 700819', 'subsp. jejuni NCTC 11168 = ATCC 700819'],
+         ['210', '85962', 'Helicobacter pylori 26695', '26695'],
+         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
+         ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
@@ -232,7 +239,7 @@ class WDGeneProteinItemDownload(object):
 
         url = 'http://mygene.info/v2/query/'
         params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
-        r = requests.get(url, params)
+        r = requests.get(url=url, params=params)
 
         hits = r.json()
 
@@ -286,8 +293,9 @@ class WDGeneProteinItemDownload(object):
 
         url = 'http://www.uniprot.org/uniprot/'
 
-        params = dict(query=('organism:' + self.strain_taxid), format='tab', columns='id,go(biological process),go(cellular component),go(molecular function)')
-        r = requests.get(url, params=params)
+        params = dict(query=('organism:' + self.strain_taxid), format='tab',
+                      columns='id,go(biological process),go(cellular component),go(molecular function)')
+        r = requests.get(url=url, params=params)
         go_terms = r.text
         datareader = csv.reader(go_terms.splitlines(), delimiter="\t")
         uniprot_data = []
@@ -305,7 +313,8 @@ class WDGeneProteinItemDownload(object):
     def combine_mgi_uniprot_dicts(self):
         mgi = self.gene_record
         unip = self.goterms
-        out = open(source_path+'10_test_mgi_uniprot_combined_{}_{}.dict'.format(time.time(), self.taxname +"\t"+ str(self.strain_taxid)), "w")
+        out = open(source_path + 'mgi_uniprot_combined_{}_{}.dict'.format(time.time(),
+                                                                                  self.taxname +"\t"+ str(self.strain_taxid)), "w")
 
         for m in mgi:
             for u in unip:
@@ -606,7 +615,6 @@ class WDWriteGeneProteinItems(object):
                         #print(key, statement.prop_nr, statement.value)
 
 
-
                 try:
                     wd_item_protein = PBB_Core.WDItemEngine(item_name=item_name, domain='proteins', data=final_statements)
                     PBB_Core.WDItemEngine.log(level='INFO', message='protein item {}'.format(wd_write_data['name']))
@@ -618,7 +626,7 @@ class WDWriteGeneProteinItems(object):
                     wd_item_protein.set_label(item_name)
                     wd_item_protein.set_description(description)
                     wd_item_protein.set_aliases(alias_list)
-                    #pprint.pprint(wd_item_protein.get_wd_json_representation())
+                    pprint.pprint(wd_item_protein.get_wd_json_representation())
                     wd_item_protein.write(login)
                     PBB_Core.WDItemEngine.log(level='INFO', message='protein item {} written successfully'.format(wd_write_data['name'] + " " + str(count)))
                     print('{} protein items written'.format(count))
@@ -636,7 +644,7 @@ strain_data = genomes.tid_list
 
 #####Use strain data to download gene and protein data from Mygene.info and Uniprot
 #####Generates files of data for each strain with a dictionary for each gene
-for i in next7: #use strain_data for a full run
+for i in next2: #use strain_data for a full run
 
 
     genetic_data = WDGeneProteinItemDownload(i)
@@ -648,7 +656,7 @@ for i in next7: #use strain_data for a full run
 
 
 for i in file_list:
-    if '10_test' in i:
+    if 'mgi_uniprot_combined' in i:
         a = WDWriteGeneProteinItems(infile=source_path+i)
         if sys.argv[4] == 'genes':
             a.write_gene_item()
