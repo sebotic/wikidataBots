@@ -4,10 +4,31 @@ import sys
 import requests
 import time
 import pprint
+import traceback
+
+__author__ = 'Sebastian Burgstaller-Muehlbacher'
+__licence__ = 'AGPLv3'
+
+'''
+Allows to find and undo merges in Wikidata, based on WDQ queries and two lists of incompatible properties.
+It will find the responsible user account and the revisions and will undo the merge. Also, a log file is being
+generated. For undoing, the MediaWiki API calls 'undo' and 'undoafter' are being used.
+'''
 
 
 class MergeDefender(object):
     def __init__(self, login, merge_target, conflict_set_1, conflict_set_2):
+        """
+        Constructor
+        :param login: the PBB_core login object for Wikidata
+        :type login: Instance of PBB_core.login
+        :param merge_target: The WD QID the merge has been made to
+        :type merge_target: str
+        :param conflict_set_1: A set of WD property IDs which should be on one but not the other item. Needs to be
+                                mutually exclusive with parameter conflict_set_2
+        :param conflict_set_2: A set of WD property IDs which should be on one but not the other item. Needs to be
+                                mutually exclusive with parameter conflict_set_1
+        """
 
         assert isinstance(conflict_set_1, set)
         assert isinstance(conflict_set_2, set)
@@ -27,11 +48,11 @@ class MergeDefender(object):
         self.merged_to_latest_rev_id = ''
         self.merged_from_latest_rev_id = ''
 
-        # a check is required whether the item is still merged or the merge has been undone by someone else
-
         self.merged_to = merge_target
         merged_to_revisions = self.get_revision_history(self.merged_to)
         self.merged_to_latest_rev_id = merged_to_revisions[0]['revid']
+
+        # Search for first revision where something was merged into the current item
         for revision in merged_to_revisions:
             # pprint.pprint(revision)
             if 'wbmergeitems-from' in revision['comment']:
@@ -39,6 +60,7 @@ class MergeDefender(object):
                 self.merged_from = revision['comment'].split('||')[1].split(' ')[0]
                 # print(self.merged_from)
                 self.merged_to_rev_id = revision['parentid']
+                break
 
         search_back = False
         merged_from_revisions = self.get_revision_history(self.merged_from)
@@ -91,7 +113,8 @@ class MergeDefender(object):
             'titles': qid,
             'prop': 'revisions',
             'rvprop': 'user|timestamp|comment|ids',
-            'rvstart': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.localtime()),
+            # setting the revision start time is currently not necessary, but if set needs to be the GMT (WD time)
+            'rvstart': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
             'format': 'json',
             'rvlimit': '50'
         }
@@ -145,6 +168,12 @@ class MergeDefender(object):
 
 
 def main():
+    """
+    This function undo gene to protein merges. For that, a query searches for WD items which have the
+    Entrez gene ID (P351) and Uniprot ID (P352) on one item. Bases on that, it generates instances of MergeDefender
+    and undoes the merges. 
+    :return: None
+    """
     print(sys.argv[1])
     # pwd = input('Password:')
     login = PBB_login.WDLogin(user='ProteinBoxBot', pwd=sys.argv[1])
@@ -164,6 +193,7 @@ def main():
             MergeDefender(login, merge_target='Q{}'.format(x), conflict_set_1=conflict_set_1, conflict_set_2=conflict_set_2)
 
         except Exception as e:
+            traceback.print_exc()
             PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}"'.format(
                         main_data_id=x,
                         exception_type=type(e),
