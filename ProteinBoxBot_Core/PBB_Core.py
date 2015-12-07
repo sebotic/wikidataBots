@@ -42,39 +42,7 @@ import json
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-'''
-class BotMainLog():
-    def __init__(self):
-        self.bot = ''
-        self.start_date = ''
-        self.finish_date = ''
-        self.bot_ip = socket.gethostbyname(socket.gethostname())
-        self.bot_user = getpass.getuser()
-            
-    def connectDb(self):
-        return mysql.connector.connect(user=PBB_settings.getMySQLUser(), password=PBB_settings.getMySQLPW(),
-                                      host=PBB_settings.getMySQLHost(),
-                                      database='ProteinBoxBot')
-    
-    def addTuple(self):
-        cnx = self.connectDb()
-        cursor = cnx.cursor()
-        sql_tuple = ("INSERT INTO PBB_History "
-                    "(bot, start_date, finish_date, bot_ip, bot_user) "
-                    "VALUES (%s, %s, %s, %s, %s)")
-        data_tuple = (self.bot, self.start_date, self.finish_date, self.bot_ip, self.bot_user)
-        print(self.bot)
-        print(self.start_date)
-        print(self.finish_date)
-        print(cursor.execute(sql_tuple, data_tuple))
-        cnx.commit()
-        
-        # print all the first cell of all the rows
-        # Use all the SQL you like
-        cursor.execute("SELECT * FROM PBB_History")
-        for row in cursor.fetchall() :
-            print(row[0])
-'''
+
 
 class WDItemList(object):
     def __init__(self, wdquery, wdprop=""):
@@ -94,10 +62,9 @@ class WDItemList(object):
         }
 
         reply = requests.get(url, params=params)
-        if "json" in vars(reply):
-            return reply.json()
-        else:
-            return None
+
+        return reply.json()
+
 
 
 class WDItemEngine(object):
@@ -127,8 +94,6 @@ class WDItemEngine(object):
         self.append_value = append_value
         self.use_sparql = use_sparql
         self.statements = []
-
-        self.property_list = self.get_property_list()
 
         if self.item_name is not '' and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
@@ -235,15 +200,14 @@ class WDItemEngine(object):
 
     def get_property_list(self):
         """
-        extract the properties which belong to the domain of the WD item
-        :return: a dict with WD property strings as keys and empty strings as values
+        List of properties on the current item
+        :return: a list of WD property ID strings (Pxxxx).
         """
-        property_list = []
-        for x in wd_property_store.wd_properties:
-            if self.domain in wd_property_store.wd_properties[x]['domain']:
-                property_list.append(x)
+        property_list = set()
+        for x in self.statements:
+            property_list.add(x.get_prop_nr())
 
-        return property_list
+        return list(property_list)
 
     def __select_wd_item(self):
         """
@@ -588,7 +552,7 @@ class WDItemEngine(object):
             'value': description
         }
 
-    def set_sitelink(self, site, title):
+    def set_sitelink(self, site, title, badges=[]):
         """
         Set sitelinks to corresponding Wikipedia pages
         :param site: The Wikipedia page a sitelink is directed to (e.g. 'enwiki')
@@ -600,7 +564,8 @@ class WDItemEngine(object):
 
         self.wd_json_representation['sitelinks'][site] = {
             'site': site,
-            'title': title
+            'title': title,
+            'badges': badges
         }
 
     def get_sitelink(self, site):
@@ -1618,7 +1583,8 @@ class WDGlobeCoordinate(WDBaseDataType):
 
         super(WDGlobeCoordinate, self)\
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+                      is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank,
+                      prop_nr=prop_nr)
 
         self.set_value(value)
 
@@ -1645,7 +1611,8 @@ class WDGlobeCoordinate(WDBaseDataType):
     def from_json(cls, jsn):
         value = jsn['datavalue']['value']
         if jsn['snaktype'] == 'novalue' or jsn['snaktype'] == 'somevalue':
-            return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'], snak_type=jsn['snaktype'])
+            return cls(latitude=None, longitude=None, precision=None, prop_nr=jsn['property'],
+                       snak_type=jsn['snaktype'])
 
         return cls(latitude=value['latitude'], longitude=value['longitude'], precision=value['precision'],
                    prop_nr=jsn['property'])
