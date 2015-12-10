@@ -22,26 +22,29 @@ class GOCleaner(object):
 
         qids_to_clean = set()
 
+        print(len(wd_go_terms))
         for count, go_term in enumerate(wd_go_terms):
             curr_qid = go_qid_list[wd_go_terms.index(go_term)]
 
-            try:
-                int(go_term)
-            except ValueError as e:
-                qids_to_clean.add(curr_qid)
+            # try:
+            #     int(go_term)
+            # except ValueError as e:
+            qids_to_clean.add(curr_qid)
 
         for curr_qid in qids_to_clean:
             start = time.time()
             clean_gos = []
+            print(curr_qid)
 
             cleanup_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid)
             for wd_value in cleanup_item.statements:
                 if wd_value.get_prop_nr() == 'P686':
                     go_value = wd_value.get_value()
-                    try:
-                        int(go_value)
-                    except ValueError as e:
-                        clean_gos.append(PBB_Core.WDString(value=go_value[-7:], prop_nr='P686'))
+
+                    # int(go_value)
+
+                    if not go_value.startswith('GO'):
+                        clean_gos.append(PBB_Core.WDString(value='GO:' + go_value, prop_nr='P686'))
 
             try:
                 go_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid, data=clean_gos)

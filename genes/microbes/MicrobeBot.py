@@ -1,21 +1,39 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
 from SPARQLWrapper import SPARQLWrapper, JSON
 import csv
 import requests
 import urllib.request
 import pprint
-import sys
 import PBB_Core
 import PBB_login
-from collections import defaultdict
 import ast
-import gzip
 import time
 from time import gmtime, strftime
 import copy
+
 __author__ = 'timputman'
 
+if len(sys.argv) < 5:
+    print("   You did not supply the proper arguments!")
+    print("   Usage: MicrobeBot.py <Wikidata user name> <Wikidata Password> <Path of source files> <domain i.e. genes/proteins")
+    sys.exit()
+else:
+    pass
 
-login = PBB_login.WDLogin(sys.argv[3], sys.argv[4])
+next2 = [['210', '85962', 'Helicobacter pylori 26695', '26695'],
+         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4']]
+next7 = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
+         ['303', '160488', 'Pseudomonas putida KT2440', 'KT2440'],
+         ['197', '192222', 'Campylobacter jejuni subsp. jejuni NCTC 11168 = ATCC 700819', 'subsp. jejuni NCTC 11168 = ATCC 700819'],
+         ['210', '85962', 'Helicobacter pylori 26695', '26695'],
+         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
+         ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+
+login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
+source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
+file_list = os.listdir(source_path)
 
 class WDProp2QID_SPARQL(object):
     def __init__(self, prop='', string=''):
@@ -141,13 +159,7 @@ class NCBIReferenceGenomoes(object):
             if row[4] == 'reference genome':
                 strain_data = [row[6], row[5], row[7], strain]
                 all_strain_data.append(strain_data)
-        chlam = []
-        for thing in all_strain_data:
-            #if thing[1] == '471472': # This is a testing filter to restrict bot run to chlamydia only 471472
-            #    return [thing]
-            if thing[1] == '85962': # This is a testing filter to restrict bot run to Helicobacter only 85962
-                return [thing]
-        #return all_strain_data
+        return all_strain_data
 
 
 class WDStrainItem(object):
@@ -211,10 +223,12 @@ class WDStrainItem(object):
 class WDGeneProteinItemDownload(object):
     def __init__(self, ref_orgs):
         self.ref_orgs = ref_orgs
-        self.mgi_genes = self.gain_refseq_mgi()
-        self.wd_dict = self.wd_parse_mgi()
-        self.uniprot_go = self.download_taxon_protein_GO()
-        self.uiprot_dict = self.parse_uniprot_data()
+        self.spec_taxid = self.ref_orgs[0]
+        self.strain_taxid = self.ref_orgs[1]
+        self.taxname = self.ref_orgs[2]
+        self.strain = self.ref_orgs[3]
+        self.gene_record = self.gain_refseq_mgi()
+        self.goterms = self.download_taxon_protein_GO()
         self.combo_mu = self.combine_mgi_uniprot_dicts()
 
     def gain_refseq_mgi(self):
@@ -224,38 +238,23 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
+        r = requests.get(url=url, params=params)
 
-        genomes = list(self.ref_orgs)
+        hits = r.json()
 
-        for i in genomes:
-            tax_list = []
-            orgidl = i[1]
-            params = dict(q="__all__", species=orgidl, entrezonly="true", size="1000", fields="all")
-            r = requests.get(url, params)
-            tax_list.append(r.json())
-            return tax_list # Yield will return a list for each taxid
-
-    def wd_parse_mgi(self):
-        """
-        Go through the mygene.info json and format label and description names for genes.
-        Generate gene items using PBB_Core.wd_item_enging()
-
-        :param genes_json:
-        :return:
-        """
-        content = self.mgi_genes
-        hits = content[0]['hits']
         mgi_data = []
-        for i in hits:
+
+        for i in hits['hits']:
             if i['type_of_gene'] != 'protein-coding':
                 continue
+
+
             else:
                 name = i['name'] #+ " " + i['symbol']
-
                 try:
                     uniprot = i['uniprot']['Swiss-Prot']
                 except Exception:
-
                     try:
                         uniprot = i['uniprot']['TrEMBL']
                     except Exception:
@@ -287,7 +286,6 @@ class WDGeneProteinItemDownload(object):
                 mgi_data.append(wd_data)
         return mgi_data
 
-
     def download_taxon_protein_GO(self):
         """
         Downloads the latest list of human proteins from uniprot through the URL specified in mygene_info_settings
@@ -295,23 +293,16 @@ class WDGeneProteinItemDownload(object):
 
         url = 'http://www.uniprot.org/uniprot/'
 
-        genomes = list(self.ref_orgs)
-
-        for i in genomes:
-            orgidl = i[1]
-            params = dict(query=('organism:' + orgidl), format='tab', columns='id,go(biological process),go(cellular component),go(molecular function)')
-            r = requests.get(url, params=params)
-            return r.text
-
-    def parse_uniprot_data(self):
-
-        content = self.uniprot_go
-        datareader = csv.reader(content.splitlines(), delimiter="\t")
+        params = dict(query=('organism:' + self.strain_taxid), format='tab',
+                      columns='id,go(biological process),go(cellular component),go(molecular function)')
+        r = requests.get(url=url, params=params)
+        go_terms = r.text
+        datareader = csv.reader(go_terms.splitlines(), delimiter="\t")
         uniprot_data = []
 
         for i in datareader:
             go_dict = {
-                'Uniprotid': i[0],
+                'uniprot': i[0],
                 'biological_process': i[1], # biological process P682
                 'cell_component': i[2], # cell component P681
                 'molecular_function': i[3] # molecular function P680
@@ -320,27 +311,22 @@ class WDGeneProteinItemDownload(object):
         return uniprot_data
 
     def combine_mgi_uniprot_dicts(self):
-        mgi = self.wd_dict
-        unip = self.uiprot_dict
-        out = open('mgi_uniprot_combined_{}.dict'.format(time.time()), "w")
+        mgi = self.gene_record
+        unip = self.goterms
+        out = open(source_path + 'mgi_uniprot_combined_{}_{}.dict'.format(time.time(),
+                                                                                  self.taxname +"\t"+ str(self.strain_taxid)), "w")
 
-        result = defaultdict(dict)
-        mgi_uniprot = []
-        try:
-            for d in mgi:
-                result[d['uniprot']].update(d)
-            for d in unip:
-                result[d['Uniprotid']].update(d)
-            for k,v in result.items():
-                print(v, file=out) # This writes to a file for now.  Might be better to use pickle to load pyobj
+        for m in mgi:
+            for u in unip:
+                if m['uniprot'] == u['uniprot']:
+                    m.update(u)
 
-        except:
-            print(mgi, file=out)
+            print(m, file=out)
 
 
 class WDWriteGeneProteinItems(object):
-    def __init__(self):
-        self.dbdata = open("Sources/middle10_hpylori", "r") #{'gene_symbol': 'HP1382', 'protein_description': 'microbial protein found in Helicobacter pylori 26695', 'genstop': 1446476, 'Uniprotid': 'O25933', 'RSgenomic': 'NC_000915.1', 'type_of_gene': 'protein-coding', 'taxid': '85962', 'strand': -1, 'strain': 'Q21065231', 'cell_component': '', 'uniprot': 'O25933', '_geneid': '900298', 'biological_process': '', 'RSprotein': 'NP_208173', 'gene_description': 'microbial gene found in Helicobacter pylori 26695', 'molecular_function': 'hydrolase activity [GO:0016787]; metal ion binding [GO:0046872]; nucleic acid binding [GO:0003676]', 'genstart': 1446084, 'protein_symbol': 'HP1382', 'name': 'hypothetical protein'}
+    def __init__(self, infile=''):
+        self.dbdata = open(infile, "r")
 
     def write_gene_item(self):
         """
@@ -434,7 +420,6 @@ class WDWriteGeneProteinItems(object):
             wd_write_data = ast.literal_eval(i)
             count += 1
 
-
             if '_geneid' not in wd_write_data.keys():
                 continue
             else:
@@ -463,7 +448,7 @@ class WDWriteGeneProteinItems(object):
 
 
                 statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703', references=[copy.deepcopy(uniprot_protein_reference)])] #Found in taxon
-                statements['uniprotid'] = [PBB_Core.WDString(value=wd_write_data['uniprot'], prop_nr='P352', references=[copy.deepcopy(uniprot_protein_reference)])]
+                statements['uniprot'] = [PBB_Core.WDString(value=wd_write_data['uniprot'], prop_nr='P352', references=[copy.deepcopy(uniprot_protein_reference)])]
                 statements['proteinid'] = [PBB_Core.WDString(value=wd_write_data['RSprotein'],prop_nr='P637', references=[copy.deepcopy(uniprot_protein_reference)])]
                 #statements['instance'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P31', references=uniprot_protein_reference)]
                 statements['subclass'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)])]
@@ -630,7 +615,6 @@ class WDWriteGeneProteinItems(object):
                         #print(key, statement.prop_nr, statement.value)
 
 
-
                 try:
                     wd_item_protein = PBB_Core.WDItemEngine(item_name=item_name, domain='proteins', data=final_statements)
                     PBB_Core.WDItemEngine.log(level='INFO', message='protein item {}'.format(wd_write_data['name']))
@@ -650,3 +634,31 @@ class WDWriteGeneProteinItems(object):
                     PBB_Core.WDItemEngine.log(level='INFO', message='Protein error {}'.format(e))
                     continue
 
+
+####Call section####
+
+#####Get current Reference Genome List from NCBI
+genomes = NCBIReferenceGenomoes()
+strain_data = genomes.tid_list
+
+
+#####Use strain data to download gene and protein data from Mygene.info and Uniprot
+#####Generates files of data for each strain with a dictionary for each gene
+for i in next2: #use strain_data for a full run
+
+
+    genetic_data = WDGeneProteinItemDownload(i)
+    genetic_data.combo_mu
+
+
+#####Step through gene data files in current directory and feed them to the WDWriteGeneProteinItems()
+
+
+
+for i in file_list:
+    if 'mgi_uniprot_combined' in i:
+        a = WDWriteGeneProteinItems(infile=source_path+i)
+        if sys.argv[4] == 'genes':
+            a.write_gene_item()
+        if sys.argv[4] =='proteins':
+            a.write_protein_item()
