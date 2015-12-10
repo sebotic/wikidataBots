@@ -172,7 +172,7 @@ class  disease(object):
         if self.do_id in object[2].keys():
             self.wdid = "Q"+str(object[2][self.do_id])
         else:
-             = None
+            self.wdid = None
         if len(self.getDoValue(self.wd_do_content, './/owl:deprecated')) > 0 and self.getDoValue(self.wd_do_content, './/owl:deprecated')[0].text == "true":
             self.rank = "deprecated"
         else:

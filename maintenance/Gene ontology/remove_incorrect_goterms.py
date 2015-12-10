@@ -33,6 +33,7 @@ import PBB_Debug
 import PBB_login
 import PBB_settings
 import pprint
+import sys
 
 gene_ontologydataids = dict()
 print('Getting all proteins with a uniprot ID in Wikidata...')
@@ -48,7 +49,7 @@ prep = dict()
 for id in gene_ontologydataids.keys():
     print(id)
     wdid = 'Q'+str(gene_ontologydataids[str(id)])
-    prep["P686"] = [PBB_Core.WDString(value='', prop_nr='P686')]
+    prep["P686"] = [PBB_Core.WDBaseDataType.delete_statement(prop_nr='P686')]
     data2Add = []
     for key in prep.keys():
       for statement in prep[key]:
@@ -59,7 +60,6 @@ for id in gene_ontologydataids.keys():
                                                   domain="proteins")
     print(wdid)
     print(wdPage.get_wd_json_representation())
-    # wdPage.write(logincreds)
-
+    wdPage.write(logincreds)
 
 
