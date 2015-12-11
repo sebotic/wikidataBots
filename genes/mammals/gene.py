@@ -286,6 +286,8 @@ class mammal_gene(object):
                 PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=[copy.deepcopy(gene_reference)])]
         prep['P351'] = [
             PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=[copy.deepcopy(gene_reference)])]
+        prep['P688'] = [
+            PBB_Core.WDString(value='', prop_nr='P688')]
         prep['P279'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(gene_reference)])]
         if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
