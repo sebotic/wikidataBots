@@ -270,7 +270,7 @@ class HumanProtein(object):
         # P352 = UniprotID
         proteinPrep['P352'] = [PBB_Core.WDString(value=self.uniprotId, prop_nr='P352', references=protein_reference)]
 
-        # P591 = EC number
+        # P591 = ec number
         if "ecname" in vars(self):
             proteinPrep['P591'] = []
             for i in range(len(self.ecname)):
