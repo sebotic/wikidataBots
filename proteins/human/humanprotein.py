@@ -321,8 +321,7 @@ class HumanProtein(object):
                     PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""),
                                       prop_nr='P686', references=protein_reference)]
                 goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
-                                                 server="www.wikidata.org", references=protein_reference,
-                                                 domain="proteins")
+                                                 server="www.wikidata.org", domain="proteins")
                 goWdPage.set_description("Gene Ontology term")
                 js = goWdPage.get_wd_json_representation()
                 goWdId = goWdPage.write(self.logincreds)
