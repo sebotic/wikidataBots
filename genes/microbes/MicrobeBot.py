@@ -30,6 +30,7 @@ next7 = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
          ['210', '85962', 'Helicobacter pylori 26695', '26695'],
          ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
          ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+PA_TT = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'], ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
@@ -59,7 +60,7 @@ class WDProp2QID_SPARQL(object):
             qid_list = rawqid.split('/')
             final_qid.append(qid_list[-1])
         except Exception:
-            final_qid.append('none')
+            final_qid.append('None')
         return final_qid[0]
 
 
@@ -238,7 +239,7 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="20", fields="all")
         r = requests.get(url=url, params=params)
 
         hits = r.json()
@@ -294,7 +295,7 @@ class WDGeneProteinItemDownload(object):
         url = 'http://www.uniprot.org/uniprot/'
 
         params = dict(query=('organism:' + self.strain_taxid), format='tab',
-                      columns='id,go(biological process),go(cellular component),go(molecular function)')
+                      columns='id,go(biological process),go(cellular component),go(molecular function),ec')
         r = requests.get(url=url, params=params)
         go_terms = r.text
         datareader = csv.reader(go_terms.splitlines(), delimiter="\t")
@@ -305,7 +306,8 @@ class WDGeneProteinItemDownload(object):
                 'uniprot': i[0],
                 'biological_process': i[1], # biological process P682
                 'cell_component': i[2], # cell component P681
-                'molecular_function': i[3] # molecular function P680
+                'molecular_function': i[3], # molecular function P680
+                'ec_number': i[4]
             }
             uniprot_data.append(go_dict)
         return uniprot_data
@@ -420,6 +422,10 @@ class WDWriteGeneProteinItems(object):
             wd_write_data = ast.literal_eval(i)
             count += 1
 
+
+
+
+
             if '_geneid' not in wd_write_data.keys():
                 continue
             else:
@@ -450,11 +456,11 @@ class WDWriteGeneProteinItems(object):
                 statements['found_in'] = [PBB_Core.WDItemID(value=wd_write_data['strain'], prop_nr='P703', references=[copy.deepcopy(uniprot_protein_reference)])] #Found in taxon
                 statements['uniprot'] = [PBB_Core.WDString(value=wd_write_data['uniprot'], prop_nr='P352', references=[copy.deepcopy(uniprot_protein_reference)])]
                 statements['proteinid'] = [PBB_Core.WDString(value=wd_write_data['RSprotein'],prop_nr='P637', references=[copy.deepcopy(uniprot_protein_reference)])]
-                #statements['instance'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P31', references=uniprot_protein_reference)]
                 statements['subclass'] = [PBB_Core.WDItemID(value='Q8054', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)])]
                 statements['molecular_function'] = []
                 statements['cell_component'] = []
                 statements['biological_process'] = []
+
 
 
                 mfcount = 0
@@ -465,30 +471,33 @@ class WDWriteGeneProteinItems(object):
                     for g in mflist:
                         mfsplitlist = dict()
                         mf = g.split()
-                        mfsplitlist['mfgid']=mf[-1][4:-1]
+                        mfsplitlist['mfgid']=mf[-1][1:-1]
                         mfsplitlist['mfgterm']=" ".join(mf[:-1])
                         mfdictlist.append(mfsplitlist)
-
-                        mfgoqid = WDProp2QID_SPARQL(prop='P686',string=mfsplitlist['mfgid']).qid
+                        mfgoqid = WDProp2QID_SPARQL(prop='P686', string=mfsplitlist['mfgid']).qid
                         mfgolabel = WDQID2Label(qid=mfgoqid)
+
                         goqid =[]
 
                         if mfsplitlist['mfgterm'] == mfgolabel.label:
                             goqid.append(mfgoqid)
+
                         else:
                             pass
 
                         if mfgoqid == 'None':
+
                             properties = list()
                             properties.append(PBB_Core.WDString(value=mfsplitlist['mfgid'], prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
                             properties.append(PBB_Core.WDItemID(value='Q14860489', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
+
                             try:
                                 goWdPage = PBB_Core.WDItemEngine(item_name=mfsplitlist['mfgterm'], data=properties,
                                                                  domain="proteins")
                                 goWdPage.set_label(mfsplitlist['mfgterm'])
                                 goWdPage.set_description("Gene Ontology term")
                                 goWdPage.set_aliases([mf[-1][1:-1]])
-                                #pprint.pprint(goWdPage.get_wd_json_representation())
+                                pprint.pprint(goWdPage.get_wd_json_representation())
 
                                 goWdPage.write(login)
                                 mfcount += 1
@@ -512,7 +521,7 @@ class WDWriteGeneProteinItems(object):
                     for g in cclist:
                         ccsplitlist = dict()
                         cc = g.split()
-                        ccsplitlist['ccgid'] = cc[-1][4:-1]
+                        ccsplitlist['ccgid'] = cc[-1][1:-1]
                         ccsplitlist['ccgterm'] = " ".join(cc[:-1])
                         ccdictlist.append(ccsplitlist)
 
@@ -562,7 +571,7 @@ class WDWriteGeneProteinItems(object):
                     for g in bplist:
                         bpsplitlist = dict()
                         bp = g.split()
-                        bpsplitlist['bpgid'] = bp[-1][4:-1]
+                        bpsplitlist['bpgid'] = bp[-1][1:-1]
                         bpsplitlist['bpgterm'] = " ".join(bp[:-1])
                         bpdictlist.append(bpsplitlist)
 
@@ -644,12 +653,15 @@ strain_data = genomes.tid_list
 
 #####Use strain data to download gene and protein data from Mygene.info and Uniprot
 #####Generates files of data for each strain with a dictionary for each gene
-for i in next2: #use strain_data for a full run
+if sys.argv[5] == 'resource':
+
+    for i in PA_TT: #use strain_data for a full run
 
 
-    genetic_data = WDGeneProteinItemDownload(i)
-    genetic_data.combo_mu
-
+        genetic_data = WDGeneProteinItemDownload(i)
+        genetic_data.combo_mu
+else:
+    pass
 
 #####Step through gene data files in current directory and feed them to the WDWriteGeneProteinItems()
 
