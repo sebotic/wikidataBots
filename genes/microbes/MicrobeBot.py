@@ -15,9 +15,9 @@ import copy
 
 __author__ = 'timputman'
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 6:
     print("   You did not supply the proper arguments!")
-    print("   Usage: MicrobeBot.py <Wikidata user name> <Wikidata Password> <Path of source files> <domain i.e. genes/proteins")
+    print("   Usage: MicrobeBot.py <Wikidata user name> <Wikidata Password> <Path of source files> <domain i.e. genes/proteins> <pull resources resource/none>")
     sys.exit()
 else:
     pass
@@ -30,7 +30,7 @@ next7 = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
          ['210', '85962', 'Helicobacter pylori 26695', '26695'],
          ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
          ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
-PA_TT = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'], ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+PA_TT = [['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
