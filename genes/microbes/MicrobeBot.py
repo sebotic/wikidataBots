@@ -22,15 +22,18 @@ if len(sys.argv) < 6:
 else:
     pass
 
-next2 = [['210', '85962', 'Helicobacter pylori 26695', '26695'],
-         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4']]
-next7 = [['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
-         ['303', '160488', 'Pseudomonas putida KT2440', 'KT2440'],
-         ['197', '192222', 'Campylobacter jejuni subsp. jejuni NCTC 11168 = ATCC 700819', 'subsp. jejuni NCTC 11168 = ATCC 700819'],
-         ['210', '85962', 'Helicobacter pylori 26695', '26695'],
-         ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
-         ['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
-PA_TT = [['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
+first8 = [['813', '272561', 'Chlamydia trachomatis D/UW-3/CX', 'D/UW-3/CX'],
+          ['813', '471472', 'Chlamydia trachomatis 434/Bu', '434/Bu'],
+          ['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1'],
+          ['210', '85962', 'Helicobacter pylori 26695', '26695'],
+          ['263', '177416', 'Francisella tularensis subsp. tularensis SCHU S4', 'subsp. tularensis SCHU S4'],
+          ['274', '300852', 'Thermus thermophilus HB8', 'HB8'],
+          ['9', '107806', 'Buchnera aphidicola str. APS (Acyrthosiphon pisum)', 'str. APS (Acyrthosiphon pisum)'],
+          ['139', '224326', 'Borrelia burgdorferi B31', 'B31']]
+
+two = [['274', '300852', 'Thermus thermophilus HB8', 'HB8'],
+       ['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1']]
+
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 source_path = sys.argv[3] #"/Users/timputman/working_repos/Sources/"
@@ -239,7 +242,7 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="20", fields="all")
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
         r = requests.get(url=url, params=params)
 
         hits = r.json()
@@ -315,8 +318,7 @@ class WDGeneProteinItemDownload(object):
     def combine_mgi_uniprot_dicts(self):
         mgi = self.gene_record
         unip = self.goterms
-        out = open(source_path + 'mgi_uniprot_combined_{}_{}.dict'.format(time.time(),
-                                                                                  self.taxname +"\t"+ str(self.strain_taxid)), "w")
+        out = open(source_path + 'mgi_uniprot_combined_{}_{}.dict'.format(time.time(),str(self.strain_taxid)), "w")
 
         for m in mgi:
             for u in unip:
@@ -461,158 +463,159 @@ class WDWriteGeneProteinItems(object):
                 statements['cell_component'] = []
                 statements['biological_process'] = []
 
-
-
                 mfcount = 0
-                if wd_write_data['molecular_function']:
-                    mflist = wd_write_data["molecular_function"].split(";")  # P680
-                    mfdictlist = []
+                if 'molecular_function' in wd_write_data:
+                    if wd_write_data['molecular_function']:
+                        mflist = wd_write_data["molecular_function"].split(";")  # P680
+                        mfdictlist = []
 
-                    for g in mflist:
-                        mfsplitlist = dict()
-                        mf = g.split()
-                        mfsplitlist['mfgid']=mf[-1][1:-1]
-                        mfsplitlist['mfgterm']=" ".join(mf[:-1])
-                        mfdictlist.append(mfsplitlist)
-                        mfgoqid = WDProp2QID_SPARQL(prop='P686', string=mfsplitlist['mfgid']).qid
-                        mfgolabel = WDQID2Label(qid=mfgoqid)
+                        for g in mflist:
+                            mfsplitlist = dict()
+                            mf = g.split()
+                            mfsplitlist['mfgid']=mf[-1][1:-1]
+                            mfsplitlist['mfgterm']=" ".join(mf[:-1])
+                            mfdictlist.append(mfsplitlist)
+                            mfgoqid = WDProp2QID_SPARQL(prop='P686', string=mfsplitlist['mfgid']).qid
+                            mfgolabel = WDQID2Label(qid=mfgoqid)
 
-                        goqid =[]
+                            goqid =[]
 
-                        if mfsplitlist['mfgterm'] == mfgolabel.label:
-                            goqid.append(mfgoqid)
+                            if mfsplitlist['mfgterm'] == mfgolabel.label:
+                                goqid.append(mfgoqid)
 
-                        else:
-                            pass
-
-                        if mfgoqid == 'None':
-
-                            properties = list()
-                            properties.append(PBB_Core.WDString(value=mfsplitlist['mfgid'], prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
-                            properties.append(PBB_Core.WDItemID(value='Q14860489', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
-
-                            try:
-                                goWdPage = PBB_Core.WDItemEngine(item_name=mfsplitlist['mfgterm'], data=properties,
-                                                                 domain="proteins")
-                                goWdPage.set_label(mfsplitlist['mfgterm'])
-                                goWdPage.set_description("Gene Ontology term")
-                                goWdPage.set_aliases([mf[-1][1:-1]])
-                                pprint.pprint(goWdPage.get_wd_json_representation())
-
-                                goWdPage.write(login)
-                                mfcount += 1
-                                PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(mfsplitlist['mfgterm'] + str(mfcount)))
-
-                                print('MF GO Item written {}'.format(mfcount))
-                            except Exception as e:
-                                PBB_Core.WDItemEngine.log(level='INFO', message='failure to write new go term item {}'.format(e))
-
-                        else:
-                            try:
-                                statements['molecular_function'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P680', references=[copy.deepcopy(uniprot_protein_reference)]))
-                            except Exception:
+                            else:
                                 pass
 
-                cccount = 0
-                if wd_write_data['cell_component']:
-                    cclist = wd_write_data['cell_component'].split(";")  # P681
-                    ccdictlist = []
+                            if mfgoqid == 'None':
 
-                    for g in cclist:
-                        ccsplitlist = dict()
-                        cc = g.split()
-                        ccsplitlist['ccgid'] = cc[-1][1:-1]
-                        ccsplitlist['ccgterm'] = " ".join(cc[:-1])
-                        ccdictlist.append(ccsplitlist)
+                                properties = list()
+                                properties.append(PBB_Core.WDString(value=mfsplitlist['mfgid'], prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
+                                properties.append(PBB_Core.WDItemID(value='Q14860489', prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
 
-                        ccgoqid = WDProp2QID_SPARQL(prop='P686',string=ccsplitlist['ccgid']).qid
-                        ccgolabel = WDQID2Label(qid=ccgoqid)
-                        goqid =[]
-                        if ccsplitlist['ccgterm'] == ccgolabel.label:
-                            goqid.append(ccgoqid)
-                        else:
-                            pass
+                                try:
+                                    goWdPage = PBB_Core.WDItemEngine(item_name=mfsplitlist['mfgterm'], data=properties,
+                                                                     domain="proteins")
+                                    goWdPage.set_label(mfsplitlist['mfgterm'])
+                                    goWdPage.set_description("Gene Ontology term")
+                                    goWdPage.set_aliases([mf[-1][1:-1]])
+                                    pprint.pprint(goWdPage.get_wd_json_representation())
 
+                                    goWdPage.write(login)
+                                    mfcount += 1
+                                    PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(mfsplitlist['mfgterm'] + str(mfcount)))
 
-                        if ccgoqid == 'None':
+                                    print('MF GO Item written {}'.format(mfcount))
+                                except Exception as e:
+                                    PBB_Core.WDItemEngine.log(level='INFO', message='failure to write new go term item {}'.format(e))
 
-                            properties = list()
-                            properties.append(PBB_Core.WDString(value=ccsplitlist['ccgid'],
-                                              prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
-                            properties.append(PBB_Core.WDItemID(value='Q5058355',
-                                               prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
+                            else:
+                                try:
+                                    statements['molecular_function'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P680', references=[copy.deepcopy(uniprot_protein_reference)]))
+                                except Exception:
+                                    pass
 
-                            try:
-                                goWdPage = PBB_Core.WDItemEngine(item_name=ccsplitlist['ccgterm'], data=properties,
-                                                                 domain="proteins")
-                                goWdPage.set_label(ccsplitlist['ccgterm'])
-                                goWdPage.set_description("Gene Ontology term")
-                                goWdPage.set_aliases([cc[-1][1:-1]])
+                if 'cell_component' in wd_write_data:
+                    cccount = 0
+                    if wd_write_data['cell_component']:
+                        cclist = wd_write_data['cell_component'].split(";")  # P681
+                        ccdictlist = []
 
-                                goWdPage.write(login)
-                                cccount += 1
-                                PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(ccsplitlist['ccgterm'] + str(ccount)))
-                                print('CC GO Item written {}'.format(cccount))
-                            except Exception as e:
-                                PBB_Core.WDItemEngine.log(level='INFO',
-                                                          message='failure to write new go term item {}'.format(e))
-                        else:
-                            try:
-                                statements['cell_component'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P681',
-                                                                                   references=[copy.deepcopy(uniprot_protein_reference)]))
-                            except Exception:
+                        for g in cclist:
+                            ccsplitlist = dict()
+                            cc = g.split()
+                            ccsplitlist['ccgid'] = cc[-1][1:-1]
+                            ccsplitlist['ccgterm'] = " ".join(cc[:-1])
+                            ccdictlist.append(ccsplitlist)
+
+                            ccgoqid = WDProp2QID_SPARQL(prop='P686',string=ccsplitlist['ccgid']).qid
+                            ccgolabel = WDQID2Label(qid=ccgoqid)
+                            goqid =[]
+                            if ccsplitlist['ccgterm'] == ccgolabel.label:
+                                goqid.append(ccgoqid)
+                            else:
                                 pass
 
-                bpcount = 0
-                if wd_write_data['biological_process']:
-                    bplist = wd_write_data['biological_process'].split(";")  # P682
-                    bpdictlist = []
 
-                    for g in bplist:
-                        bpsplitlist = dict()
-                        bp = g.split()
-                        bpsplitlist['bpgid'] = bp[-1][1:-1]
-                        bpsplitlist['bpgterm'] = " ".join(bp[:-1])
-                        bpdictlist.append(bpsplitlist)
+                            if ccgoqid == 'None':
 
-                        bpgoqid = WDProp2QID_SPARQL(prop='P686', string=bpsplitlist['bpgid']).qid
-                        bpgolabel = WDQID2Label(qid=bpgoqid)
-                        goqid =[]
-                        if bpsplitlist['bpgterm'] == bpgolabel.label:
-                            goqid.append(bpgoqid)
-                        else:
-                            pass
+                                properties = list()
+                                properties.append(PBB_Core.WDString(value=ccsplitlist['ccgid'],
+                                                  prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
+                                properties.append(PBB_Core.WDItemID(value='Q5058355',
+                                                   prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
 
-                        if bpgoqid == 'None':
-                            properties = list()
-                            properties.append(PBB_Core.WDString(value=bpsplitlist['bpgid'],
-                                              prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
-                            properties.append(PBB_Core.WDItemID(value='Q2996394',
-                                               prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
+                                try:
+                                    goWdPage = PBB_Core.WDItemEngine(item_name=ccsplitlist['ccgterm'], data=properties,
+                                                                     domain="proteins")
+                                    goWdPage.set_label(ccsplitlist['ccgterm'])
+                                    goWdPage.set_description("Gene Ontology term")
+                                    goWdPage.set_aliases([cc[-1][1:-1]])
 
-                            try:
-                                goWdPage = PBB_Core.WDItemEngine(item_name=bpsplitlist['bpgterm'], data=properties,
-                                                                 domain="proteins")
-                                goWdPage.set_label(bpsplitlist['bpgterm'])
-                                goWdPage.set_description("Gene Ontology term")
-                                goWdPage.set_aliases([bp[-1][1:-1]])
+                                    goWdPage.write(login)
+                                    cccount += 1
+                                    PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(ccsplitlist['ccgterm'] + str(ccount)))
+                                    print('CC GO Item written {}'.format(cccount))
+                                except Exception as e:
+                                    PBB_Core.WDItemEngine.log(level='INFO',
+                                                              message='failure to write new go term item {}'.format(e))
+                            else:
+                                try:
+                                    statements['cell_component'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P681',
+                                                                                       references=[copy.deepcopy(uniprot_protein_reference)]))
+                                except Exception:
+                                    pass
 
-                                goWdPage.write(login)
-                                bpcount += 1
-                                PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(bpsplitlist['bpgterm'] + str(bpcount)))
-                                print('BP GO Item written {}'.format(bpcount))
+                    bpcount = 0
+                if 'biological_process' in wd_write_data:
+                    if wd_write_data['biological_process']:
+                        bplist = wd_write_data['biological_process'].split(";")  # P682
+                        bpdictlist = []
 
-                            except Exception as e:
-                                PBB_Core.WDItemEngine.log(level='INFO',
-                                                          message='failure to write new go term item {}'.format(e))
+                        for g in bplist:
+                            bpsplitlist = dict()
+                            bp = g.split()
+                            bpsplitlist['bpgid'] = bp[-1][1:-1]
+                            bpsplitlist['bpgterm'] = " ".join(bp[:-1])
+                            bpdictlist.append(bpsplitlist)
 
-                        else:
-                            try:
-                                statements['biological_process'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P682',
-                                                                                          references=[copy.deepcopy(uniprot_protein_reference)]))
-
-                            except Exception:
+                            bpgoqid = WDProp2QID_SPARQL(prop='P686', string=bpsplitlist['bpgid']).qid
+                            bpgolabel = WDQID2Label(qid=bpgoqid)
+                            goqid =[]
+                            if bpsplitlist['bpgterm'] == bpgolabel.label:
+                                goqid.append(bpgoqid)
+                            else:
                                 pass
+
+                            if bpgoqid == 'None':
+                                properties = list()
+                                properties.append(PBB_Core.WDString(value=bpsplitlist['bpgid'],
+                                                  prop_nr='P686', references=[copy.deepcopy(uniprot_protein_reference)]))
+                                properties.append(PBB_Core.WDItemID(value='Q2996394',
+                                                   prop_nr='P279', references=[copy.deepcopy(uniprot_protein_reference)]))
+
+                                try:
+                                    goWdPage = PBB_Core.WDItemEngine(item_name=bpsplitlist['bpgterm'], data=properties,
+                                                                     domain="proteins")
+                                    goWdPage.set_label(bpsplitlist['bpgterm'])
+                                    goWdPage.set_description("Gene Ontology term")
+                                    goWdPage.set_aliases([bp[-1][1:-1]])
+
+                                    goWdPage.write(login)
+                                    bpcount += 1
+                                    PBB_Core.WDItemEngine.log(level='INFO', message='go term item {}'.format(bpsplitlist['bpgterm'] + str(bpcount)))
+                                    print('BP GO Item written {}'.format(bpcount))
+
+                                except Exception as e:
+                                    PBB_Core.WDItemEngine.log(level='INFO',
+                                                              message='failure to write new go term item {}'.format(e))
+
+                            else:
+                                try:
+                                    statements['biological_process'].append(PBB_Core.WDItemID(value=goqid[0], prop_nr='P682',
+                                                                                              references=[copy.deepcopy(uniprot_protein_reference)]))
+
+                                except Exception:
+                                    pass
 
 
 
@@ -647,21 +650,22 @@ class WDWriteGeneProteinItems(object):
 ####Call section####
 
 #####Get current Reference Genome List from NCBI
-genomes = NCBIReferenceGenomoes()
-strain_data = genomes.tid_list
+#genomes = NCBIReferenceGenomoes()
+#strain_data = genomes.tid_list
 
 
 #####Use strain data to download gene and protein data from Mygene.info and Uniprot
 #####Generates files of data for each strain with a dictionary for each gene
 if sys.argv[5] == 'resource':
-
-    for i in PA_TT: #use strain_data for a full run
-
+    count = 0
+    for i in two: #use strain_data for a full run
+        count += 1
 
         genetic_data = WDGeneProteinItemDownload(i)
         genetic_data.combo_mu
-else:
-    pass
+
+
+
 
 #####Step through gene data files in current directory and feed them to the WDWriteGeneProteinItems()
 
@@ -674,3 +678,5 @@ for i in file_list:
             a.write_gene_item()
         if sys.argv[4] =='proteins':
             a.write_protein_item()
+
+
