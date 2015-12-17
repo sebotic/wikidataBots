@@ -242,7 +242,7 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="20", fields="all")
         r = requests.get(url=url, params=params)
 
         hits = r.json()
@@ -462,6 +462,9 @@ class WDWriteGeneProteinItems(object):
                 statements['molecular_function'] = []
                 statements['cell_component'] = []
                 statements['biological_process'] = []
+                if 'ec_number' in wd_write_data:
+                    if wd_write_data['ec_number']:
+                        statements['ec_number'] = [PBB_Core.WDString(value=wd_write_data['ec_number'],prop_nr='P591', references=[copy.deepcopy(uniprot_protein_reference)])]
 
                 mfcount = 0
                 if 'molecular_function' in wd_write_data:
@@ -638,7 +641,7 @@ class WDWriteGeneProteinItems(object):
                     wd_item_protein.set_label(item_name)
                     wd_item_protein.set_description(description)
                     wd_item_protein.set_aliases(alias_list)
-                    pprint.pprint(wd_item_protein.get_wd_json_representation())
+                    #pprint.pprint(wd_item_protein.get_wd_json_representation())
                     wd_item_protein.write(login)
                     PBB_Core.WDItemEngine.log(level='INFO', message='protein item {} written successfully'.format(wd_write_data['name'] + " " + str(count)))
                     print('{} protein items written'.format(count))
