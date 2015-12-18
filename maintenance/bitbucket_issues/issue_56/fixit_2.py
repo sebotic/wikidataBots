@@ -31,12 +31,12 @@ SELECT DISTINCT ?protein ?protein2 {
 ?protein wdt:P352 ?uniprot ;
          wdt:P705 ?ensemblp ;
          wdt:P638 ?pdb ;
-         wdt:P637 ?refseqp ;
+         # wdt:P637 ?refseqp ;
          wdt:P703 wd:Q5 .
 ?protein2 wdt:P352 ?uniprot ;
           wdt:P705 ?ensemblp ;
           wdt:P638 ?pdb ;
-          wdt:P637 ?refseqp ;
+          # wdt:P637 ?refseqp ;
           wdt:P703 wd:Q5 .
 FILTER (?protein != ?protein2)
                    }
