@@ -1,6 +1,8 @@
 __author__ = 'andra'
 
-__author__ = 'andra'
+# This is maintenance bot and merges all occurances where 2 items exit on Wikidata
+# where the uniprot_id, the ensemblP, pdb, refseqp and species = Human are identical
+# It is a first fix for issue 56: https://bitbucket.org/sulab/wikidatabots/issues/56/multiple-duplicates-of-human-proteins
 
 import time
 import sys
