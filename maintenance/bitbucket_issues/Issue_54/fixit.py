@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../ProteinBox
 import PBB_login
 import PBB_settings
 import PBB_Core
+import traceback
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
