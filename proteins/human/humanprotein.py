@@ -318,7 +318,7 @@ class HumanProtein(object):
 
             if (len(search_results["search"]) == 0) or search_results["search"][0]["label"] != search_results["searchinfo"]["search"]:
                 statement = [
-                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""),
+                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:"),
                                       prop_nr='P686', references=protein_reference)]
                 goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
                                                  server="www.wikidata.org", domain="proteins")
