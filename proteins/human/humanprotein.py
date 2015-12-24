@@ -399,26 +399,18 @@ class HumanProtein(object):
         '''
 
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                genePrep['Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])] = [
-                    PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference)]
-        '''
-        Adding the encodes property to gene pages
-        '''
-        for key in genePrep.keys():
-            genePrep[key].append(
-                PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes", append_value=['P688'])
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
-            gene_wd_json_representation = wdGenePage.get_wd_json_representation()
-            encodes_set = False
-            for encodes in gene_wd_json_representation["claims"]["P688"]:
-                if encodes is None:
-                    pass
+            for geneId in self.gene_id:
+                gene_wdid = 'Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])
+                if gene_wdid not in genePrep:
+                    genePrep[gene_wdid] = []
+                genePrep[gene_wdid].append(PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
 
-            wdGenePage.write(self.logincreds)
+        for key in genePrep.keys():
+            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
+            print(wdGenePage.write(self.logincreds))
+            print("bah bha sleep")
+            time.sleep(60)
             PBB_Core.WDItemEngine.log('INFO',
                                       '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                                           main_data_id=self.uniprotId,
