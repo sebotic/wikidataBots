@@ -409,16 +409,15 @@ class HumanProtein(object):
             # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
             wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
             print(wdGenePage.write(self.logincreds))
-            print("bah bha sleep")
-            time.sleep(60)
-            PBB_Core.WDItemEngine.log('INFO',
-                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+
+        PBB_Core.WDItemEngine.log('INFO',
+                            '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                                           main_data_id=self.uniprotId,
                                           exception_type='',
                                           message="Gene " + key + " get updated with encoded property",
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
-            sys.exit()
+
 
 
