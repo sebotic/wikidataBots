@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../ProteinBox
 import PBB_login
 import PBB_settings
 import PBB_Core
+import traceback
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -14,18 +15,18 @@ logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getW
 counter = 0
 sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
 sparql.setQuery("""
-PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX wd: <http://www.wikidata.org/entity/>
 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX p: <http://www.wikidata.org/prop/>
 PREFIX v: <http://www.wikidata.org/prop/statement/>
+PREFIX q: <http://www.wikidata.org/prop/qualifier/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-SELECT distinct ?gene ?protein WHERE {
-    ?gene wdt:P703 wd:Q5 ;
-          wdt:P688 ?protein .
-    ?protein wdt:P703 wd:Q83310 .
-}
+SELECT ?item WHERE {
+   ?item wdt:P686 ?go .
+   ?item wdt:P351 ?entrez .
+ }
 """)
 sparql.setReturnFormat(JSON)
 results = sparql.query().convert()

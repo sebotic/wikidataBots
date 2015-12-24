@@ -304,29 +304,16 @@ class HumanProtein(object):
         proteinPrep["P682"] = []
 
         for result in self.goTerms["results"]["bindings"]:
-            # proteinPrep['P686'].append(PBB_Core.WDString(value=result["go"]["value"].replace("'http://purl.obolibrary.org/obo/'", "").replace("_", ":"), prop_nr='P686', references=protein_reference))
-            url = 'https://{}/w/api.php'.format("www.wikidata.org")
-            params = {
-                'action': 'wbsearchentities',
-                'language': 'en',
-                'search': result["goLabel"]["value"],
-                'format': 'json'
-            }
 
-            reply = requests.get(url, params=params)
-            search_results = reply.json()
-
-            if (len(search_results["search"]) == 0) or search_results["search"][0]["label"] != search_results["searchinfo"]["search"]:
-                statement = [
+            statement = [
                     PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:"),
                                       prop_nr='P686', references=protein_reference)]
-                goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
+            goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
                                                  server="www.wikidata.org", domain="proteins")
+            if goWdPage.get_description() == "":
                 goWdPage.set_description("Gene Ontology term")
-                js = goWdPage.get_wd_json_representation()
-                goWdId = goWdPage.write(self.logincreds)
-            else:
-                goWdId = search_results["search"][0]["id"]
+            js = goWdPage.get_wd_json_representation()
+            goWdId = goWdPage.write(self.logincreds)
 
             if result["parentLabel"]["value"] == "molecular_function":
                 exists = False
@@ -370,15 +357,25 @@ class HumanProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                  references=protein_reference, domain="proteins", append_value=['P279'])
+                                                   domain="proteins", append_value=['P279'])
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
-                                                  server="www.wikidata.org", references=protein_reference,
+                                                  server="www.wikidata.org",
                                                   domain="proteins", append_value=['P279'])
 
         if len(self.alias) > 0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
-        wdProteinpage.set_description(description='human protein', lang='en')
+        if wdProteinpage.get_description() == "":
+            wdProteinpage.set_description(description='human protein', lang='en')
+        if wdProteinpage.get_description(lang="de") == "":
+            wdProteinpage.set_description(description='humanes Protein', lang='de')
+        if wdProteinpage.get_description(lang="nl") == "":
+            wdProteinpage.set_description(description='menselijk eiwit', lang='nl')
+        if wdProteinpage.get_description(lang="fr") == "" or wdProteinpage.get_description(lang="fr") == "protéine":
+            wdProteinpage.set_description(description='protéine humaine', lang='fr')
+
+
+
         self.wd_json_representation = wdProteinpage.get_wd_json_representation()
         PBB_Debug.prettyPrint(self.wd_json_representation)
         wdProteinpage.write(self.logincreds)
@@ -414,7 +411,7 @@ class HumanProtein(object):
             genePrep[key].append(
                 PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
             # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes", append_value=['P688'])
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes")
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
             gene_wd_json_representation = wdGenePage.get_wd_json_representation()
             encodes_set = False
             for encodes in gene_wd_json_representation["claims"]["P688"]:
@@ -430,5 +427,6 @@ class HumanProtein(object):
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
+            sys.exit()
 
 

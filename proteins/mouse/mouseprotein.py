@@ -326,7 +326,7 @@ class MouseProtein(object):
 
             reply = requests.get(url, params=params)
             search_results = reply.json()
-            go_id = result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "")
+            go_id = result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:")
 
             goTermExists = False
             termIndex = -1
