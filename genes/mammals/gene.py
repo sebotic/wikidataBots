@@ -428,7 +428,7 @@ class mammal_gene(object):
           if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
-            if wdPage.get_description() != "":
+            if wdPage.get_description() == "":
                 wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
             if wdPage.get_description(lang='fr') == "" or wdPage.get_description(lang='fr') == "gène":
                 wdPage.set_description(description="Un gène " + self.genomeInfo['fr-name'], lang='fr')
