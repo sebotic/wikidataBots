@@ -344,11 +344,8 @@ class HumanProtein(object):
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            proteinPrep['P702'] = []
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                proteinPrep['P702'].append(
+           proteinPrep['P702'] = []
+           proteinPrep['P702'].append(
                     PBB_Core.WDItemID(value=self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")], prop_nr='P702', references=protein_reference))
 
         proteinData2Add = []
@@ -395,6 +392,7 @@ class HumanProtein(object):
         ))
         print("===============")
 
+        """
         '''
         Adding the encodes property to gene pages
         '''
@@ -410,7 +408,7 @@ class HumanProtein(object):
             # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
             wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
             print(wdGenePage.write(self.logincreds))
-
+        """
         PBB_Core.WDItemEngine.log('INFO',
                             '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                                           main_data_id=self.uniprotId,
