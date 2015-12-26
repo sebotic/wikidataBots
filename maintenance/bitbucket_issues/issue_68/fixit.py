@@ -42,7 +42,7 @@ for result in results["results"]["bindings"]:
         aliases = wdPage.get_aliases()
         clean_aliases = []
         for alias in aliases:
-            if not 'entrez:' in alias["value"]:
+            if not 'uniprot:' in alias["value"]:
                 clean_aliases.append(alias["value"])
         wdPage.set_aliases(clean_aliases, append=False)
         wdPage.write(logincreds)
