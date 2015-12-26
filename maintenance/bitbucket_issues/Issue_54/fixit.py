@@ -22,21 +22,22 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX p: <http://www.wikidata.org/prop/>
 PREFIX v: <http://www.wikidata.org/prop/statement/>
 
-SELECT ?protein WHERE {
-  ?protein wdt:P279 wd:Q8054 .
-  ?protein ?p wd:Q1934178 .
- }
+SELECT distinct ?gene ?protein WHERE {
+    ?gene wdt:P703 wd:Q83310 ;
+          wdt:P688 ?protein .
+    ?protein wdt:P703 wd:Q5 .
+}
 """)
 sparql.setReturnFormat(JSON)
 results = sparql.query().convert()
 for result in results["results"]["bindings"]:
   try:
         counter = counter + 1
-        print(result["protein"]["value"])
-        gene = result["protein"]["value"].replace("http://www.wikidata.org/entity/", "")
-        data2add = [PBB_Core.WDBaseDataType.delete_statement(prop_nr='P681')]
+        print(result["gene"]["value"])
+        gene = result["gene"]["value"].replace("http://www.wikidata.org/entity/", "")
+        data2add = [PBB_Core.WDBaseDataType.delete_statement(prop_nr='P688')]
         wdPage = PBB_Core.WDItemEngine(gene, data=data2add, server="www.wikidata.org",
-                                           domain="protein")
+                                           domain="genes")
         wdPage.write(logincreds)
 
   except Exception as e:
