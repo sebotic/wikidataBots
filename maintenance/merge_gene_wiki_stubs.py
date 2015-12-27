@@ -26,7 +26,7 @@ class GeneWikiStubMerger(object):
             GROUP BY ?protein
         ''')
 
-        for count, x in enumerate(candidate_qids['results']['bindings'][0:5]):
+        for count, x in enumerate(candidate_qids['results']['bindings'][0:100]):
             qid = x['protein']['value'].split('/')[-1]
             print(qid)
 
@@ -100,7 +100,7 @@ class GeneWikiStubMerger(object):
             elif len(merge_to_item_list) > 1:
                 PBB_Core.WDItemEngine.log('ERROR', '"{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         exception_type='Merge target error',
-                        message='More than one merge target recovered, skipping this item!',
+                        message='More than one merge target recovered, skipping this item! ' + str(merge_to_item_list),
                         wd_id=qid,
                         duration=time.time() - start
                 ))
