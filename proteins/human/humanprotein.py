@@ -84,7 +84,8 @@ class HumanProteome():
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
         print("Getting all human proteins from Uniprot...")
-        r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
+        # r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
+        r0 = requests.get('http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj')
         prot_results = r0.json()
         uniprot_ids = []
         for protein in prot_results["results"]["bindings"]:
@@ -343,11 +344,8 @@ class HumanProtein(object):
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            proteinPrep['P702'] = []
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                proteinPrep['P702'].append(
+           proteinPrep['P702'] = []
+           proteinPrep['P702'].append(
                     PBB_Core.WDItemID(value=self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")], prop_nr='P702', references=protein_reference))
 
         proteinData2Add = []
@@ -394,39 +392,31 @@ class HumanProtein(object):
         ))
         print("===============")
 
+        """
         '''
         Adding the encodes property to gene pages
         '''
 
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                genePrep['Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])] = [
-                    PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference)]
-        '''
-        Adding the encodes property to gene pages
-        '''
-        for key in genePrep.keys():
-            genePrep[key].append(
-                PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes", append_value=['P688'])
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
-            gene_wd_json_representation = wdGenePage.get_wd_json_representation()
-            encodes_set = False
-            for encodes in gene_wd_json_representation["claims"]["P688"]:
-                if encodes is None:
-                    pass
+            for geneId in self.gene_id:
+                gene_wdid = 'Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])
+                if gene_wdid not in genePrep:
+                    genePrep[gene_wdid] = []
+                genePrep[gene_wdid].append(PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
 
-            wdGenePage.write(self.logincreds)
-            PBB_Core.WDItemEngine.log('INFO',
-                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+        for key in genePrep.keys():
+            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
+            print(wdGenePage.write(self.logincreds))
+        """
+        PBB_Core.WDItemEngine.log('INFO',
+                            '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                                           main_data_id=self.uniprotId,
                                           exception_type='',
                                           message="Gene " + key + " get updated with encoded property",
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
-            sys.exit()
+
 
 
