@@ -67,6 +67,13 @@ gene_symbol_mapping = PBB_Core.WDItemList("CLAIM[353] AND CLAIM[703:83310]", "35
 for genesymbol in gene_symbol_mapping.wditems["props"]["353"]:
     genesymbolwdmapping[str(genesymbol[2])] = genesymbol[0]
 
+print('Getting all GO terms in Wikidata')
+goWikidataIds = dict()
+wdqQuery = "CLAIM[686]"
+go_wd = PBB_Core.WDItemList(wdqQuery, "686")
+for goItem in go_wd.wditems["props"]["686"]:
+    goWikidataIds[str(goItem[2])] = goItem[0]
+
 try:
     up = str(sys.argv[1])
     '''
@@ -89,9 +96,9 @@ try:
         str(up) +
         "%3e%7d%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++%09%09%3fprotein+up%3aclassifiedWith+%3fgo+.+++%0d%0a++++++++%3fgo+rdfs%3alabel+%3fgoLabel+.%0d%0a++++++++%3fgo+rdfs%3asubClassOf*+%3fparent+.%0d%0a++++++++%3fparent+rdfs%3alabel+%3fparentLabel+.%0d%0a++++++++optional+%7b%3fparent+rdfs%3asubClassOf+%3fgrandParent+.%7d%0d%0a++++++++FILTER+(!bound(%3fgrandParent))%0d%0a%7d&format=srj")
 
-    print('Getting all human genes with a ncbi gene ID in Wikidata...')
+    print('Getting all mouse genes with a ncbi gene ID in Wikidata...')
     entrezWikidataIds = dict()
-    wdqQuery = "CLAIM[703:5] AND CLAIM[351]"
+    wdqQuery = "CLAIM[703:83310] AND CLAIM[351]"
 
     InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
     '''
@@ -106,6 +113,7 @@ try:
     protein["start"] = start
     protein["geneSymbols"] = genesymbolwdmapping
     protein["entrezWikidataIds"] = entrezWikidataIds
+    protein["goWikidataIds"] = goWikidataIds
     protein_class = mouseprotein.MouseProtein(protein)
 
 except Exception as e:

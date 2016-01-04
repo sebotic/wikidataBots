@@ -75,13 +75,20 @@ class MouseProteome():
         entrezWikidataIds = dict()
         print("wdq 1")
         wdqQuery = "CLAIM[703:83310] AND CLAIM[351]"
-
         InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
+
         '''
         Below a mapping is created between entrez gene ids and wikidata identifiers.
         '''
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
+
+        print('Getting all GO terms in Wikidata')
+        goWikidataIds = dict()
+        wdqQuery = "CLAIM[686]"
+        go_wd = PBB_Core.WDItemList(wdqQuery)
+        for goItem in go_wd.wditems["props"]["686"]:
+            goWikidataIds[str(goItem[2])] = goItem[0]
 
         print("Getting all mouse proteins from Uniprot...")
         r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a10090+.%0d%0a%7d&format=srj")
@@ -131,6 +138,7 @@ class MouseProteome():
                     protein["start"] = self.start
                     protein["geneSymbols"] = genesymbolwdmapping
                     protein["entrezWikidataIds"] = entrezWikidataIds
+                    protein["goWikidataIds"] = goWikidataIds
                     protein_class = MouseProtein(protein)
                 #else:
                     #print(up["id"]+" already covered in wikidata")
@@ -159,6 +167,7 @@ class MouseProtein(object):
         self.name = object["results"]["bindings"][0]["plabel"]["value"]
         self.start = object["start"]
         self.entrezWikidataIds = object["entrezWikidataIds"]
+        self.goWikidataIds = object["goWikidataIds"]
 
         up_in_wd = search_wd(self.name)
         self.wdid = None
@@ -317,19 +326,28 @@ class MouseProtein(object):
 
             reply = requests.get(url, params=params)
             search_results = reply.json()
+            go_id = result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:")
 
-            if (len(search_results["search"]) == 0) or search_results["search"][0]["label"] != search_results["searchinfo"]["search"]:
+            goTermExists = False
+            termIndex = -1
+            for searchresult in search_results["search"]:
+                if searchresult["label"] == search_results["searchinfo"]["search"] and go_id in self.goWikidataIds.keys():
+                    goTermExists = True
+                    termIndex = termIndex + 1
+                    break
+
+            if (len(search_results["search"]) == 0) or not goTermExists:
                 statement = [
-                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""),
+                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:"),
                                       prop_nr='P686', references=protein_reference)]
                 goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
-                                                 server="www.wikidata.org", references=protein_reference,
+                                                 server="www.wikidata.org",
                                                  domain="proteins")
                 goWdPage.set_description("Gene Ontology term")
                 js = goWdPage.get_wd_json_representation()
                 goWdId = goWdPage.write(self.logincreds)
             else:
-                goWdId = search_results["search"][0]["id"]
+                goWdId = search_results["search"][termIndex]["id"]
 
             if result["parentLabel"]["value"] == "molecular_function":
                 exists = False
@@ -373,10 +391,10 @@ class MouseProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                  references=protein_reference, domain="proteins", append_value=['P279'])
+                                                domain="proteins", append_value=['P279'])
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
-                                                  server="www.wikidata.org", references=protein_reference,
+                                                  server="www.wikidata.org",
                                                   domain="proteins", append_value=['P279'])
 
         if len(self.alias) > 0:

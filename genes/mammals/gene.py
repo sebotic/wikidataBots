@@ -67,6 +67,7 @@ class genome(object):
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
 
         entrezWikidataIds = dict()
+        uniprotwikidataids = dict()
         print("wdq 1")
         wdqQuery = "CLAIM[703:{}] AND CLAIM[351]".format(self.genomeInfo["wdid"].replace("Q", ""))
         InWikiData = PBB_Core.WDItemList(wdqQuery, wdprop="351")
@@ -77,12 +78,18 @@ class genome(object):
             for geneItem in InWikiData.wditems["props"]["351"]:
                 entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
+        print('Getting all proteins with a uniprot ID in Wikidata...')
+        inwikidata = PBB_Core.WDItemList("CLAIM[352]", "352")
+        for proteinItem in inwikidata.wditems["props"]["352"]:
+            uniprotwikidataids[str(proteinItem[2])] = proteinItem[0]
+
         for gene in self.genes:
             try:
                 if str(gene["entrezgene"]) in entrezWikidataIds.keys():
                     gene["wdid"] = 'Q' + str(entrezWikidataIds[str(gene["entrezgene"])])
                 else:
                     gene["wdid"] = None
+                gene["uniprotwikidataids"] = uniprotwikidataids
                 gene["logincreds"] = self.logincreds
                 gene["genomeInfo"] = self.genomeInfo
                 gene["speciesInfo"] = self.speciesInfo
@@ -124,6 +131,7 @@ class mammal_gene(object):
         """
         self.start = object["start"]
         self.entrezgene = object["entrezgene"]
+        self.uniprotwikidataids = object["uniprotwikidataids"]
         gene_annotations = self.annotate_gene()
         self.genomeInfo = object["speciesInfo"][str(gene_annotations['taxid'])]
         self.content = object
@@ -217,6 +225,17 @@ class mammal_gene(object):
                     self.startpos.append(gene_annotations["genomic_pos"]["start"])
                     self.endpos.append(gene_annotations["genomic_pos"]["end"])
 
+        self.encodes = None
+        if "uniprot" in gene_annotations.keys():
+            if "Swiss-Prot" in gene_annotations["uniprot"].keys():
+                if isinstance(gene_annotations["uniprot"]["Swiss-Prot"], list):
+                    self.encodes = []
+                    for uniprot in gene_annotations["uniprot"]["Swiss-Prot"]:
+                        self.encodes.append(uniprot)
+                else:
+                    self.encodes = [gene_annotations["uniprot"]["Swiss-Prot"]]
+
+
         self.chromosomeHg19 = None
         self.startposHg19 = None
         self.endposHg19 = None
@@ -286,6 +305,7 @@ class mammal_gene(object):
                 PBB_Core.WDString(value=self.symbol, prop_nr='P353', references=[copy.deepcopy(gene_reference)])]
         prep['P351'] = [
             PBB_Core.WDString(value=str(self.entrezgene), prop_nr='P351', references=[copy.deepcopy(gene_reference)])]
+
         prep['P279'] = [PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(gene_reference)])]
         if "type_of_gene" in vars(self):
             if self.type_of_gene != None:
@@ -306,6 +326,13 @@ class mammal_gene(object):
                 for ensemblt in self.ensembl_transcript:
                     prep['P704'].append(
                         PBB_Core.WDString(value=ensemblt, prop_nr='P704', references=[copy.deepcopy(gene_reference)]))
+
+        if "encodes" in vars(self):
+            if self.encodes != None:
+                prep['P688'] = []
+                for uniprot in self.encodes:
+                    if uniprot in self.uniprotwikidataids.keys():
+                        prep['P688'].append(PBB_Core.WDItemID(value=self.uniprotwikidataids[uniprot], prop_nr='P688', references=[copy.deepcopy(gene_reference)]))
 
         if "hgnc" in vars(self):
             if self.hgnc != None:
@@ -388,6 +415,9 @@ class mammal_gene(object):
         else:
             self.synonyms = None
 
+
+
+
         data2add = []
         for key in prep.keys():
             for statement in prep[key]:
@@ -395,9 +425,15 @@ class mammal_gene(object):
                 print(statement.prop_nr, statement.value)
 
         if self.wdid != None:
+          if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
-            wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
+            if wdPage.get_description() == "":
+                wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
+            if wdPage.get_description(lang='fr') == "" or wdPage.get_description(lang='fr') == "gène":
+                wdPage.set_description(description="Un gène " + self.genomeInfo['fr-name'], lang='fr')
+            if wdPage.get_description(lang='nl') == "" or wdPage.get_description(lang='nl') == "gen":
+                wdPage.set_description(description="Een "+ self.genomeInfo['nl-name']+ " gen", lang='nl')
             if self.synonyms != None:
                 wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             print(self.wdid)
@@ -406,10 +442,17 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
             wdPage.write(self.logincreds)
+            print("aa")
         else:
+          if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
-            wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
+            if wdPage.get_description() != "":
+                wdPage.set_description(description=self.genomeInfo['name'] + ' gene', lang='en')
+            if wdPage.get_description(lang='fr') == "" or wdPage.get_description(lang='fr') == "gène":
+                wdPage.setdescription(description="Un gène " + self.genomeInfo['fr-name'], lang='fr')
+            if wdPage.get_description(lang='nl') == "" or wdPage.get_description(lang='nl') == "gen":
+                wdPage.setdescription(description="Een "+ self.genomeInfo['nl-name']+ " gen", lang='nl')
             if self.synonyms != None:
                 wdPage.set_aliases(aliases=self.synonyms, lang='en', append=True)
             self.wd_json_representation = wdPage.get_wd_json_representation()
@@ -420,16 +463,16 @@ class mammal_gene(object):
         if not os.path.exists('./json_dumps'):
             os.makedirs('./json_dumps')
 
-        f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
-        pprint.pprint(self.wd_json_representation, stream = f)
-        f.close()
-        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                        main_data_id=str(self.entrezgene),
-                        exception_type='',
-                        message=f.name,
-                        wd_id=self.wdid,
-                        duration=time.time()-self.start
-                    ))
+        #f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
+        #pprint.pprint(self.wd_json_representation, stream = f)
+        #f.close()
+        #PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+        #                main_data_id=str(self.entrezgene),
+        #                exception_type='',
+        #                message=f.name,
+        #                wd_id=self.wdid,
+        #                duration=time.time()-self.start
+        #            ))
 
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     

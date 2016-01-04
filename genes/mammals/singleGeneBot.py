@@ -30,6 +30,7 @@ import PBB_settings
 # Resource specific
 import gene
 import time
+import traceback
 
 
 start = time.time()
@@ -88,13 +89,13 @@ Below a mapping is created between entrez gene ids and wikidata identifiers.
 for geneItem in InWikiData.wditems["props"]["351"]:
     entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-fo = open("/tmp/genebotRun.txt", "r+")
-for line in fo.readlines():
-  try:
-    print(str(line.rstrip()))
+#fo = open("/tmp/genebotRun.txt", "r+")
+#for line in fo.readlines():
+try:
+
     object=dict()
-    # object["entrezgene"] = str(sys.argv[1])
-    object["entrezgene"] = str(line.rstrip())
+    object["entrezgene"] = str(sys.argv[1])
+    # object["entrezgene"] = str(line.rstrip())
     if str(object["entrezgene"]) in entrezWikidataIds.keys():
         object["wdid"] = 'Q' + str(entrezWikidataIds[str(object["entrezgene"])])
     else:
@@ -106,5 +107,8 @@ for line in fo.readlines():
     object["speciesInfo"] = tempvar["speciesInfo"]
     object["start"] = start
     geneClass = gene.mammal_gene(object)
-  except:
+    print(geneClass.wdid)
+except:
+      print("except")
+      print(traceback.format_exc())
       pass

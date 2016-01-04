@@ -84,7 +84,8 @@ class HumanProteome():
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
         print("Getting all human proteins from Uniprot...")
-        r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
+        # r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj")
+        r0 = requests.get('http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a9606+.%0d%0a%7d&format=srj')
         prot_results = r0.json()
         uniprot_ids = []
         for protein in prot_results["results"]["bindings"]:
@@ -270,7 +271,7 @@ class HumanProtein(object):
         # P352 = UniprotID
         proteinPrep['P352'] = [PBB_Core.WDString(value=self.uniprotId, prop_nr='P352', references=protein_reference)]
 
-        # P591 = EC number
+        # P591 = ec number
         if "ecname" in vars(self):
             proteinPrep['P591'] = []
             for i in range(len(self.ecname)):
@@ -304,30 +305,16 @@ class HumanProtein(object):
         proteinPrep["P682"] = []
 
         for result in self.goTerms["results"]["bindings"]:
-            # proteinPrep['P686'].append(PBB_Core.WDString(value=result["go"]["value"].replace("'http://purl.obolibrary.org/obo/'", "").replace("_", ":"), prop_nr='P686', references=protein_reference))
-            url = 'https://{}/w/api.php'.format("www.wikidata.org")
-            params = {
-                'action': 'wbsearchentities',
-                'language': 'en',
-                'search': result["goLabel"]["value"],
-                'format': 'json'
-            }
 
-            reply = requests.get(url, params=params)
-            search_results = reply.json()
-
-            if (len(search_results["search"]) == 0) or search_results["search"][0]["label"] != search_results["searchinfo"]["search"]:
-                statement = [
-                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", ""),
+            statement = [
+                    PBB_Core.WDString(value=result["go"]["value"].replace("http://purl.obolibrary.org/obo/GO_", "GO:"),
                                       prop_nr='P686', references=protein_reference)]
-                goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
-                                                 server="www.wikidata.org", references=protein_reference,
-                                                 domain="proteins")
+            goWdPage = PBB_Core.WDItemEngine(item_name=result["goLabel"]["value"], data=statement,
+                                                 server="www.wikidata.org", domain="proteins")
+            if goWdPage.get_description() == "":
                 goWdPage.set_description("Gene Ontology term")
-                js = goWdPage.get_wd_json_representation()
-                goWdId = goWdPage.write(self.logincreds)
-            else:
-                goWdId = search_results["search"][0]["id"]
+            js = goWdPage.get_wd_json_representation()
+            goWdId = goWdPage.write(self.logincreds)
 
             if result["parentLabel"]["value"] == "molecular_function":
                 exists = False
@@ -357,11 +344,8 @@ class HumanProtein(object):
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            proteinPrep['P702'] = []
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                proteinPrep['P702'].append(
+           proteinPrep['P702'] = []
+           proteinPrep['P702'].append(
                     PBB_Core.WDItemID(value=self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")], prop_nr='P702', references=protein_reference))
 
         proteinData2Add = []
@@ -371,15 +355,25 @@ class HumanProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                  references=protein_reference, domain="proteins", append_value=['P279'])
+                                                   domain="proteins", append_value=['P279'])
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
-                                                  server="www.wikidata.org", references=protein_reference,
+                                                  server="www.wikidata.org",
                                                   domain="proteins", append_value=['P279'])
 
         if len(self.alias) > 0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
-        wdProteinpage.set_description(description='human protein', lang='en')
+        if wdProteinpage.get_description() == "":
+            wdProteinpage.set_description(description='human protein', lang='en')
+        if wdProteinpage.get_description(lang="de") == "":
+            wdProteinpage.set_description(description='humanes Protein', lang='de')
+        if wdProteinpage.get_description(lang="nl") == "":
+            wdProteinpage.set_description(description='menselijk eiwit', lang='nl')
+        if wdProteinpage.get_description(lang="fr") == "" or wdProteinpage.get_description(lang="fr") == "protéine":
+            wdProteinpage.set_description(description='protéine humaine', lang='fr')
+
+
+
         self.wd_json_representation = wdProteinpage.get_wd_json_representation()
         PBB_Debug.prettyPrint(self.wd_json_representation)
         wdProteinpage.write(self.logincreds)
@@ -398,38 +392,31 @@ class HumanProtein(object):
         ))
         print("===============")
 
+        """
         '''
         Adding the encodes property to gene pages
         '''
 
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                genePrep['Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])] = [
-                    PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference)]
-        '''
-        Adding the encodes property to gene pages
-        '''
-        for key in genePrep.keys():
-            genePrep[key].append(
-                PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes", append_value=['P688'])
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", references=protein_reference, domain="genes")
-            gene_wd_json_representation = wdGenePage.get_wd_json_representation()
-            encodes_set = False
-            for encodes in gene_wd_json_representation["claims"]["P688"]:
-                if encodes is None:
-                    pass
+            for geneId in self.gene_id:
+                gene_wdid = 'Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])
+                if gene_wdid not in genePrep:
+                    genePrep[gene_wdid] = []
+                genePrep[gene_wdid].append(PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
 
-            wdGenePage.write(self.logincreds)
-            PBB_Core.WDItemEngine.log('INFO',
-                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+        for key in genePrep.keys():
+            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
+            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
+            print(wdGenePage.write(self.logincreds))
+        """
+        PBB_Core.WDItemEngine.log('INFO',
+                            '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                                           main_data_id=self.uniprotId,
                                           exception_type='',
                                           message="Gene " + key + " get updated with encoded property",
                                           wd_id=self.wdid,
                                           duration=time.time() - self.start
                                       ))
+
 
 
