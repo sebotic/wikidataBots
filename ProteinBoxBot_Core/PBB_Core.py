@@ -43,7 +43,6 @@ import json
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 
-
 class WDItemList(object):
     def __init__(self, wdquery, wdprop=""):
         self.wdquery = wdquery
@@ -64,7 +63,6 @@ class WDItemList(object):
         reply = requests.get(url, params=params)
 
         return reply.json()
-
 
 
 class WDItemEngine(object):
@@ -496,6 +494,19 @@ class WDItemEngine(object):
             'value': label
         }
 
+    def get_aliases(self, lang='en'):
+        """
+        Retrieve the aliases in a certain language
+        :param lang: The Wikidata language the description should be retrieved for
+        :return: Returns a list of aliases, an empty list if none exist for the specified language
+        """
+        alias_list = []
+        if 'aliases' in self.wd_json_representation and lang in self.wd_json_representation['aliases']:
+            for alias in self.wd_json_representation['aliases'][lang]:
+                alias_list.append(alias['value'])
+
+        return alias_list
+
     def set_aliases(self, aliases, lang='en', append=True):
         """
         set the aliases for a WD item
@@ -705,6 +716,44 @@ class WDItemEngine(object):
         sparql.setReturnFormat(JSON)
 
         return sparql.query().convert()
+
+    @staticmethod
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org'):
+        """
+        A static method to merge two Wikidata items
+        :param from_id: The QID which should be merged into another item
+        :type from_id: string with 'Q' prefix
+        :param to_id: The QID into which another item should be merged
+        :type to_id: string with 'Q' prefix
+        :param login_obj: The object containing the login credentials and cookies
+        :type login_obj: instance of PBB_login.WDLogin
+        :param server: The MediaWiki server which should be used, default: 'https://www.wikidata.org'
+        :type server: str
+        """
+        url = server + '/w/api.php'
+
+        headers = {
+            'content-type': 'application/x-www-form-urlencoded',
+            'charset': 'utf-8'
+        }
+
+        params = {
+            'action': 'wbmergeitems',
+            'fromid': from_id,
+            'toid': to_id,
+            'token': login_obj.get_edit_token(),
+            'format': 'json',
+            'bot': ''
+        }
+
+        try:
+            merge_reply = requests.post(url=url, data=params, headers=headers, cookies=login_obj.get_edit_cookie())
+
+            if 'error' in merge_reply.json():
+                raise MergeError(merge_reply.json())
+
+        except requests.HTTPError as e:
+            print(e)
 
 
 class JsonParser(object):
@@ -1278,13 +1327,14 @@ class WDTime(WDBaseDataType):
 
         super(WDTime, self).set_value(value=self.time)
 
-        if time is not None:
+        if self.time is not None:
             if self.precision < 0 or self.precision > 14:
                 raise ValueError('Invalid value for time precision, '
                                  'see https://www.mediawiki.org/wiki/Wikibase/DataModel/JSON#time')
 
             try:
-                datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
+                if self.time[6:8] != '00' and self.time[9:11] != '00':
+                    datetime.datetime.strptime(self.time, '+%Y-%m-%dT%H:%M:%SZ')
             except ValueError as e:
                 raise ValueError('Wrong data format, date format must be +%Y-%m-%dT%H:%M:%SZ')
 
@@ -1394,6 +1444,8 @@ class WDMonolingualText(WDBaseDataType):
         super(WDMonolingualText, self)\
             .__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
                       is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+
+        self.set_value(value)
 
     def set_value(self, value):
 
@@ -1683,3 +1735,11 @@ class ManualInterventionReqException(Exception):
     def __str__(self):
         return repr(self.value)
 
+
+class MergeError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+
+    def __str__(self):
+        return repr(self.value)
