@@ -299,6 +299,7 @@ class HumanProtein(object):
                 proteinPrep['P705'].append(
                     PBB_Core.WDString(value=self.ensemblp[i], prop_nr='P705', references=protein_reference))
 
+        """
         # P686 = Gene Ontology ID
         proteinPrep["P680"] = []
         proteinPrep["P681"] = []
@@ -340,7 +341,7 @@ class HumanProtein(object):
                 if not exists:
                     proteinPrep["P682"].append(
                         PBB_Core.WDItemID(value=goWdId, prop_nr='P682', references=protein_reference))
-
+        """
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
