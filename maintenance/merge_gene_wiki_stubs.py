@@ -2,6 +2,7 @@ import PBB_Core
 import PBB_login
 import sys
 import time
+import urllib
 
 __author__ = 'Sebastian Burgstaller'
 __license__ = 'AGPLv3'
@@ -26,7 +27,7 @@ class GeneWikiStubMerger(object):
             GROUP BY ?protein
         ''')
 
-        for count, x in enumerate(candidate_qids['results']['bindings'][0:100]):
+        for count, x in enumerate(candidate_qids['results']['bindings'][0:300]):
             qid = x['protein']['value'].split('/')[-1]
             print(qid)
 
@@ -53,6 +54,7 @@ class GeneWikiStubMerger(object):
                     merge_from.set_description(description='', lang='en')
                     merge_from.set_description(description='', lang='de')
                     merge_from.set_description(description='', lang='fr')
+                    merge_from.set_description(description='', lang='nl')
 
                     merge_from.write(self.login_obj)
 
@@ -79,11 +81,22 @@ class GeneWikiStubMerger(object):
 
             merge_to_item_list = set()
             for i in gene_atlas_images:
-                xx = PBB_Core.WDItemList(wdquery='STRING[692:"{}"]'.format(i))
-                ga_carriers = xx.wditems['items']
-                ga_carriers = set(map(lambda z: 'Q{}'.format(z), ga_carriers))
+
+                xx = PBB_Core.WDItemEngine.execute_sparql_query(query='''
+                SELECT ?ga_carriers WHERE {{
+                    BIND(IRI(CONCAT("http://commons.wikimedia.org/wiki/Special:FilePath/", "{0}")) as ?gene_atlas)
+                    ?ga_carriers wdt:P692 ?gene_atlas .
+
+                }}
+                GROUP BY ?ga_carriers'''.format(urllib.parse.quote(i)))
+
+                ga_carriers = []
+                for z in xx['results']['bindings']:
+                    ga_qid = z['ga_carriers']['value'].split('/')[-1]
+                    ga_carriers.append(ga_qid)
+
                 merge_to_item_list.update(ga_carriers)
-                print(ga_carriers)
+                print('GA carriers: ', ga_carriers)
 
             merge_to_item_list.remove(qid)
 
