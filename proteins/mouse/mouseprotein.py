@@ -116,6 +116,7 @@ class MouseProteome():
                         raise Exception("Communication error on " + up["id"])
                     #if "results" not in protein.keys():
 
+                    """
                     '''
                     Get go annotations from Uniprot
                     '''
@@ -126,6 +127,7 @@ class MouseProteome():
                     go_terms = r2.json()
 
                     protein["goTerms"] = go_terms
+                    """
                     protein["logincreds"] = self.logincreds
                     # protein["label"] = up["label"]
                     protein["id"] = up["id"]
@@ -153,7 +155,7 @@ class MouseProtein(object):
         # Populate variables with different values
         self.geneSymbols = object["geneSymbols"]
         self.logincreds = object["logincreds"]
-        self.goTerms = object["goTerms"]
+        # self.goTerms = object["goTerms"]
         self.version = object["results"]["bindings"][0]["upversion"]["value"]
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
         self.uniprotId = object["id"]
@@ -385,11 +387,11 @@ class MouseProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                domain="proteins", append_value=['P279'])
+                                                domain="proteins", append_value=['P279'], use_sparql=True)
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
                                                   server="www.wikidata.org",
-                                                  domain="proteins", append_value=['P279'])
+                                                  domain="proteins", append_value=['P279'], use_sparql=True)
 
         if len(self.alias) > 0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
