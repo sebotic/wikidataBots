@@ -83,13 +83,6 @@ class MouseProteome():
         for geneItem in InWikiData.wditems["props"]["351"]:
             entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-        print('Getting all GO terms in Wikidata')
-        goWikidataIds = dict()
-        wdqQuery = "CLAIM[686]"
-        go_wd = PBB_Core.WDItemList(wdqQuery)
-        for goItem in go_wd.wditems["props"]["686"]:
-            goWikidataIds[str(goItem[2])] = goItem[0]
-
         print("Getting all mouse proteins from Uniprot...")
         r0 = requests.get("http://sparql.uniprot.org/sparql?query=PREFIX+up%3a%3chttp%3a%2f%2fpurl.uniprot.org%2fcore%2f%3e+%0d%0aPREFIX+taxonomy%3a+%3chttp%3a%2f%2fpurl.uniprot.org%2ftaxonomy%2f%3e%0d%0aPREFIX+xsd%3a+%3chttp%3a%2f%2fwww.w3.org%2f2001%2fXMLSchema%23%3e%0d%0aSELECT+DISTINCT+*%0d%0aWHERE%0d%0a%7b%0d%0a%09%09%3fprotein+a+up%3aProtein+.%0d%0a++++++++%3fprotein+up%3areviewed+%22true%22%5e%5exsd%3aboolean+.%0d%0a++%09%09%3fprotein+rdfs%3alabel+%3fprotein_label+.%0d%0a++++++++%3fprotein+up%3aorganism+taxonomy%3a10090+.%0d%0a%7d&format=srj")
         prot_results = r0.json()
@@ -99,6 +92,7 @@ class MouseProteome():
             item["id"] = protein["protein"]["value"].replace("http://purl.uniprot.org/uniprot/", "")
             item["label"] = protein["protein_label"]["value"]
             uniprot_ids.append(item)
+
 
 
         for up in uniprot_ids:
@@ -122,6 +116,7 @@ class MouseProteome():
                         raise Exception("Communication error on " + up["id"])
                     #if "results" not in protein.keys():
 
+                    """
                     '''
                     Get go annotations from Uniprot
                     '''
@@ -132,13 +127,13 @@ class MouseProteome():
                     go_terms = r2.json()
 
                     protein["goTerms"] = go_terms
+                    """
                     protein["logincreds"] = self.logincreds
                     # protein["label"] = up["label"]
                     protein["id"] = up["id"]
                     protein["start"] = self.start
                     protein["geneSymbols"] = genesymbolwdmapping
                     protein["entrezWikidataIds"] = entrezWikidataIds
-                    protein["goWikidataIds"] = goWikidataIds
                     protein_class = MouseProtein(protein)
                 #else:
                     #print(up["id"]+" already covered in wikidata")
@@ -160,14 +155,14 @@ class MouseProtein(object):
         # Populate variables with different values
         self.geneSymbols = object["geneSymbols"]
         self.logincreds = object["logincreds"]
-        self.goTerms = object["goTerms"]
+        # self.goTerms = object["goTerms"]
         self.version = object["results"]["bindings"][0]["upversion"]["value"]
         self.uniprot = object["results"]["bindings"][0]["uniprot"]["value"]
         self.uniprotId = object["id"]
         self.name = object["results"]["bindings"][0]["plabel"]["value"]
         self.start = object["start"]
         self.entrezWikidataIds = object["entrezWikidataIds"]
-        self.goWikidataIds = object["goWikidataIds"]
+
 
         up_in_wd = search_wd(self.name)
         self.wdid = None
@@ -308,7 +303,7 @@ class MouseProtein(object):
             for i in range(len(self.ensemblp)):
                 proteinPrep['P705'].append(
                     PBB_Core.WDString(value=self.ensemblp[i], prop_nr='P705', references=protein_reference))
-
+        """
         # P686 = Gene Ontology ID
         proteinPrep["P680"] = []
         proteinPrep["P681"] = []
@@ -374,6 +369,7 @@ class MouseProtein(object):
                     proteinPrep["P682"].append(
                         PBB_Core.WDItemID(value=goWdId, prop_nr='P682', references=protein_reference))
 
+        """
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
@@ -391,11 +387,11 @@ class MouseProtein(object):
                 print(statement.prop_nr, statement.value)
         if self.wdid is None:
             wdProteinpage = PBB_Core.WDItemEngine(item_name=self.name, data=proteinData2Add, server="www.wikidata.org",
-                                                domain="proteins", append_value=['P279'])
+                                                domain="proteins", append_value=['P279'], use_sparql=True)
         else:
             wdProteinpage = PBB_Core.WDItemEngine(wd_item_id=self.wdid, item_name=self.name, data=proteinData2Add,
                                                   server="www.wikidata.org",
-                                                  domain="proteins", append_value=['P279'])
+                                                  domain="proteins", append_value=['P279'], use_sparql=True)
 
         if len(self.alias) > 0:
             wdProteinpage.set_aliases(aliases=self.alias, lang='en', append=True)
@@ -418,38 +414,6 @@ class MouseProtein(object):
         ))
         print("===============")
 
-        '''
-        Adding the encodes property to gene pages
-        '''
 
-        if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            if len(self.gene_id) > 1:
-                raise Exception(self.uniprot + "reports more then one gene encoding for this protein")
-            else:
-                genePrep['Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])] = [
-                    PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference)]
-        '''
-        Adding the encodes property to gene pages
-        '''
-        for key in genePrep.keys():
-            genePrep[key].append(
-                PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org",
-                                               references=protein_reference, domain="genes", append_value=['P688'])
-            gene_wd_json_representation = wdGenePage.get_wd_json_representation()
-            encodes_set = False
-            for encodes in gene_wd_json_representation["claims"]["P688"]:
-                if encodes is None:
-                    pass
-
-            wdGenePage.write(self.logincreds)
-            PBB_Core.WDItemEngine.log('INFO',
-                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                                          main_data_id=self.uniprotId,
-                                          exception_type='',
-                                          message="Gene " + key + " get updated with encoded property",
-                                          wd_id=self.wdid,
-                                          duration=time.time() - self.start
-                                      ))
 
 
