@@ -42,6 +42,7 @@ def extract_sitelinks(sitelink_dict):
 
     return sitelink_string
 
+
 def print_item(qid):
     wd_item = PBB_Core.WDItemEngine(wd_item_id=qid, use_sparql=True)
     label = wd_item.get_label()
@@ -107,6 +108,8 @@ def main():
           }
           FILTER NOT EXISTS {?protein wdt:P351 ?m} .
           FILTER NOT EXISTS {?protein wdt:P352 ?n} .
+          FILTER NOT EXISTS {?protein wdt:P31 wd:Q21996465} .
+          FILTER NOT EXISTS {?protein wdt:P31 wd:Q14633939} .
         }
         #GROUP BY ?protein
     '''
@@ -147,10 +150,29 @@ def main():
                     continue
 
         else:
+            # Protein class Q21996465
+            # protein complex Q14633939
+            decision = input('Protein class? (p):\nProtein complex? (c):')
+
+            try:
+                if decision == 'p':
+                    data = [PBB_Core.WDItemID(value='Q21996465', prop_nr='P31')]
+                elif decision == 'c':
+                    data = [PBB_Core.WDItemID(value='Q14633939', prop_nr='P31')]
+                else:
+                    continue
+
+                wd_item = PBB_Core.WDItemEngine(wd_item_id=protein_qid, data=data)
+
+                wd_item.write(login=login_obj)
+
+                print('added protein class')
+            except Exception as e:
+                pprint.pprint(e)
+                continue
+
             pass
 
-        if count > 20:
-            break
 
 if __name__ == '__main__':
     sys.exit(main())
