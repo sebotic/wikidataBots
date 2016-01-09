@@ -292,6 +292,13 @@ class mammal_gene(object):
         refRetrieved.overwrite_references = True
         gene_reference = [refStatedIn, refImported, refRetrieved]
 
+        refStatedInEnsembl = PBB_Core.WDItemID(value= 'Q21996330', prop_nr='P248', is_reference=True)
+        refStatedInEnsembl.overwrite_references = True
+        refImportedEnsembl = PBB_Core.WDItemID(value='Q1344256', prop_nr='P143', is_reference=True)
+        refImportedEnsembl.overwrite_references = True
+
+        ensembl_reference = [refStatedInEnsembl, refImportedEnsembl, refRetrieved]
+
         genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659',
                                                  is_qualifier=True)
         genomeBuildPreviousQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly_previous"],
@@ -368,7 +375,7 @@ class mammal_gene(object):
             if self.startpos != None:
                 for pos in self.startpos:
                     prep['P644'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
         if "endpos" in vars(self):
             if not 'P645' in prep.keys():
@@ -376,7 +383,7 @@ class mammal_gene(object):
             if self.endpos != None:
                 for pos in self.endpos:
                     prep['P645'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
 
         if "startposHg19" in vars(self):
@@ -385,7 +392,7 @@ class mammal_gene(object):
             if self.startposHg19 != None:
                 for pos in self.startposHg19:
                     prep['P644'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
         if "endposHg19" in vars(self):
             if not 'P644' in prep.keys():
@@ -393,7 +400,7 @@ class mammal_gene(object):
             if self.endposHg19 != None:
                 for pos in self.endposHg19:
                     prep['P645'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
 
         if "MGI" in vars(self):
