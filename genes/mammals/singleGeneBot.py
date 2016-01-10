@@ -89,8 +89,11 @@ Below a mapping is created between entrez gene ids and wikidata identifiers.
 for geneItem in InWikiData.wditems["props"]["351"]:
     entrezWikidataIds[str(geneItem[2])] = geneItem[0]
 
-#fo = open("/tmp/genebotRun.txt", "r+")
-#for line in fo.readlines():
+uniprotwikidataids = dict()
+print('Getting all proteins with a uniprot ID in Wikidata...')
+inwikidata = PBB_Core.WDItemList("CLAIM[352]", "352")
+for proteinItem in inwikidata.wditems["props"]["352"]:
+    uniprotwikidataids[str(proteinItem[2])] = proteinItem[0]
 try:
 
     object=dict()
@@ -104,6 +107,7 @@ try:
     tempvar = dict()
     tempvar["speciesInfo"] = speciesInfo
     object["logincreds"] = logincreds
+    object["uniprotwikidataids"] = uniprotwikidataids
     object["speciesInfo"] = tempvar["speciesInfo"]
     object["start"] = start
     geneClass = gene.mammal_gene(object)
