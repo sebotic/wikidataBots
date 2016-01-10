@@ -195,7 +195,7 @@ class mammal_gene(object):
             if isinstance(gene_annotations["MGI"], list):
                 self.MGI = gene_annotations["MGI"]
             else:
-                self.MGI = [gene_annotations["MGI"].replace("MGI:", "")]
+                self.MGI = [gene_annotations["MGI"]]
         else:
             self.MGI = None
 
