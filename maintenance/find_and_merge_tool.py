@@ -205,7 +205,7 @@ def main():
                 merge(merge_from=protein_qid, merge_to=gene_qid, login_obj=login_obj)
 
         else:
-            # Protein class/family Q21996465
+            # Protein class/family Q417841
             # protein complex Q14633939
             decision = input('Protein class? (p):\nProtein complex? (c)\nSearch (s):')
 
@@ -227,7 +227,7 @@ def main():
 
             try:
                 if decision == 'p':
-                    data = [PBB_Core.WDItemID(value='Q21996465', prop_nr='P31')]
+                    data = [PBB_Core.WDItemID(value='Q417841', prop_nr='P31')]
                 elif decision == 'c':
                     data = [PBB_Core.WDItemID(value='Q14633939', prop_nr='P31')]
                 else:
@@ -246,8 +246,6 @@ def main():
 
         # if count % 8 == 0:
         #     time.sleep(20)
-
-
 
 
 if __name__ == '__main__':
