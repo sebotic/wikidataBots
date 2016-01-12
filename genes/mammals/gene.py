@@ -195,7 +195,7 @@ class mammal_gene(object):
             if isinstance(gene_annotations["MGI"], list):
                 self.MGI = gene_annotations["MGI"]
             else:
-                self.MGI = [gene_annotations["MGI"].replace("MGI:", "")]
+                self.MGI = [gene_annotations["MGI"]]
         else:
             self.MGI = None
 
@@ -422,9 +422,6 @@ class mammal_gene(object):
         else:
             self.synonyms = None
 
-
-
-
         data2add = []
         for key in prep.keys():
             for statement in prep[key]:
@@ -432,7 +429,7 @@ class mammal_gene(object):
                 print(statement.prop_nr, statement.value)
 
         if self.wdid != None:
-          if self.encodes != None:
+          # if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
             if wdPage.get_description() == "":
@@ -451,7 +448,7 @@ class mammal_gene(object):
             wdPage.write(self.logincreds)
             print("aa")
         else:
-          if self.encodes != None:
+          #if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
             if wdPage.get_description() != "":
@@ -470,16 +467,16 @@ class mammal_gene(object):
         if not os.path.exists('./json_dumps'):
             os.makedirs('./json_dumps')
 
-        #f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
-        #pprint.pprint(self.wd_json_representation, stream = f)
-        #f.close()
-        #PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-        #                main_data_id=str(self.entrezgene),
-        #                exception_type='',
-        #                message=f.name,
-        #                wd_id=self.wdid,
-        #                duration=time.time()-self.start
-        #            ))
+        f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
+        pprint.pprint(self.wd_json_representation, stream = f)
+        f.close()
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=str(self.entrezgene),
+                        exception_type='',
+                        message=f.name,
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
 
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     
