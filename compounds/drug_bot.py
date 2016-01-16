@@ -20,7 +20,7 @@ class DrugBot(object):
     def __init__(self, user, pwd):
         properties = ['P279', 'P769', 'P31', 'P636', 'P267', 'P231', 'P486', 'P672', 'P662', 'P661', 'P652', 'P665', 'P683',
                       'P274', 'P715', 'P646', 'P592', 'P233', 'P234', 'P235',
-                      'P18', 'P373', 'P1805', 'P657', 'P595', 'P2115']
+                      'P18', 'P373', 'P2275', 'P657', 'P595', 'P2115']
         # these property names do not match those in Wikidata!!
         property_names = ['subclass of', 'significant drug interaction', 'instance of', 'route of administration', 'ATC code',
                           'CAS number', 'MeSH ID', 'MeSH Code',
@@ -69,11 +69,12 @@ class DrugBot(object):
 
         # Iterate though all drugbank compounds and add those to Wikidata which are either FDA-approved or have been
         # withdrawn from the market. Add all non-missing values for each drug to Wikidata.
-        for count in drug_data.index[5570:5575]:
+        for count in drug_data.index:
             print('Count is:', count)
 
             if drug_data.loc[count, 'Status'] == 'approved' or drug_data.loc[count, 'Status'] == 'withdrawn':
                 data = []
+                special_cases = ['WHO INN', 'ATC code']
                 for col in drug_data.columns.values:
                     data_value = drug_data.loc[count, col]
 
@@ -83,7 +84,7 @@ class DrugBot(object):
                     elif len(data_value) > 400:
                         continue
 
-                    if col in property_names and col != 'ATC code':
+                    if col in property_names and col not in special_cases:
                         data.append(PBB_Core.WDString(value=str(data_value).strip(), prop_nr=name_to_prop[col]))
 
                 # add instances of (P31) of chemical compound (Q11173), pharmaceutical drug (Q12140),
@@ -98,7 +99,12 @@ class DrugBot(object):
                     data.append(PBB_Core.WDItemID(value='Q422248', prop_nr='P31'))
 
                 # for instance of, do not overwrite what other users have put there
-                append_value = ['P31']
+                append_value = ['P31', 'P2275']
+
+                # Monolingual value WHO INN requires special treatment
+                if pd.notnull(drug_data.loc[count, 'WHO INN']):
+                    data.append(PBB_Core.WDMonolingualText(value=drug_data.loc[count, 'WHO INN'], prop_nr='P2275',
+                                                           language='en'))
 
                 # split the ATC code values present as one string in the csv file
                 if pd.notnull(drug_data.loc[count, 'ATC code']):
@@ -152,7 +158,7 @@ class DrugBot(object):
                 if pd.notnull(drug_data.loc[count, 'Aliases']):
                     aliases = drug_data.loc[count, 'Aliases'].split(';')
                     for i in aliases:
-                        if i == label or i == label.lower() or len(i) > 250:
+                        if i == label or i == label.lower() or len(i) > 250 or len(i) == 0:
                             aliases.remove(i)
 
                 start = time.time()
@@ -163,7 +169,7 @@ class DrugBot(object):
                 try:
 
                     wd_item = PBB_Core.WDItemEngine(item_name=label, domain=domain, data=data,
-                                                    server='www.wikidata.org', append_value=append_value)
+                                                    use_sparql=True, append_value=append_value)
 
                     # overwrite only certain descriptions
                     descriptions_to_overwrite = {'chemical compound', 'chemical substance', ''}
