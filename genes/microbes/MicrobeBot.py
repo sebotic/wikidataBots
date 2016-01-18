@@ -31,8 +31,7 @@ first8 = [['813', '272561', 'Chlamydia trachomatis D/UW-3/CX', 'D/UW-3/CX'],
           ['9', '107806', 'Buchnera aphidicola str. APS (Acyrthosiphon pisum)', 'str. APS (Acyrthosiphon pisum)'],
           ['139', '224326', 'Borrelia burgdorferi B31', 'B31']]
 
-two = [['274', '300852', 'Thermus thermophilus HB8', 'HB8'],
-       ['287', '208964', 'Pseudomonas aeruginosa PAO1', 'PAO1']]
+two = [['274', '300852', 'Thermus thermophilus HB8', 'HB8']]
 
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
@@ -89,7 +88,7 @@ class WDLabel2QID(object): # This is where i left off...current label finder is 
         except:
             qidout.append('None')
 
-        #return qidout[0]
+        return qidout[0]
 
 
 class WDQID2Label(object):
@@ -142,7 +141,7 @@ class WDProp2QID(object):
         return str(out[0])
 
 
-class NCBIReferenceGenomoes(object):
+class NCBIReferenceGenomes(object):
     def __init__(self):
         self.tid_list = self.get_ref_microbe_taxids()
 
@@ -242,7 +241,7 @@ class WDGeneProteinItemDownload(object):
         """
 
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="20", fields="all")
+        params = dict(q="__all__", species=self.strain_taxid, entrezonly="true", size="10000", fields="all")
         r = requests.get(url=url, params=params)
 
         hits = r.json()
@@ -292,7 +291,7 @@ class WDGeneProteinItemDownload(object):
 
     def download_taxon_protein_GO(self):
         """
-        Downloads the latest list of human proteins from uniprot through the URL specified in mygene_info_settings
+        Downloads the latest list of microbial proteins from uniprot, taxon specified by the strain takid provided.
         """
 
         url = 'http://www.uniprot.org/uniprot/'
@@ -339,6 +338,7 @@ class WDWriteGeneProteinItems(object):
         """
         zwd_write_data = self.dbdata
         count = 0
+
         for i in zwd_write_data:
             wd_write_data = ast.literal_eval(i)
 
@@ -653,7 +653,7 @@ class WDWriteGeneProteinItems(object):
 ####Call section####
 
 #####Get current Reference Genome List from NCBI
-#genomes = NCBIReferenceGenomoes()
+#genomes = NCBIReferenceGenomes()
 #strain_data = genomes.tid_list
 
 
