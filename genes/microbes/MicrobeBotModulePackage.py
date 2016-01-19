@@ -9,6 +9,7 @@ import pprint
 import PBB_Core
 import PBB_login
 from time import gmtime, strftime
+import time
 import copy
 
 __author__ = 'timputman'
@@ -294,15 +295,43 @@ class WDGeneItem(object):
         for key in statements.keys():
             for statement in statements[key]:
                 self.final_statements.append(statement)
-        wd_item_gene = PBB_Core.WDItemEngine(item_name=item_name, domain='genes', data=self.final_statements)
-        wd_item_gene.set_label(item_name)
-        wd_item_gene.set_description(description)
-        wd_item_gene.set_aliases(alias_list)
-        pprint.pprint(wd_item_gene.get_wd_json_representation())
+        start = time.time()
         try:
+            wd_item_gene = PBB_Core.WDItemEngine(item_name=item_name, domain='genes', data=self.final_statements)
+            wd_item_gene.set_label(item_name)
+            wd_item_gene.set_description(description)
+            wd_item_gene.set_aliases(alias_list)
+            #pprint.pprint(wd_item_gene.get_wd_json_representation())
             wd_item_gene.write(login)
+
+            new_mgs = ''
+            if wd_item_gene.create_new_item:
+                new_mgs = ': New item'
+
+            PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                main_data_id=self.gene_record.geneid,
+                exception_type='',
+                message='success{}'.format(new_mgs),
+                wd_id=wd_item_gene.wd_item_id,
+                duration=time.time() - start
+                ))
+
+            print('success')
+
         except Exception as e:
-            print('didnt write',e)
+            print(e)
+            PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=self.gene_record.geneid,
+                        exception_type=type(e),
+                        message=e.__str__(),
+                        wd_id='',
+                        duration=time.time() - start
+                    ))
+
+        end = time.time()
+        print('Time elapsed:', end - start)
+
+
 
 
 class WDProteinItem(object):
@@ -427,8 +456,11 @@ class GeneProteinEncodes(object):
 
 
 
-
-login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
+try:
+    login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
+except Exception as e:
+    print(e)
+    print("could not log in")
 reference_genomes_list = NCBIReferenceGenomes()
 for strain in reference_genomes_list.tid_list:
     pstrain = StrainDataParser(strain)
