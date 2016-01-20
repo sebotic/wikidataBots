@@ -15,6 +15,14 @@ import copy
 __author__ = 'timputman'
 
 
+
+if len(sys.argv) < 5:
+    print("   You did not supply the proper arguments!")
+    print("   Usage: MicrobeBotModularPackage.py <Wikidata user name> <Wikidata Password> <domain i.e. genes/proteins/encode_genes/encode_proteins> <microbial strain taxid>")
+    sys.exit()
+else:
+    pass
+
 class WDProp2QID_SPARQL(object):
     def __init__(self, prop='', string=''):
         self.qid = self.SPARQL_for_qidbyprop(prop, string)
@@ -304,7 +312,7 @@ class WDGeneItem(object):
             wd_item_gene.set_label(item_name)
             wd_item_gene.set_description(description)
             wd_item_gene.set_aliases(alias_list)
-            pprint.pprint(wd_item_gene.get_wd_json_representation())
+            #pprint.pprint(wd_item_gene.get_wd_json_representation())
             wd_item_gene.write(login)
 
             new_mgs = ''
@@ -461,27 +469,55 @@ class GeneProteinEncodes(object):
         self.p_qid = WDProp2QID_SPARQL(prop='P352', string=self.gene_record.uniprotid).qid
 
     def wd_gene_encodes(self):
+
         if self.p_qid != 'None':
+            print("Protein item found...encoding now")
             gene_name = self.gene_record.name + "\t" + self.gene_record.gene_symbol
+
+            NCBIgenerefStated = PBB_Core.WDItemID(value='Q20641742', prop_nr='P248', is_reference=True)
+            NCBIgenerefStated.overwrite_references = True
+            timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+            refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
+            refRetrieved.overwrite_references = True
+            NCIB_gene_reference = [NCBIgenerefStated, refRetrieved]
+
+
             gene_statements = []
             gene_statements.append(PBB_Core.WDString(value=self.gene_record.geneid, prop_nr='P351'))
             gene_statements.append(PBB_Core.WDItemID(value='Q7187', prop_nr='P279'))
-            gene_statements.append(PBB_Core.WDItemID(value=self.p_qid, prop_nr='P688'))
+            gene_statements.append(PBB_Core.WDItemID(value=self.p_qid, prop_nr='P688', references=[copy.deepcopy(NCIB_gene_reference)]))
             wd_gene = PBB_Core.WDItemEngine(item_name=gene_name, domain='genes', data=gene_statements)
-            pprint.pprint(wd_gene.get_wd_json_representation())
-            #wd_gene.write(login)
+            #pprint.pprint(wd_gene.get_wd_json_representation())
+            try:
+                wd_gene.write(login)
+                print("Succesfully encodes")
+            except Exception as e:
+                print(e)
 
     def wd_protein_encodes(self):
         if self.g_qid != 'None':
+            print("Protein item found...encoding now")
             prot_name = self.gene_record.name + "\t" + self.gene_record.protein_symbol
+
+            uniprotrefStated = PBB_Core.WDItemID(value='Q905695', prop_nr='P248', is_reference=True)
+            uniprotrefStated.overwrite_references = True
+            timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+            refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
+            refRetrieved.overwrite_references = True
+            uniprot_protein_reference = [uniprotrefStated, refRetrieved]
+
             prot_statements = []
             prot_statements.append(PBB_Core.WDString(value=self.gene_record.uniprotid, prop_nr='P352'))
             prot_statements.append(PBB_Core.WDString(value=self.gene_record.RS_protein, prop_nr='P637'))
             prot_statements.append(PBB_Core.WDItemID(value='Q8054', prop_nr='P279'))
-            prot_statements.append(PBB_Core.WDItemID(value=self.g_qid, prop_nr='P702'))
+            prot_statements.append(PBB_Core.WDItemID(value=self.g_qid, prop_nr='P702', references=[copy.deepcopy(uniprot_protein_reference)]))
             wd_protein = PBB_Core.WDItemEngine(item_name=prot_name, domain='proteins', data=prot_statements)
             pprint.pprint(wd_protein.get_wd_json_representation())
-            #wd_protein.write(login)
+            try:
+                wd_protein.write(login)
+                print("Succesfully encoded by")
+            except Exception as e:
+                print(e)
 
 
 try:
@@ -490,27 +526,36 @@ except Exception as e:
     print(e)
     print("could not log in")
 
+
+
+print("Finding Bacterial Reference Genome...standby...")
 reference_genomes_list = NCBIReferenceGenomes()
+
 for strain in reference_genomes_list.tid_list:
     pstrain = StrainDataParser(strain)
 
+    if pstrain.strain_taxid == sys.argv[4]:
 
-    if pstrain.strain_taxid == '272561':
-        print(strain)
-
+        print("Found", strain)
+        print('Beginning {} bot run on {}'.format(sys.argv[3], pstrain.taxon_name))
         mgi_record = MyGeneInfoRestBatchQuery(strain).gene_record
         unip_record = UniProtRESTBatchQuery(strain).enzyme_record
         combined = MGI_UNIP_Merger(mgi=mgi_record, unip=unip_record)
 
         for gene in combined.mgi_unip_dict:
-            #wd_gene = WDGeneItem(gene, strain)
-            #wd_gene.gene_item()
+            if sys.argv[3] == 'genes':
+                wd_gene = WDGeneItem(gene, strain)
+                wd_gene.gene_item()
+            if sys.argv[3] == 'proteins':
+                wd_protein = WDProteinItem(gene, strain)
+                wd_protein.protein_item()
+            if sys.argv[3] == 'encode_genes':
+                wd_encoder = GeneProteinEncodes(gene)
+                wd_encoder.wd_gene_encodes()
+            if sys.argv[3] == 'encode_proteins':
+                wd_encoder = GeneProteinEncodes(gene)
+                wd_encoder.wd_protein_encodes()
 
 
-            wd_protein = WDProteinItem(gene, strain)
-            wd_protein.protein_item()
-            #wd_encoder = GeneProteinEncodes(gene)
-            #wd_encoder.wd_gene_encodes()
-            #wd_encoder.wd_protein_encodes()
 
 
