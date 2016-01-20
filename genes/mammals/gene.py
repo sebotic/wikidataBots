@@ -464,12 +464,7 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
             self.wdid = wdPage.write(self.logincreds)
-        if not os.path.exists('./json_dumps'):
-            os.makedirs('./json_dumps')
 
-        f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
-        pprint.pprint(self.wd_json_representation, stream = f)
-        f.close()
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=str(self.entrezgene),
                         exception_type='',
