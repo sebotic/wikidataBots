@@ -528,7 +528,8 @@ except Exception as e:
 
 
 
-print("Finding Bacterial Reference Genome...standby...")
+print("Finding Bacterial Reference Genome...")
+print("Standby...")
 reference_genomes_list = NCBIReferenceGenomes()
 
 for strain in reference_genomes_list.tid_list:
