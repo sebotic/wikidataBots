@@ -28,11 +28,11 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
-import PBB_Core
-import PBB_Debug
-import PBB_login
-import PBB_settings
-import ProteinBoxBotKnowledge
+import ProteinBoxBot_Core.PBB_Core as PBB_Core
+import ProteinBoxBot_Core.PBB_Debug as PBB_Debug
+import ProteinBoxBot_Core.PBB_login as PBB_login
+import ProteinBoxBot_Core.PBB_settings as PBB_settings
+import genes.mammals.ProteinBoxBotKnowledge as ProteinBoxBotKnowledge
 import requests
 import copy
 import traceback
