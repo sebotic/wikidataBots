@@ -28,11 +28,11 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
-import PBB_Core
-import PBB_Debug
-import PBB_login
-import PBB_settings
-import ProteinBoxBotKnowledge
+import ProteinBoxBot_Core.PBB_Core as PBB_Core
+import ProteinBoxBot_Core.PBB_Debug as PBB_Debug
+import ProteinBoxBot_Core.PBB_login as PBB_login
+import ProteinBoxBot_Core.PBB_settings as PBB_settings
+import genes.mammals.ProteinBoxBotKnowledge as ProteinBoxBotKnowledge
 import requests
 import copy
 import traceback
@@ -464,12 +464,7 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
             self.wdid = wdPage.write(self.logincreds)
-        if not os.path.exists('./json_dumps'):
-            os.makedirs('./json_dumps')
 
-        f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
-        pprint.pprint(self.wd_json_representation, stream = f)
-        f.close()
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
                         main_data_id=str(self.entrezgene),
                         exception_type='',

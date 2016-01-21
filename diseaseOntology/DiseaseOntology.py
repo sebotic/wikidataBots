@@ -209,7 +209,7 @@ class  disease(object):
 
         refStatedIn = PBB_Core.WDUrl(value=doVersionURL, prop_nr='P1065', is_reference=True)
         refStatedIn.overwrite_references = True
-        refImported = PBB_Core.WDItemID(value=5282129, prop_nr='P143', is_reference=True)
+        refImported = PBB_Core.WDItemID(value=5282129, prop_nr='P248', is_reference=True)
         refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
