@@ -302,7 +302,7 @@ class WDGeneItem(object):
         Write gene items using dictionary from wd_parse_mgi(self):
         :return:
         """
-        item_name = self.gene_record.name 
+        item_name = self.gene_record.name + "\t" + self.gene_record.gene_symbol
         alias_list = [self.gene_record.gene_symbol]
         strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
         strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
