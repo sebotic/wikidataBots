@@ -23,7 +23,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
-
 import sys
 import os
 
