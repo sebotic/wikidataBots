@@ -299,6 +299,7 @@ class HumanProtein(object):
                 proteinPrep['P705'].append(
                     PBB_Core.WDString(value=self.ensemblp[i], prop_nr='P705', references=protein_reference))
 
+        """
         # P686 = Gene Ontology ID
         proteinPrep["P680"] = []
         proteinPrep["P681"] = []
@@ -340,7 +341,7 @@ class HumanProtein(object):
                 if not exists:
                     proteinPrep["P682"].append(
                         PBB_Core.WDItemID(value=goWdId, prop_nr='P682', references=protein_reference))
-
+        """
 
         # P702 = Encoded by
         if "gene_id" in vars(self) and len(self.gene_id) > 0:
@@ -392,31 +393,6 @@ class HumanProtein(object):
         ))
         print("===============")
 
-        """
-        '''
-        Adding the encodes property to gene pages
-        '''
-
-        if "gene_id" in vars(self) and len(self.gene_id) > 0:
-            for geneId in self.gene_id:
-                gene_wdid = 'Q'+str(self.entrezWikidataIds[self.gene_id[0].replace("http://purl.uniprot.org/geneid/", "").replace(" ", "")])
-                if gene_wdid not in genePrep:
-                    genePrep[gene_wdid] = []
-                genePrep[gene_wdid].append(PBB_Core.WDItemID(value=wdProteinpage.wd_item_id, prop_nr='P688', references=protein_reference))
-
-        for key in genePrep.keys():
-            # wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes", append_value=['P688'])
-            wdGenePage = PBB_Core.WDItemEngine(wd_item_id=key, data=genePrep[key], server="www.wikidata.org", domain="genes")
-            print(wdGenePage.write(self.logincreds))
-        """
-        PBB_Core.WDItemEngine.log('INFO',
-                            '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-                                          main_data_id=self.uniprotId,
-                                          exception_type='',
-                                          message="Gene " + key + " get updated with encoded property",
-                                          wd_id=self.wdid,
-                                          duration=time.time() - self.start
-                                      ))
 
 
 

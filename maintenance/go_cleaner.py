@@ -16,22 +16,30 @@ class GOCleaner(object):
 
         self.login_obj = login
 
-        wdq_results = PBB_Core.WDItemList('CLAIM[686]', '686').wditems
-        wd_go_terms = list(map(lambda z: z[2], wdq_results['props']['686']))
-        go_qid_list = list(map(lambda z: 'Q{}'.format(z[0]), wdq_results['props']['686']))
+        # wdq_results = PBB_Core.WDItemList('CLAIM[686]', '686').wditems
+        # wd_go_terms = list(map(lambda z: z[2], wdq_results['props']['686']))
+        # go_qid_list = list(map(lambda z: 'Q{}'.format(z[0]), wdq_results['props']['686']))
 
+        query = '''
+            SELECT distinct ?gene ?go WHERE {
+                ?gene wdt:P686 ?go .
+                FILTER(!REGEX(?go, "^GO:[0-9]", "i"))
+            }
+        '''
         qids_to_clean = set()
+        for x in PBB_Core.WDItemEngine.execute_sparql_query(query=query)['results']['bindings']:
+            qids_to_clean.add(x['gene']['value'].split('/')[-1])
 
-        print(len(wd_go_terms))
-        for count, go_term in enumerate(wd_go_terms):
-            curr_qid = go_qid_list[wd_go_terms.index(go_term)]
+        # print(len(wd_go_terms))
+        # for count, go_term in enumerate(wd_go_terms):
+        #     curr_qid = go_qid_list[wd_go_terms.index(go_term)]
+        #
+        #     # try:
+        #     #     int(go_term)
+        #     # except ValueError as e:
+        #     qids_to_clean.add(curr_qid)
 
-            # try:
-            #     int(go_term)
-            # except ValueError as e:
-            qids_to_clean.add(curr_qid)
-
-        for curr_qid in qids_to_clean:
+        for count, curr_qid in enumerate(qids_to_clean):
             start = time.time()
             clean_gos = []
             print(curr_qid)

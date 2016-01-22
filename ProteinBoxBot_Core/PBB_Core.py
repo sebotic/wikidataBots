@@ -1,6 +1,21 @@
 #!usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import time
+import datetime
+import itertools
+import requests
+import re
+import logging
+import os
+
+import copy
+import pprint
+import wd_property_store
+import json
+
+from SPARQLWrapper import SPARQLWrapper, JSON
+
 """
 Authors: 
   Sebastian Burgstaller (sebastian.burgstaller' at 'gmail.com
@@ -24,23 +39,6 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Sebastian Burgstaller, Andra Waagmeester'
 __license__ = 'GPL'
-
-import time
-import datetime
-import itertools
-import requests
-import re
-import logging
-import os
-
-import PBB_Debug
-# import mysql.connector
-import copy
-import pprint
-import wd_property_store
-import json
-
-from SPARQLWrapper import SPARQLWrapper, JSON
 
 
 class WDItemList(object):
@@ -67,7 +65,6 @@ class WDItemList(object):
 
 class WDItemEngine(object):
 
-    create_new_item = False
     log_file_name = ''
 
     def __init__(self, wd_item_id='', item_name='', domain='', data=[], server='www.wikidata.org',
@@ -86,17 +83,18 @@ class WDItemEngine(object):
         self.wd_json_representation = {}
         self.wd_item_id = wd_item_id
         self.item_name = item_name
+        self.create_new_item = False
         self.domain = domain
         self.data = data
         self.server = server
         self.append_value = append_value
         self.use_sparql = use_sparql
         self.statements = []
+        self.entity_metadata = {}
 
         if self.item_name is not '' and self.domain is None and len(self.data) > 0:
             self.create_new_item = True
-            return
-        if self.item_name is '' and self.wd_item_id is '':
+        elif self.item_name is '' and self.wd_item_id is '':
             raise IDMissingError('No item name or WD identifier was given')
         elif self.wd_item_id is not '':
             self.wd_json_representation = self.get_wd_entity()
@@ -150,6 +148,8 @@ class WDItemEngine(object):
         :return: returns the json representation containing 'labels', 'descriptions', 'claims', 'aliases', 'sitelinks'.
         """
         wd_data = {x: wd_json[x] for x in ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks') if x in wd_json}
+        self.entity_metadata = {x: wd_json[x] for x in wd_json if x not in
+                                ('labels', 'descriptions', 'claims', 'aliases', 'sitelinks')}
 
         self.statements = []
         for prop in wd_data['claims']:
@@ -370,12 +370,18 @@ class WDItemEngine(object):
 
                 # set all existing values of a property for removal
                 for x in prop_data:
-                    if x.get_id() != '' and not hasattr(x, 'retain'):
+                    # for deletion of single statements, do not set all others to delete
+                    if hasattr(stat, 'remove'):
+                        break
+                    elif x.get_id() != '' and not hasattr(x, 'retain'):
                         setattr(x, 'remove', '')
 
                 match = []
                 for i in prop_data:
-                    if stat == i:
+                    if stat == i and hasattr(stat, 'remove'):
+                        match.append(True)
+                        setattr(i, 'remove', '')
+                    elif stat == i:
                         match.append(True)
                         setattr(i, 'retain', '')
                         delattr(i, 'remove')
@@ -383,14 +389,14 @@ class WDItemEngine(object):
                         handle_references(old_item=i, new_item=stat)
 
                         i.set_rank(rank=stat.get_rank())
-                    # if there is no value, do not add an element, this is also used to delete whole statements.
+                    # if there is no value, do not add an element, this is also used to delete whole properties.
                     elif i.get_value() != '':
                         match.append(False)
 
-                if True not in match:
+                if True not in match and not hasattr(stat, 'remove'):
                     self.statements.insert(insert_pos + 1, stat)
 
-        # add remove flag to all statements which should be deleted
+        # For whole property deletions, add remove flag to all statements which should be deleted
         for item in copy.deepcopy(self.statements):
             if item.get_prop_nr() in statements_for_deletion and item.get_id() != '':
                 setattr(item, 'remove', '')
@@ -459,10 +465,11 @@ class WDItemEngine(object):
         majority_match = count_existing_ids - data_match_count > round(count_existing_ids * 0.66)
 
         # make decision if ManualInterventionReqException should be raised.
-        if data_match_count < count and majority_match and self.item_name.lower() not in names:
-            raise ManualInterventionReqException('Retrieved name does not match provided item name or core IDs. '
+        if data_match_count < count and majority_match:
+            raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
                                                  'Matching count {}, nonmatching count {}'
-                                                 .format(data_match_count, count_existing_ids - data_match_count), '', '')
+                                                 .format(self.wd_item_id, data_match_count,
+                                                         count_existing_ids - data_match_count), '', '')
         else:
             return True
 
@@ -607,11 +614,11 @@ class WDItemEngine(object):
             'charset': 'utf-8'
         }
         payload = {
-            u'action': u'wbeditentity',
-            u'data': json.JSONEncoder().encode(self.wd_json_representation),
-            u'format': u'json',
-            u'token': edit_token,
-            u'bot': ''
+            'action': 'wbeditentity',
+            'data': json.JSONEncoder().encode(self.wd_json_representation),
+            'format': 'json',
+            'token': edit_token,
+            'bot': ''
         }
 
         if self.create_new_item:
@@ -630,7 +637,6 @@ class WDItemEngine(object):
             # pprint.pprint(json_data)
 
             if 'error' in json_data.keys():
-                PBB_Debug.prettyPrint(json_data)
                 if 'wikibase-validator-label-with-description-conflict' == json_data['error']['messages'][0]['name']:
                     raise NonUniqueLabelDescriptionPairError(json_data)
                 else:
@@ -638,7 +644,6 @@ class WDItemEngine(object):
 
         except requests.HTTPError as e:
             repr(e)
-            PBB_Debug.getSentryClient().captureException(PBB_Debug.getSentryClient())
 
         # after successful write, update this object with latest json, QID and parsed data types.
 
@@ -718,7 +723,7 @@ class WDItemEngine(object):
         return sparql.query().convert()
 
     @staticmethod
-    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org'):
+    def merge_items(from_id, to_id, login_obj, server='https://www.wikidata.org', ignore_conflicts=''):
         """
         A static method to merge two Wikidata items
         :param from_id: The QID which should be merged into another item
@@ -729,6 +734,9 @@ class WDItemEngine(object):
         :type login_obj: instance of PBB_login.WDLogin
         :param server: The MediaWiki server which should be used, default: 'https://www.wikidata.org'
         :type server: str
+        :param ignore_conflicts: A string with the values 'description', 'statement' or 'sitelink', separated
+                by a pipe ('|') if using more than one of those.
+        :type ignore_conficts: str
         """
         url = server + '/w/api.php'
 
@@ -743,7 +751,8 @@ class WDItemEngine(object):
             'toid': to_id,
             'token': login_obj.get_edit_token(),
             'format': 'json',
-            'bot': ''
+            'bot': '',
+            'ignoreconflicts': ignore_conflicts
         }
 
         try:
@@ -754,6 +763,9 @@ class WDItemEngine(object):
 
         except requests.HTTPError as e:
             print(e)
+            return {'error': 'HTTPError'}
+
+        return merge_reply.json()
 
 
 class JsonParser(object):
@@ -983,11 +995,11 @@ class WDBaseDataType(object):
     def get_id(self):
         return self.id
 
-    def set_id(self, id):
-        self.id = id
+    def set_id(self, claim_id):
+        self.id = claim_id
 
-    def set_hash(self, hash):
-        self.hash = hash
+    def set_hash(self, wd_hash):
+        self.hash = wd_hash
 
     def get_hash(self):
         return self.hash
@@ -1103,8 +1115,9 @@ class WDString(WDBaseDataType):
         :type rank: str
         """
 
-        super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE, is_reference=is_reference,
-                         is_qualifier=is_qualifier, references=references, qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
+        super(WDString, self).__init__(value=value, snak_type=snak_type, data_type=self.DTYPE,
+                                       is_reference=is_reference, is_qualifier=is_qualifier, references=references,
+                                       qualifiers=qualifiers, rank=rank, prop_nr=prop_nr)
 
         self.set_value(value=value)
 

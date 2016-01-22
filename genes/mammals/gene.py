@@ -23,16 +23,15 @@ along with ProteinBoxBot.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Andra Waagmeester'
 __license__ = 'GPL'
-
 import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
-import PBB_Core
-import PBB_Debug
-import PBB_login
-import PBB_settings
-import ProteinBoxBotKnowledge
+import ProteinBoxBot_Core.PBB_Core as PBB_Core
+import ProteinBoxBot_Core.PBB_Debug as PBB_Debug
+import ProteinBoxBot_Core.PBB_login as PBB_login
+import ProteinBoxBot_Core.PBB_settings as PBB_settings
+import genes.mammals.ProteinBoxBotKnowledge as ProteinBoxBotKnowledge
 import requests
 import copy
 import traceback
@@ -195,7 +194,7 @@ class mammal_gene(object):
             if isinstance(gene_annotations["MGI"], list):
                 self.MGI = gene_annotations["MGI"]
             else:
-                self.MGI = [gene_annotations["MGI"].replace("MGI:", "")]
+                self.MGI = [gene_annotations["MGI"]]
         else:
             self.MGI = None
 
@@ -292,6 +291,13 @@ class mammal_gene(object):
         refRetrieved.overwrite_references = True
         gene_reference = [refStatedIn, refImported, refRetrieved]
 
+        refStatedInEnsembl = PBB_Core.WDItemID(value= 'Q21996330', prop_nr='P248', is_reference=True)
+        refStatedInEnsembl.overwrite_references = True
+        refImportedEnsembl = PBB_Core.WDItemID(value='Q1344256', prop_nr='P143', is_reference=True)
+        refImportedEnsembl.overwrite_references = True
+
+        ensembl_reference = [refStatedInEnsembl, refImportedEnsembl, refRetrieved]
+
         genomeBuildQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly"], prop_nr='P659',
                                                  is_qualifier=True)
         genomeBuildPreviousQualifier = PBB_Core.WDItemID(value=self.genomeInfo["genome_assembly_previous"],
@@ -368,7 +374,7 @@ class mammal_gene(object):
             if self.startpos != None:
                 for pos in self.startpos:
                     prep['P644'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
         if "endpos" in vars(self):
             if not 'P645' in prep.keys():
@@ -376,7 +382,7 @@ class mammal_gene(object):
             if self.endpos != None:
                 for pos in self.endpos:
                     prep['P645'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildQualifier)]))
 
         if "startposHg19" in vars(self):
@@ -385,7 +391,7 @@ class mammal_gene(object):
             if self.startposHg19 != None:
                 for pos in self.startposHg19:
                     prep['P644'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P644', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
         if "endposHg19" in vars(self):
             if not 'P644' in prep.keys():
@@ -393,7 +399,7 @@ class mammal_gene(object):
             if self.endposHg19 != None:
                 for pos in self.endposHg19:
                     prep['P645'].append(
-                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(gene_reference)],
+                        PBB_Core.WDString(value=str(pos), prop_nr='P645', references=[copy.deepcopy(ensembl_reference)],
                                           qualifiers=[copy.deepcopy(genomeBuildPreviousQualifier)]))
 
         if "MGI" in vars(self):
@@ -415,9 +421,6 @@ class mammal_gene(object):
         else:
             self.synonyms = None
 
-
-
-
         data2add = []
         for key in prep.keys():
             for statement in prep[key]:
@@ -425,7 +428,7 @@ class mammal_gene(object):
                 print(statement.prop_nr, statement.value)
 
         if self.wdid != None:
-          if self.encodes != None:
+          # if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(self.wdid, item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
             if wdPage.get_description() == "":
@@ -444,7 +447,7 @@ class mammal_gene(object):
             wdPage.write(self.logincreds)
             print("aa")
         else:
-          if self.encodes != None:
+          #if self.encodes != None:
             wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org",
                                            domain="genes")
             if wdPage.get_description() != "":
@@ -460,19 +463,14 @@ class mammal_gene(object):
             PBB_Debug.prettyPrint(data2add)
             # print(self.wd_json_representation)
             self.wdid = wdPage.write(self.logincreds)
-        if not os.path.exists('./json_dumps'):
-            os.makedirs('./json_dumps')
 
-        #f = open('./json_dumps/'+str(self.entrezgene)+'.json', 'w+')
-        #pprint.pprint(self.wd_json_representation, stream = f)
-        #f.close()
-        #PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-        #                main_data_id=str(self.entrezgene),
-        #                exception_type='',
-        #                message=f.name,
-        #                wd_id=self.wdid,
-        #                duration=time.time()-self.start
-        #            ))
+        PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id=str(self.entrezgene),
+                        exception_type='',
+                        message=f.name,
+                        wd_id=self.wdid,
+                        duration=time.time()-self.start
+                    ))
 
     def annotate_gene(self):
         # "Get gene annotations from mygene.info"     

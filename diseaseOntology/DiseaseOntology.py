@@ -52,22 +52,29 @@ class diseaseOntology():
         self.start = time.time()
         self.content = ET.fromstring(self.download_disease_ontology())
         self.logincreds = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
-        self.updateDiseaseOntologyVersion()
+        # self.updateDiseaseOntologyVersion()
 
         # Get all WikiData entries that contain a WikiData ID
         print("Getting all terms with a Disease Ontology ID in WikiData")
         doWikiData_id = dict()
         DoInWikiData = PBB_Core.WDItemList("CLAIM[699]", "699")
 
+        print("Getting latest version of Disease Ontology from Github")
+        r = requests.get("https://api.github.com/repos/DiseaseOntology/HumanDiseaseOntology/git/refs")
+        test = r.json()
+        sha = test[0]["object"]["sha"]
+        githubReferenceUrl = "https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/"+sha+"/src/ontology/doid.owl"
+
+
 
         for diseaseItem in DoInWikiData.wditems["props"]["699"]:
            doWikiData_id[str(diseaseItem[2])]=diseaseItem[0] # diseaseItem[2] = DO identifier, diseaseItem[0] = WD identifier
        
         for doClass in self.content.findall('.//owl:Class', DiseaseOntology_settings.getDoNameSpaces()):
-          try:      
+          try:
             disVars = []
             disVars.append(doClass)
-            disVars.append(self.doVersionID)
+            disVars.append(githubReferenceUrl)
             disVars.append(doWikiData_id)
             disVars.append(self.logincreds)
             disVars.append(self.start)
@@ -101,6 +108,7 @@ class diseaseOntology():
         r = requests.get(DiseaseOntology_settings.getdoUrl())
         return r.text
 
+    '''
     def updateDiseaseOntologyVersion(self):   
         diseaseOntology = self.content   
         namespaces = {'owl': 'http://www.w3.org/2002/07/owl#', 'rdfs': 'http://www.w3.org/2000/01/rdf-schema#', 'oboInOwl': 'http://www.geneontology.org/formats/oboInOwl#', 'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'}
@@ -138,7 +146,7 @@ class diseaseOntology():
         else:
             self.doVersionID = reply['search'][0]['id']
         print(self.doVersionID)
-           
+        '''
 
         
 class  disease(object):
@@ -152,7 +160,7 @@ class  disease(object):
         :param xrefs: a dictionary with all external references of the Disease captured in the Disease Ontology
         """
         # Reference section
-        doVersionID = object[1]
+        doVersionURL = object[1]
         doClass = object[0]         
         self.logincreds = object[3]
         self.wd_doMappings = object[2]
@@ -197,14 +205,16 @@ class  disease(object):
                 self.xrefs[xref.text.split(":")[0]] = []
             self.xrefs[xref.text.split(":")[0]].append(xref.text.split(":")[1])
 
-        refStatedIn = PBB_Core.WDItemID(value=int(doVersionID.replace("Q", "")), prop_nr='P248', is_reference=True)
+
+
+        refStatedIn = PBB_Core.WDUrl(value=doVersionURL, prop_nr='P1065', is_reference=True)
         refStatedIn.overwrite_references = True
-        refImported = PBB_Core.WDItemID(value=5282129, prop_nr='P143', is_reference=True)
+        refImported = PBB_Core.WDItemID(value=5282129, prop_nr='P248', is_reference=True)
         refImported.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         refRetrieved.overwrite_references = True
-        do_reference = [refStatedIn, refImported, refRetrieved]
+        do_reference = [refImported, refRetrieved, refStatedIn]
 
         prep = dict()
         prep["P279"] = [PBB_Core.WDItemID(value='Q12136', prop_nr='P279', references=[copy.deepcopy(do_reference)], rank=self.rank)]
