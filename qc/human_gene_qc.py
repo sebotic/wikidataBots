@@ -23,5 +23,7 @@ counter = 0
 for gene in ncbi_genes["hits"]:
     if str(gene["entrezgene"]) not in ncbiGeneWikidataIds.keys():
         print("warning: missing in wikidata: "+ '\t'+str(gene["entrezgene"]) + '\t'+ gene["name"])
+    else:
+        print("info: "+ '\t'+str(gene["entrezgene"]) + '\t'+ gene["name"]+"\texists in wikidata:")
 
 
