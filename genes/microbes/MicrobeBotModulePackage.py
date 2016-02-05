@@ -45,7 +45,7 @@ class ReferenceStore(object):
         return [NCBIgenerefStated, refRetrieved]
 
 
-class WDProp2QID_SPARQL(object):
+class WDProp2QIDSPARQL(object):
     def __init__(self, prop='', string=''):
         self.qid = self.SPARQL_for_qidbyprop(prop, string)
 
@@ -73,7 +73,7 @@ class WDProp2QID_SPARQL(object):
         return final_qid[0]
 
 
-class WDQID2Label_SPARQL(object):
+class WDQID2LabelSPARQL(object):
     def __init__(self, qid=''):
         self.label = self.qid2label(qid)
 
@@ -302,10 +302,10 @@ class WDGeneItem(object):
         Write gene items using dictionary from wd_parse_mgi(self):
         :return:
         """
-        item_name = self.gene_record.name + "\t" + self.gene_record.locus_tag
+        item_name = self.gene_record.name + "\t" + self.gene_record.gene_symbol
         alias_list = [self.gene_record.gene_symbol]
-        strain_qid = WDProp2QID_SPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
-        strain_label = WDQID2Label_SPARQL(qid=strain_qid).label
+        strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
+        strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
         description = "microbial gene found in " + strain_label
 
         NCBIgenerefStated = PBB_Core.WDItemID(value='Q20641742', prop_nr='P248', is_reference=True)
@@ -372,8 +372,8 @@ class WDProteinItem(object):
 
         item_name = self.gene_record.name + "\t" + self.gene_record.protein_symbol
         alias_list = [self.gene_record.protein_symbol]
-        strain_qid = WDProp2QID_SPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
-        strain_label = WDQID2Label_SPARQL(qid=strain_qid).label
+        strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
+        strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
         description = "microbial protein found in " + strain_label
 
         uniprotrefStated = PBB_Core.WDItemID(value='Q905695', prop_nr='P248', is_reference=True)
@@ -401,8 +401,8 @@ class WDProteinItem(object):
         if self.gene_record.GO_MF:
             mfdict = {}
             for mfgt in self.gene_record.GO_MF:
-                mfdict['go_qid'] = WDProp2QID_SPARQL(prop='P686', string= mfgt['mf_goid']).qid
-                mfdict['go_label'] = WDQID2Label_SPARQL(qid=mfdict['go_qid']).label
+                mfdict['go_qid'] = WDProp2QIDSPARQL(prop='P686', string= mfgt['mf_goid']).qid
+                mfdict['go_label'] = WDQID2LabelSPARQL(qid=mfdict['go_qid']).label
                 if mfgt['mf_goterm'] == mfdict['go_label']:
                     mfgoqidlist.append(mfdict['go_qid'])
             if mfgoqidlist:
@@ -413,8 +413,8 @@ class WDProteinItem(object):
         if self.gene_record.GO_CC:
             ccdict = {}
             for ccgt in self.gene_record.GO_CC:
-                ccdict['go_qid'] = WDProp2QID_SPARQL(prop='P686', string= ccgt['cc_goid']).qid
-                ccdict['go_label'] = WDQID2Label_SPARQL(qid=ccdict['go_qid']).label
+                ccdict['go_qid'] = WDProp2QIDSPARQL(prop='P686', string= ccgt['cc_goid']).qid
+                ccdict['go_label'] = WDQID2LabelSPARQL(qid=ccdict['go_qid']).label
                 if ccgt['cc_goterm'] == ccdict['go_label']:
                     ccgoqidlist.append(ccdict['go_qid'])
             if ccgoqidlist:
@@ -425,8 +425,8 @@ class WDProteinItem(object):
         if self.gene_record.GO_BP:
             bpdict = {}
             for bpgt in self.gene_record.GO_BP:
-                bpdict['go_qid'] = WDProp2QID_SPARQL(prop='P686', string= bpgt['bp_goid']).qid
-                bpdict['go_label'] = WDQID2Label_SPARQL(qid=bpdict['go_qid']).label
+                bpdict['go_qid'] = WDProp2QIDSPARQL(prop='P686', string= bpgt['bp_goid']).qid
+                bpdict['go_label'] = WDQID2LabelSPARQL(qid=bpdict['go_qid']).label
                 if bpgt['bp_goterm'] == bpdict['go_label']:
                     bpgoqidlist.append(bpdict['go_qid'])
             if bpgoqidlist:
@@ -481,8 +481,8 @@ class WDProteinItem(object):
 class GeneProteinEncodes(object):
     def __init__(self, gene_record):
         self.gene_record = GeneDataParser(gene_record)
-        self.g_qid = WDProp2QID_SPARQL(prop='P351', string=self.gene_record.geneid).qid
-        self.p_qid = WDProp2QID_SPARQL(prop='P352', string=self.gene_record.uniprotid).qid
+        self.g_qid = WDProp2QIDSPARQL(prop='P351', string=self.gene_record.geneid).qid
+        self.p_qid = WDProp2QIDSPARQL(prop='P352', string=self.gene_record.uniprotid).qid
         self.references = ReferenceStore()
 
     def encodes(self):
@@ -565,6 +565,8 @@ except Exception as e:
 print("Finding Bacterial Reference Genome...")
 print("Standby...")
 reference_genomes_list = NCBIReferenceGenomes()
+#pprint.pprint(reference_genomes_list.tid_list)
+
 
 for strain in reference_genomes_list.tid_list:
     pstrain = StrainDataParser(strain)
@@ -587,7 +589,7 @@ for strain in reference_genomes_list.tid_list:
             if sys.argv[3] == 'encoder':
                 wd_encoder = GeneProteinEncodes(gene)
                 wd_encoder.encodes()
-    
+
 
 
 
