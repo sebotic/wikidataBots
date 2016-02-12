@@ -37,7 +37,7 @@ def findReviewedUniprotEntry(entries, entrez):
       - `entries`: a dict of entries, e.g {'Swiss-Prot':'12345', 'TrEMBL':'67890'}
     '''
     if not isinstance(entries, dict) and not entrez:
-        return u''
+        return ''
     elif entrez:
         return uniprot_acc_for_entrez_id(entrez)
 
@@ -77,7 +77,7 @@ def get_homolog(json_res):
        homologs = json_res.get('homologene').get('genes')
        # isolate our particular taxon (returns [[taxon, gene]])
        if homologs:
-           pair = filter(lambda x: x[0] == settings.MOUSE_TAXON_ID, homologs)
+           pair = [x for x in homologs if x[0] == settings.MOUSE_TAXON_ID]
            if pair:
                return pair[0][1]
            else:

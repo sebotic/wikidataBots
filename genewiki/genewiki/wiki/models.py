@@ -42,7 +42,7 @@ class Bot(models.Model):
         connection = self.connection()
         lists = connection.usercontributions(self.username, start=None, end=None, dir='older', namespace=None, prop=None, show=None, limit=limit)
         for item in lists:
-            print item['title']
+            print ((item['title']))
 
     def fetch_update_articles(self):
         connection = self.connection()
@@ -56,7 +56,7 @@ class Bot(models.Model):
                     logger.info('Article Added', exc_info=True, extra={'article': article, 'title': page.name})
 
     def __unicode__(self):
-        return u'{0} ({1})'.format(self.username, self.service_type)
+        return '{0} ({1})'.format(self.username, self.service_type)
 
 
 class Article(models.Model):
@@ -82,13 +82,13 @@ class Article(models.Model):
     objects = ArticleManager()
 
     def __unicode__(self):
-        return u'{0}'.format(self.title)
+        return '{0}'.format(self.title)
 
     class Meta:
         ordering = ('-updated',)
 
     def url_for_article(self):
-        return u'http://{0}/wiki/{1}'.format(settings.BASE_SITE, self.title)
+        return 'http://{0}/wiki/{1}'.format(settings.BASE_SITE, self.title)
 
     def get_entrez(self):
         entrez_regex = r'Template:PBB/([\d]*)'

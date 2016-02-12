@@ -3,8 +3,7 @@ from django.db import models
 
 from genewiki.bio.g2p_redis import get_pmids, init_redis
 
-import re, copy, json, datetime, urllib, PBB_Core, PBB_login
-
+import re, copy, json, datetime, urllib.request, urllib.parse, urllib.error, PBB_Core, PBB_login
 
 def check(titles):
     '''
@@ -12,10 +11,10 @@ def check(titles):
         the first command-line argument.
     '''
     titles = [titles] if isinstance(titles, str) else titles
-    qtitles = [urllib.quote(x) for x in titles]
+    qtitles = [urllib.parse.quote(x) for x in titles]
     querystr = '|'.join(qtitles)
     api = 'http://en.wikipedia.org/w/api.php?action=query&titles={title}&prop=info&redirects&format=json'
-    j = json.loads(urllib.urlopen(api.format(title=querystr)).read())
+    j = json.loads(urllib.request.urlopen(api.format(title=querystr)).read().decode())
     results = {}
     pages = j['query']['pages']
     if 'redirects' in j['query']:
@@ -37,8 +36,8 @@ def create_stub(gene_id):
     try:
         from genewiki.bio.mygeneinfo import get_response
         root, meta, homolog, entrez, uniprot = get_response(gene_id)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         return None
 
     summary = root.get('summary', '')
@@ -98,7 +97,7 @@ def create(entrez, force=False):
     wikidata_results = PBB_Core.WDItemEngine.execute_sparql_query(prefix=settings.PREFIX, query=entrez_query)['results']['bindings']
     entrez_id = ''
     for x in wikidata_results:
-	entrez_id = x['entrez_id']['value']
+        entrez_id = x['entrez_id']['value']
     if entrez_id != str(entrez):
         return None
     else:
@@ -111,8 +110,8 @@ def create(entrez, force=False):
 
        # For each of the titles, build out the correct names and
        # corresponding Boolean for if they're on Wikipedia
-       checked = check([titles[key][0] for key in titles.keys()])
-       for key, value in titles.iteritems():
+       checked = check([titles[key][0] for key in list(titles.keys())])
+       for key, value in list(titles.items()):
            if checked.get(value[0]):
                titles[key] = (value[0], True)
        results['titles'] = titles
@@ -251,15 +250,15 @@ class ProteinBox(object):
 
         for field in self.fields:
             if field in self.multivalue:
-                self.fieldsdict[field] = u''
+                self.fieldsdict[field] = ''
             else:
-                self.fieldsdict[field] = u''
+                self.fieldsdict[field] = ''
 
     def coerce_unicode(self, obj):
         if isinstance(obj, str):
-            return unicode(obj, 'utf8')
+            return str(obj, 'utf8')
         elif isinstance(obj, int):
-            return unicode(str(obj), 'utf8')
+            return str(str(obj), 'utf8')
         else:
             return obj
 
@@ -281,7 +280,7 @@ class ProteinBox(object):
 
         if field_name in self.fields:
             if field_name not in self.multivalue and not self.validate(field_name, field_value):
-                print 'validation failed: ', field_name, field_value
+                print (('validation failed: ', field_name, field_value))
                 return fieldsdict
 
             if field_name in self.multivalue:
@@ -396,7 +395,7 @@ class ProteinBox(object):
                 goterms = goterms.rstrip(' ')
                 fieldsdict[field] = goterms
 
-        output = u'''{before_text}{{{{GNF_Protein_box
+        output = '''{before_text}{{{{GNF_Protein_box
  | Name = {Name}
  | image = {image}
  | image_source = {image_source}
@@ -512,7 +511,7 @@ def postprocess(fieldvalues):
     for field in pbox.fields:
         # Handle splitting up multiple value fields
         if field in pbox.multivalue:
-            print field, fieldvalues[field]
+            print ((field, fieldvalues[field]))
             if field == 'PDB' and fieldvalues[field]:
                 regex = r'\{\{PDB2\|([\w\d]*)\}\}'
                 pdbs = []
@@ -528,13 +527,13 @@ def postprocess(fieldvalues):
                 else:
                     alts = fieldvalues[field].split('; ')
                     # Filters any empty strings ('' evals to False)
-                    alts = filter(lambda x: x, alts)
-                    alts = filter(lambda x: x != ';', alts)
+                    alts = [x for x in alts if x]
+                    alts = [x for x in alts if x != ';']
                     pbox.setField(field, alts)
 
             elif field == 'ECnumber' and fieldvalues[field]:
                 ecs = fieldvalues[field].split(', ')
-                ecs = filter(lambda x: x, ecs)
+                ecs = [x for x in ecs if x]
                 pbox.setField(field, ecs)
 
             elif fieldvalues[field]:  # One of the GO fields
@@ -542,8 +541,8 @@ def postprocess(fieldvalues):
                 # we do this to avoid any junk or invalid markup in these fields
                 regex = r'\{\{GNF_GO\s?\|\s?id=(GO:[\d]*)\s?\|\s?text\s?=\s?([^\}]*)\}\}'
                 goterms = []
-                print '/ / / / / / / / / /'
-                print field, fieldvalues[field]
+                print ('/ / / / / / / / / /')
+                print ((field, fieldvalues[field]))
                 for match in re.finditer(regex, fieldvalues[field]):
                     goterms.append({match.group(1): match.group(2)})
                 pbox.setField(field, goterms)
@@ -706,7 +705,7 @@ def generate_protein_box_for_existing_article(page_source):
                 # want to do some post-processing.
                 # Also, ensure we're storing everything as unicode internally.
                 if isinstance(value, str):
-                    value = unicode(value, 'utf-8')
+                    value = str(value, 'utf-8')
                 fieldvalues[name] = value
 
                 nameParsed = False
@@ -714,7 +713,7 @@ def generate_protein_box_for_existing_article(page_source):
             except ValueError:
                 raise ParseError('Malformed wikitext- parsing failed.')
             except TypeError as e:
-                print value
+                print (value)
                 raise e
 
         # Increment index and move on

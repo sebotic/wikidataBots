@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from raven.contrib.django.raven_compat.models import client
 
 from genewiki.wiki.models import Bot, Article
