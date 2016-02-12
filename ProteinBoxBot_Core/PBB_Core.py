@@ -462,8 +462,7 @@ class WDItemEngine(object):
 
         core_prop_match_count = 0
         for x in match_count_per_prop:
-            if match_count_per_prop[x] > 0:
-                core_prop_match_count += 1
+            core_prop_match_count += match_count_per_prop[x]
 
         if core_prop_match_count < count_existing_ids * 0.66:
             raise ManualInterventionReqException('Retrieved item ({}) does not match provided core IDs. '
@@ -719,6 +718,7 @@ class WDItemEngine(object):
             PREFIX p: <http://www.wikidata.org/prop/>
             PREFIX v: <http://www.wikidata.org/prop/statement/>
             PREFIX q: <http://www.wikidata.org/prop/qualifier/>
+            PREFIX ps: <http://www.wikidata.org/prop/statement/>
 
         '''
 
@@ -861,7 +861,7 @@ class WDBaseDataType(object):
 
     sparql_query = '''
         SELECT * WHERE {{
-            ?item_id wdt:{0} '{1}' .
+            ?item_id p:{0}/ps:{0} '{1}' .
         }}
     '''
 
