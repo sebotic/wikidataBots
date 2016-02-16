@@ -1,0 +1,8 @@
+Python program to gather disseminated data from various resources (MyGene.info, NCBI Taxonomy, UniProt, etc...) and interact with Wikidata's API via PBB_Core.
+
+MicrobeBot_main.py
+-controller for MicrobeBotModularPackage.py
+USAGE: MicrobeBot_main.py <WD username> <WD password> <domain genes/proteins/encoder> <NCBI Taxonomy ID>
+
+MicrobeBotModularPackage.py
+-collection of Python classes for interacting creating, editing and maintaining microbial genetic data in Wikidata.
