@@ -2,8 +2,6 @@ from django.db import models
 from django.conf import settings
 
 from genewiki.wiki.managers import BotManager, ArticleManager
-from genewiki.wiki.textutils import generate_protein_box_for_existing_article
-from genewiki.bio.mygeneinfo import generate_protein_box_for_entrez
 
 from raven.contrib.django.raven_compat.models import client
 
@@ -83,29 +81,19 @@ class Article(models.Model):
 
     def __unicode__(self):
         return '{0}'.format(self.title)
-
+   
     class Meta:
         ordering = ('-updated',)
 
     def url_for_article(self):
         return 'http://{0}/wiki/{1}'.format(settings.BASE_SITE, self.title)
 
-    def get_entrez(self):
-        entrez_regex = r'Template:PBB/([\d]*)'
-        match = re.search(entrez_regex, self.title)
-        if match and match.group(1):
-            return int(match.group(1))
-        else:
-            return None
 
     def get_page(self):
         bot = Bot.objects.get_pbb()
         connection = bot.connection()
         return connection.Pages[self.title]
 
-    def generate_protein_box(self):
-        entrez = self.get_entrez()
-        return get_protein_box_for_entrez(entrez)
 
     def bots_allowed(self):
         '''
@@ -115,34 +103,10 @@ class Article(models.Model):
                               "ProteinBoxBot" + r'.*?|optout=all|deny=all))\}\}',
                               self.text))
 
-    def update(self):
-        '''
-          Returns an updated infobox and summary from data gathered from the
-          specified page.
-        '''
-        page = self.get_page()
-        text = page.text()
-        # Dictionary of fields to build a ProteinBox from
-        mgibox = generate_protein_box_for_entrez(self.get_entrez())
-        # Returns processed ProteinBox object
-        current_box = generate_protein_box_for_existing_article(text)
-
-        # Run the comparision between the current box online
-        # and the dictionary just generated from mygene
-        try:
-            updated, summary, updatedfields = current_box.updateWith(mgibox)
-        except Exception:
-            client.captureException()
-
-        self.write(updated, summary)
-        logger.info('Page Updated', exc_info=True, extra={'updated': updated, 'summary': summary, 'updatedfields': updatedfields})
-
     def write(self, proteinbox=None, summary=None):
         '''
           Writes the wikitext representation of the protein box to MediaWiki.
-
           Returns (result, None) if successful, or (None, Error) if not.
-
           Arguments:
           - `proteinbox`: an updated proteinbox to write
         '''
@@ -152,16 +116,9 @@ class Article(models.Model):
             logger.warn('Bots Blocked', exc_info=True, extra={'page': page, 'bot': self})
 
         try:
-            if proteinbox:
-                result = page.save(str(proteinbox), summary, minor=True)
-                self.text = page.edit()
-            else:
-                result = page.save(self.text, summary, minor=True)
-                self.force_update = False
-
+            result = page.save(self.text, summary, minor=True)
+            self.force_update = False
             self.save()
 
         except MwClientError:
-            client.captureException()
-
-
+            client.captureException
