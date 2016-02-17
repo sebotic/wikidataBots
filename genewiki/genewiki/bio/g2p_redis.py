@@ -42,10 +42,9 @@ def import_to_redis(gene2pubmed_file, redis_connection, chatty=True):
     '''
     r = redis_connection
     with gzip.open(gene2pubmed_file, 'rb') as infile:
-        print 'loading human genes...'
-        human_entries = filter(lambda line: line.startswith('9606'),
-                               infile.readlines())
-        print 'loading data into redis...'
+        print ('loading human genes...')
+        human_entries = [line for line in infile.readlines() if line.startswith('9606')]
+        print ('loading data into redis...')
 
         # remove all previous data
         r.flushdb()

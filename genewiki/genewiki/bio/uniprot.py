@@ -14,7 +14,7 @@ def uniprot_acc_for_entrez_id(entrez):
     }
     response = requests.get('http://www.uniprot.org/mapping/', params=payload)
     accns = response.text.split('\n')
-    for acc in filter(None, accns):
+    for acc in [_f for _f in accns if _f]:
         if is_reviewed(acc):
             return acc
     return None

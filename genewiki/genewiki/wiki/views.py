@@ -7,7 +7,6 @@ from django.http import HttpResponse
 from genewiki.mapping.models import Relationship
 
 from genewiki.wiki.models import Article
-from genewiki.wiki.tasks import update_articles
 
 from genewiki.wiki.textutils import create, interwiki_link
 
@@ -44,25 +43,23 @@ def article_create(request, entrez_id):
             return HttpResponse('Article or template already exists.')
 
         vals['title'] = title
-        is_template = title.startswith('Template:PBB/')
-        content = results['template'] if is_template else results['stub']
-        Article.objects.get_or_create(title=title, text=content, article_type=Article.INFOBOX if is_template else Article.PAGE, force_update=True)
+        content = results['stub']
+        Article.objects.get_or_create(title=title, text=content, article_type=Article.PAGE, force_update=True)
 
         # create corresponding talk page with appropriate project banners
-        if not is_template:
-            talk_title = 'Talk:{0}'.format(title)
-            talk_content = """{{WikiProjectBannerShell|
-                              {{WikiProject Gene Wiki|class=stub|importance=low}}
-                              {{Wikiproject MCB|class=stub|importance=low}}
-                            }}"""
-            Article.objects.get_or_create(title=talk_title, text=talk_content, article_type=Article.TALK, force_update=True)
-            #create interwiki link
-            link = interwiki_link(entrez_id, title)
+        talk_title = 'Talk:{0}'.format(title)
+        talk_content = """{{WikiProjectBannerShell|
+                          {{WikiProject Gene Wiki|class=stub|importance=low}}
+                          {{Wikiproject MCB|class=stub|importance=low}}
+                          }}"""
+        Article.objects.get_or_create(title=talk_title, text=talk_content, article_type=Article.TALK, force_update=True)
+        #create interwiki link
+        link = interwiki_link(entrez_id, title)
      
 
-            # Save the entrez_id to title mapping for future reference
-            if not Relationship.objects.filter(entrez_id=entrez_id).exists():
-                Relationship.objects.create(entrez_id=entrez_id, title=title)
+        # Save the entrez_id to title mapping for future reference
+        if not Relationship.objects.filter(entrez_id=entrez_id).exists():
+           Relationship.objects.create(entrez_id=entrez_id, title=title)
 
         return redirect('genewiki.wiki.views.article_create', entrez_id)
 
