@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from genewiki.bio.g2p_redis import init_redis, import_to_redis, download_g2p
 
 from celery import task

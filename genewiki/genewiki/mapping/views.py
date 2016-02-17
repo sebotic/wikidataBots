@@ -19,7 +19,7 @@ def wiki_mapping(request, entrez_id):
     relationship = Relationship.objects.filter(entrez_id=entrez_id).first()
     if relationship:
         Lookup.objects.create(relationship=relationship)
-        return redirect(u'http://en.wikipedia.org/wiki/{0}'.format(relationship.title))
+        return redirect('http://en.wikipedia.org/wiki/{0}'.format(relationship.title))
     else:
         return redirect('genewiki.wiki.views.article_create', entrez_id)
 

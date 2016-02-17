@@ -13,7 +13,7 @@ class Relationship(models.Model):
     objects = RelationshipManager()
 
     def __unicode__(self):
-        return u'{0} << >> {1}'.format(self.entrez_id, self.title)
+        return '{0} << >> {1}'.format(self.entrez_id, self.title)
 
 
 class Lookup(models.Model):
