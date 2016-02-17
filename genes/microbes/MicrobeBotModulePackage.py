@@ -14,20 +14,23 @@ import copy
 
 __author__ = 'timputman'
 
-
-
-if len(sys.argv) < 5:
-    print("   You did not supply the proper arguments!")
-    print("   Usage: MicrobeBotModularPackage.py <Wikidata user name> <Wikidata Password> <domain i.e. genes/proteins/encode_genes/encode_proteins> <microbial strain taxid>")
-    sys.exit()
-else:
-    pass
+try:
+    login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
+except Exception as e:
+    print(e)
+    print("could not log in")
 
 class ReferenceStore(object):
     def _init_(self):
         self.R_uniprot = self.uniprot_ref()
+        self.R_NCBI_gene = self.ncbi_gene()
+        self.R_NCBI_tax = self.ncbi_taxonomy()
 
     def uniprot_ref(self):
+        """
+        reference object to add to PBB_Core statements originating from UniProt database
+        :return:
+        """
         uniprotrefStated = PBB_Core.WDItemID(value='Q905695', prop_nr='P248', is_reference=True)
         uniprotrefStated.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
@@ -35,8 +38,11 @@ class ReferenceStore(object):
         refRetrieved.overwrite_references = True
         return [uniprotrefStated, refRetrieved]
 
-
-    def ncbi_ref(self):
+    def ncbi_gene(self):
+        """
+        reference object to add to PBB_Core statements originating from NCBI Gene database
+        :return:
+        """
         NCBIgenerefStated = PBB_Core.WDItemID(value='Q20641742', prop_nr='P248', is_reference=True)
         NCBIgenerefStated.overwrite_references = True
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
@@ -44,8 +50,20 @@ class ReferenceStore(object):
         refRetrieved.overwrite_references = True
         return [NCBIgenerefStated, refRetrieved]
 
+    def ncbi_taxonomy(self):
+        """
+        reference object to add to PBB_Core statements originating from NCBI Taxonomy database
+        :return:
+        """
+        NCBItaxrefStated = PBB_Core.WDItemID(value='Q13711410', prop_nr='P248', is_reference=True)
+        NCBItaxrefStated.overwrite_references = True
+        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+        refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
+        refRetrieved.overwrite_references = True
+        return [NCBItaxrefStated, refRetrieved]
 
-class WDProp2QIDSPARQL(object):
+
+class WDProp2QIDSPARQL(object): #change
     def __init__(self, prop='', string=''):
         self.qid = self.SPARQL_for_qidbyprop(prop, string)
 
@@ -78,6 +96,10 @@ class WDQID2LabelSPARQL(object):
         self.label = self.qid2label(qid)
 
     def qid2label(self, qid):
+        """
+        :param string: 'Q2458943' String value
+        :return: QID 'Label'
+        """
         sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
         prefix = 'PREFIX wd: <http://www.wikidata.org/entity/>'
         arguments = ' wd:{} rdfs:label ?label. Filter (LANG(?label) = "en") .'.format(qid)
@@ -104,7 +126,8 @@ class NCBIReferenceGenomes(object):
         Download the latest bacterial genome assembly summary from the NCBI genome ftp site
         and generate a list of relevant data for strain items based on taxids of the bacterial reference genomes.
 
-        :return:
+        :return: List of strain data lists e.g. [['species taxid1','strain taxid1','genus1', 'species1', 'strain1'],
+                                                 ['species taxid2','strain taxid2','genus2', 'species2', 'strain2']]
         """
         assembly = urllib.request.urlopen("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
         datareader = csv.reader(assembly.read().decode().splitlines(), delimiter="\t")
@@ -125,6 +148,11 @@ class NCBIReferenceGenomes(object):
 
 class StrainDataParser(object):
     def __init__(self,strain_data):
+        """
+        generates an object from parsed strain data resulting from NCBIReferenceGenomes()
+        :param strain_data:
+        :return: object for each element of strain data
+        """
         self.strain_data = strain_data
         self.species_taxid = str(self.strain_data[0])
         self.strain_taxid = self.strain_data[1]
@@ -136,8 +164,17 @@ class StrainDataParser(object):
 
 class GeneDataParser(object):
     def __init__(self, gene_data):
+        """
+        generates an object from parsed gene data resulting from  MGI_UNIP_Merger()
+        :param gene_data object from  MGI_UNIP_Merger():
+        :return: object for each element of combined gene data
+        """
         self.gene_data = gene_data
-        self.locus_tag = self.gene_data['locus_tag']
+
+        if 'locus_tag' in self.gene_data.keys():
+            self.locus_tag = self.gene_data['locus_tag']
+        else:
+            self.locus_tag = ''
         self.RS_genome = self.gene_data['RSgenomic']
         self.strand = str(self.gene_data['strand'])
         self.type_of_gene = self.gene_data['type_of_gene']
@@ -157,6 +194,11 @@ class GeneDataParser(object):
 
 class MyGeneInfoRestBatchQuery(object):
     def __init__(self, strain_data):
+        """
+        Takes strain data from NCBIReferenceGenomes() and hits MyGene.info for all gene records by strain taxid
+        :param strain_data from NCBIReferenceGenomes():
+        :return: list of python dictionaries for each MyGene.info gene record by tax id
+        """
         self.strain_taxid = StrainDataParser(strain_data).strain_taxid
         self.gene_record = self.mygeneinfo_download()
 
@@ -216,7 +258,8 @@ class UniProtRESTBatchQuery(object):
 
     def download_taxon_protein_GO(self):
         """
-        Downloads the latest list of microbial proteins from uniprot, taxon specified by the strain takid provided.
+         Downloads the latest list of microbial proteins from UniProt, taxon specified by the strain tax id provided.
+        :return: List of python dictionaries for each protein record from UniProt by Tax id
         """
 
         url = 'http://www.uniprot.org/uniprot/'
@@ -232,6 +275,7 @@ class UniProtRESTBatchQuery(object):
         for i in datareader:
             go_dict = dict()
             go_dict['uniprot'] = i[0]
+
             go_dict['locus_tag'] = i[5]
 
             if i[4]:
@@ -277,6 +321,13 @@ class UniProtRESTBatchQuery(object):
 
 class MGI_UNIP_Merger(object):
     def __init__(self, mgi, unip):
+        """
+        combines data from UniProt and MyGene.info into 1 dictionary per gene entry based
+        on UniProt ID as lookup key
+        :param mgi: single entry from MyGene.info
+        :param unip: All hits from UniProt
+        :return: list of single consolidated gene record dictionaries by tax id
+        """
         self.mgi_data = mgi
         self.unip_data = unip
         self.mgi_unip_dict = self.combine_mgi_uniprot_dicts()
@@ -291,34 +342,95 @@ class MGI_UNIP_Merger(object):
         return all_data
 
 
+class WDOrganismItem(object):
+    def __init__(self, gene_record, strain_record):
+        """
+        searches for and creates, if necessary, strain and species items
+        :param gene_record: gene record output from MGI_UNIP MERGER
+        :param strain_record: corresponding strain_record output from NCBIReferenceGenomes()
+        :return: creates new wikidata item fro species (create_species_item()) or strain (create_strain_item())
+        """
+        self.strain_record = StrainDataParser(strain_record)
+        self.refseqid = GeneDataParser(gene_record).RS_genome
+        self.references = ReferenceStore()
+        self.species_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.species_taxid).qid
+        self.strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
+
+    def create_species_item(self):
+        species_description = "species of prokaryote"
+        alias = self.strain_record.genus[0] + ". " + self.strain_record.species
+        NCIB_tax_ref = self.references.ncbi_taxonomy()
+
+        if self.species_qid != 'None':
+            print(self.strain_record.genus + " " + self.strain_record.species + " already exists\t" + self.species_qid)
+            statements = []
+            statements.append(PBB_Core.WDString(value=self.strain_record.species_taxid, prop_nr='P685', references=[copy.deepcopy(NCIB_tax_ref)])) # Species taxid
+            statements.append(PBB_Core.WDString(value=self.strain_record.genus + " " + self.strain_record.species, prop_nr='P225', references=[copy.deepcopy(NCIB_tax_ref)])) # Taxon name
+            statements.append(PBB_Core.WDItemID(value='Q7432', prop_nr='P105', references=[copy.deepcopy(NCIB_tax_ref)])) #Taxon Rank species
+            statements.append(PBB_Core.WDString(value=self.refseqid, prop_nr='P2249', references=[copy.deepcopy(NCIB_tax_ref)])) #RefSea GenomeId
+            try:
+                wd_item = PBB_Core.WDItemEngine(wd_item_id=self.species_qid, data=statements)
+                wd_item.set_aliases(alias)
+                wd_item.set_description(species_description)
+                #pprint.pprint(wd_item.get_wd_json_representation())
+                #wd_item.write(login)
+
+            except Exception as e:
+                print(e)
+
+    def create_strain_item(self):
+        strain_description = "bacterial strain"
+        alias = self.strain_record.strain
+        NCIB_tax_ref = self.references.ncbi_taxonomy()
+
+        if self.strain_qid != 'None':
+            #print(self.strain_record.genus + " " + self.strain_record.s + " " +  self.strain_record.strain + "  already exists\t" + self.species_qid)
+            statements = []
+            statements.append(PBB_Core.WDString(value=self.strain_record.strain_taxid, prop_nr='P685', references=[copy.deepcopy(NCIB_tax_ref)])) # Species taxid
+            statements.append(PBB_Core.WDString(value=self.strain_record.genus + " " + self.strain_record.species, prop_nr='P225', references=[copy.deepcopy(NCIB_tax_ref)])) # Taxon name
+            statements.append(PBB_Core.WDItemID(value='Q7432', prop_nr='P105', references=[copy.deepcopy(NCIB_tax_ref)])) #Taxon Rank species
+
+            try:
+                wd_item = PBB_Core.WDItemEngine(wd_item_id=self.species_qid, data=statements)
+                wd_item.set_aliases(alias)
+                wd_item.set_description(strain_description)
+                #pprint.pprint(wd_item.get_wd_json_representation())
+                #wd_item.write(login)
+
+            except Exception as e:
+                print(e)
+
+
 class WDGeneItem(object):
     def __init__(self, gene_record, strain_record):
+        """
+        locates and edits too, or creates new wikidata item for microbial genes
+        :param gene_record: gene record output from MGI_UNIP MERGER
+        :param strain_record: corresponding strain_record output from NCBIReferenceGenomes()
+        :return: creates or edits bacterial gene items in wikidata
+        """
         self.gene_record = GeneDataParser(gene_record)
         self.strain_record = StrainDataParser(strain_record)
-
+        self.references = ReferenceStore()
 
     def gene_item(self):
         """
         Write gene items using dictionary from wd_parse_mgi(self):
         :return:
         """
-        item_name = self.gene_record.name + "\t" + self.gene_record.gene_symbol
+        item_name = self.gene_record.name + "\t" + self.gene_record.locus_tag
         alias_list = [self.gene_record.gene_symbol]
         strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
         strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
         description = "microbial gene found in " + strain_label
 
-        NCBIgenerefStated = PBB_Core.WDItemID(value='Q20641742', prop_nr='P248', is_reference=True)
-        NCBIgenerefStated.overwrite_references = True
-        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(str(timeStringNow), prop_nr='P813', is_reference=True)
-        refRetrieved.overwrite_references = True
-        NCIB_gene_reference = [NCBIgenerefStated, refRetrieved]
+        NCIB_gene_reference = self.references.ncbi_gene()
 
         statements = list()
         statements.append(PBB_Core.WDItemID(value=strain_qid, prop_nr='P703', references=[copy.deepcopy(NCIB_gene_reference)])) #Found in taxon
         statements.append(PBB_Core.WDString(value=self.gene_record.geneid, prop_nr='P351', references=[copy.deepcopy(NCIB_gene_reference)]))
-        statements.append(PBB_Core.WDString(value=self.gene_record.locus_tag, prop_nr='P2393', references=[copy.deepcopy(NCIB_gene_reference)]))
+        if self.gene_record.locus_tag:
+            statements.append(PBB_Core.WDString(value=self.gene_record.locus_tag, prop_nr='P2393', references=[copy.deepcopy(NCIB_gene_reference)]))
         statements.append(PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(NCIB_gene_reference)]))
         statements.append(PBB_Core.WDString(value=self.gene_record.genstart, prop_nr='P644', references=[copy.deepcopy(NCIB_gene_reference)]))
         statements.append(PBB_Core.WDString(value=self.gene_record.genstop, prop_nr='P645', references=[copy.deepcopy(NCIB_gene_reference)]))
@@ -364,13 +476,20 @@ class WDGeneItem(object):
 
 class WDProteinItem(object):
     def __init__(self, gene_record, strain_record):
+        """
+        locates and edits to, or creates new wikidata item for microbial proteins
+        :param gene_record: gene record output from MGI_UNIP MERGER
+        :param strain_record: corresponding strain_record output from NCBIReferenceGenomes()
+        :return: creates or edits bacterial protein items in wikidata
+        """
         self.gene_record = GeneDataParser(gene_record)
         self.strain_record = StrainDataParser(strain_record)
+        self.references = ReferenceStore()
         self.final_protein_statements = []
 
     def protein_item(self):
 
-        item_name = self.gene_record.name + "\t" + self.gene_record.protein_symbol
+        item_name = self.gene_record.name + "\t" + self.gene_record.locus_tag
         alias_list = [self.gene_record.protein_symbol]
         strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
         strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
@@ -480,6 +599,11 @@ class WDProteinItem(object):
 
 class GeneProteinEncodes(object):
     def __init__(self, gene_record):
+        """
+        identifies microbial gene and protein items and links them via encodes (P688) and encoded by (P702) functions
+        :param gene_record: gene record from MGI_UNIP_MERGER()
+        :return: links gene and protein wikidata items.
+        """
         self.gene_record = GeneDataParser(gene_record)
         self.g_qid = WDProp2QIDSPARQL(prop='P351', string=self.gene_record.geneid).qid
         self.p_qid = WDProp2QIDSPARQL(prop='P352', string=self.gene_record.uniprotid).qid
@@ -552,43 +676,6 @@ class GeneProteinEncodes(object):
         end = time.time()
         print('Time elapsed:', end - start)
 
-
-
-try:
-    login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
-except Exception as e:
-    print(e)
-    print("could not log in")
-
-#######Call Section######
-
-print("Finding Bacterial Reference Genome...")
-print("Standby...")
-reference_genomes_list = NCBIReferenceGenomes()
-#pprint.pprint(reference_genomes_list.tid_list)
-
-
-for strain in reference_genomes_list.tid_list:
-    pstrain = StrainDataParser(strain)
-
-    if pstrain.strain_taxid == sys.argv[4]:
-
-        print("Found", strain)
-        print('Beginning {} bot run on {}'.format(sys.argv[3], pstrain.taxon_name))
-        mgi_record = MyGeneInfoRestBatchQuery(strain).gene_record
-        unip_record = UniProtRESTBatchQuery(strain).enzyme_record
-        combined = MGI_UNIP_Merger(mgi=mgi_record, unip=unip_record)
-
-        for gene in combined.mgi_unip_dict:
-            if sys.argv[3] == 'genes':
-                wd_gene = WDGeneItem(gene, strain)
-                wd_gene.gene_item()
-            if sys.argv[3] == 'proteins':
-                wd_protein = WDProteinItem(gene, strain)
-                wd_protein.protein_item()
-            if sys.argv[3] == 'encoder':
-                wd_encoder = GeneProteinEncodes(gene)
-                wd_encoder.encodes()
 
 
 
