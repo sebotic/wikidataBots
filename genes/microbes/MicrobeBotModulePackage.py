@@ -419,7 +419,7 @@ class WDGeneItem(object):
         :return:
         """
         item_name = self.gene_record.name + "\t" + self.gene_record.locus_tag
-        alias_list = [self.gene_record.gene_symbol]
+        alias_list = [self.gene_record.gene_symbol, self.gene_record.locus_tag]
         strain_qid = WDProp2QIDSPARQL(prop='P685', string=self.strain_record.strain_taxid).qid
         strain_label = WDQID2LabelSPARQL(qid=strain_qid).label
         description = "microbial gene found in " + strain_label
@@ -434,6 +434,10 @@ class WDGeneItem(object):
         statements.append(PBB_Core.WDItemID(value='Q7187', prop_nr='P279', references=[copy.deepcopy(NCIB_gene_reference)]))
         statements.append(PBB_Core.WDString(value=self.gene_record.genstart, prop_nr='P644', references=[copy.deepcopy(NCIB_gene_reference)]))
         statements.append(PBB_Core.WDString(value=self.gene_record.genstop, prop_nr='P645', references=[copy.deepcopy(NCIB_gene_reference)]))
+        if self.gene_record.strand == '1':
+            statements.append(PBB_Core.WDItemID(value='Q22809680', prop_nr='P2548', references=[copy.deepcopy(NCIB_gene_reference)]))
+        if self.gene_record.strand == '-1':
+            statements.append(PBB_Core.WDItemID(value='Q22809711', prop_nr='P2548', references=[copy.deepcopy(NCIB_gene_reference)]))
 
         start = time.time()
 
@@ -443,7 +447,8 @@ class WDGeneItem(object):
             wd_item_gene.set_description(description)
             wd_item_gene.set_aliases(alias_list)
             #pprint.pprint(wd_item_gene.get_wd_json_representation())
-            wd_item_gene.write(login)
+            if self.gene_record.locus_tag:
+                wd_item_gene.write(login)
 
             new_mgs = ''
             if wd_item_gene.create_new_item:
