@@ -50,4 +50,3 @@ for strain in reference_genomes_list.tid_list:
                     wd_encoder = MB.GeneProteinEncodes(gene)
                     wd_encoder.encodes()
 
-            
