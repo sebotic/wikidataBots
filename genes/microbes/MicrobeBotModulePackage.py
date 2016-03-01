@@ -275,7 +275,8 @@ class MyGeneInfoRestBatchQuery(object):
                     'cell_component': '',
                     'molecular_function': '',
                     'ec_number': '',
-                    'prot_rank': prot_rank
+                    'prot_rank': prot_rank,
+                    'locus_tag': i['locus_tag']
                 }
                 mgi_data.append(wd_data)
         return mgi_data
@@ -295,7 +296,7 @@ class UniProtRESTBatchQuery(object):
         url = 'http://www.uniprot.org/uniprot/'
 
         params = dict(query=('organism:' + self.strain_taxid), format='tab',
-                      columns='id,go(biological process),go(cellular component),go(molecular function),ec,genes(OLN)')
+                      columns='id,go(biological process),go(cellular component),go(molecular function),ec')
         r = requests.get(url=url, params=params)
         go_terms = r.text
         datareader = csv.reader(go_terms.splitlines(), delimiter="\t")
@@ -305,8 +306,6 @@ class UniProtRESTBatchQuery(object):
         for i in datareader:
             go_dict = dict()
             go_dict['uniprot'] = i[0]
-
-            go_dict['locus_tag'] = i[5]
 
             if i[4]:
                 eclist = i[4].split(";")
@@ -465,8 +464,13 @@ class WDGeneItem(object):
             statements.append(PBB_Core.WDString(value=self.gene_record.geneid, prop_nr='P351',
                                                 references=ncbi_gene_reference))
             if self.gene_record.locus_tag:
+
+
+
                 statements.append(PBB_Core.WDString(value=self.gene_record.locus_tag, prop_nr='P2393',
                                                     references=ncbi_gene_reference))
+
+
             statements.append(PBB_Core.WDItemID(value='Q7187', prop_nr='P279',
                                                 references=ncbi_gene_reference))
             statements.append(PBB_Core.WDString(value=self.gene_record.genstart, prop_nr='P644',
