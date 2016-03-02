@@ -16,7 +16,7 @@ if len(sys.argv) < 5:
 else:
     pass
 
-
+#taxids = [471472, 272561, 300852, 208964, 107806, 272624, 85962, 224326, 122586, 243275, 192222, 242231, 585057, 177416, 214092, 272621, 160488, 83332, 93061, 198214, 525284]
 
 print("Finding Bacterial Reference Genome...")
 print("Standby...")
@@ -26,18 +26,18 @@ pprint.pprint(reference_genomes_list.tid_list)
 count = 0
 for strain in reference_genomes_list.tid_list:
     pstrain = MB.StrainDataParser(strain)
-
-    if pstrain.strain_taxid == sys.argv[4]:
-
+    #for tid in taxids:
+    if pstrain.strain_taxid == '471472': #str(tid):
         print("Found", strain)
         print('Beginning {} bot run on {}'.format(sys.argv[3], pstrain.taxon_name))
-
         mgi_record = MB.MyGeneInfoRestBatchQuery(strain).gene_record
         unip_record = MB.UniProtRESTBatchQuery(strain).enzyme_record
         combined = MB.MGI_UNIP_Merger(mgi=mgi_record, unip=unip_record)
         print_test = []
-
+        count = 0
         for gene in combined.mgi_unip_dict:
+            count += 1
+            print(count)
             if sys.argv[3] == 'genes':
                 wd_gene = MB.WDGeneItem(gene, strain)
                 wd_gene.gene_item()
