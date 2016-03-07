@@ -662,14 +662,13 @@ class GeneProteinEncodes(object):
         self.g_qid = WDProp2QIDSPARQL(prop='P351', string=self.gene_record.geneid).qid
         self.p_qid = WDProp2QIDSPARQL(prop='P352', string=self.gene_record.uniprotid).qid
         self.references = ReferenceStore()
-
+        self.NCIB_gene_reference = [ self.references.ncbi_gene_stated(), self.references.ncbi_gene_imported(), self.references.retrieved_on()]
     def encodes(self):
         start = time.time()
         if self.p_qid != 'None':
             print('Gene item {} and the protein item {} found...encoding now'.format(self.g_qid, self.p_qid))
 
-            NCIB_gene_reference = self.references.uniprot_ref()
-            encodes = [PBB_Core.WDItemID(value=self.p_qid, prop_nr='P688', references=[copy.deepcopy(NCIB_gene_reference)])]
+            encodes = [PBB_Core.WDItemID(value=self.p_qid, prop_nr='P688', references=[self.NCIB_gene_reference])]
             try:
                 wd_gene = PBB_Core.WDItemEngine(wd_item_id=self.g_qid, data=encodes)
                 #pprint.pprint(wd_gene.wd_json_representation)
@@ -697,8 +696,7 @@ class GeneProteinEncodes(object):
         if self.g_qid != 'None':
             print('Protein item {} and the gene item {} found...encoding now'.format(self.p_qid, self.g_qid))
 
-            UniProt_reference = self.references.uniprot_ref()
-            encoded_by = [PBB_Core.WDItemID(value=self.g_qid, prop_nr='P702', references=[copy.deepcopy(UniProt_reference)])]
+            encoded_by = [PBB_Core.WDItemID(value=self.g_qid, prop_nr='P702', references=[self.NCIB_gene_reference])]
 
 
             try:
