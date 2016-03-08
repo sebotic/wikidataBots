@@ -1,8 +1,6 @@
 from django.conf import settings
 from django.db import models
 
-from genewiki.bio.g2p_redis import get_pmids, init_redis
-
 import re, copy, json, datetime, urllib.request, urllib.parse, urllib.error, html.parser, PBB_Core, PBB_login, mygene
 import xml.etree.ElementTree as etree
 
@@ -67,7 +65,6 @@ def create_stub(gene_id):
     values['entrezcite'] = settings.ENTREZ_CITE.format(**values)
 
     # build out the citations
-    #pmids = get_pmids(gene_id, init_redis(), 100)
     mg = mygene.MyGeneInfo()
     generif=mg.getgene(gene_id, fields="generif")
     pmids = []
