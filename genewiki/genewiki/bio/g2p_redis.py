@@ -41,7 +41,7 @@ def import_to_redis(gene2pubmed_file, redis_connection, chatty=True):
         p: (i.e. p:12345) to avoid conflict between gene ids and pmids as key names.
     '''
     r = redis_connection
-    with gzip.open(gene2pubmed_file, 'rb') as infile:
+    with gzip.open(gene2pubmed_file, 'rt') as infile:
         print ('loading human genes...')
         human_entries = [line for line in infile.readlines() if line.startswith('9606')]
         print ('loading data into redis...')
@@ -69,6 +69,7 @@ def get_pmids(gene, redis_connection, limit=None):
         gene = 'g:' + gene
     pmids = []
     for pmid in r.smembers(gene):
+        pmid = pmid.decode("utf-8")
         if limit and int(r.get(pmid)) < limit:
             pmids.append(pmid.replace('p:', ''))
         elif not limit:

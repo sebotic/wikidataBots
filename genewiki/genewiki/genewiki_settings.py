@@ -41,7 +41,7 @@ STUB_SKELETON = """{{{{Infobox_gene}}}}
 {{{{refend}}}}
 
 
-{{{{gene-{chromosome}-stub}}}}
+{{{{gene{chromosome}-stub}}}}
 {footer}
 """
 

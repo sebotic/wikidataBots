@@ -3,7 +3,10 @@ from django.db import models
 
 from genewiki.bio.g2p_redis import get_pmids, init_redis
 
-import re, copy, json, datetime, urllib.request, urllib.parse, urllib.error, PBB_Core, PBB_login
+import re, copy, json, datetime, urllib.request, urllib.parse, urllib.error, html.parser, PBB_Core, PBB_login, mygene
+import xml.etree.ElementTree as etree
+
+citation_tool_url = "http://tools.wmflabs.org/citation-template-filling/cgi-bin/index.cgi?ddb=&type=pubmed_id&id=%s&format=xml"
 
 def check(titles):
     '''
@@ -48,7 +51,7 @@ def create_stub(gene_id):
 
     genomic_pos = root.get('genomic_pos')[0] if isinstance(root.get('genomic_pos'), list) else root.get('genomic_pos')
     if genomic_pos:
-         chromo = genomic_pos.get('chr')
+         chromo = '-'+genomic_pos.get('chr')
     else:
          chromo = ''
     values = {
@@ -64,12 +67,31 @@ def create_stub(gene_id):
     values['entrezcite'] = settings.ENTREZ_CITE.format(**values)
 
     # build out the citations
-    pmids = get_pmids(gene_id, init_redis(), 100)
+    #pmids = get_pmids(gene_id, init_redis(), 100)
+    mg = mygene.MyGeneInfo()
+    generif=mg.getgene(gene_id, fields="generif")
+    pmids = []
+    if 'generif' in generif:
+        pmids = generif['generif'][0]['pubmed'].split(",")
+    
     limit = 9 if len(pmids) > 9 else len(pmids)
     citations = ''
     for pmid in pmids[:limit]:
-        citations = '{}*{{{{Cite pmid|{} }}}}\n'.format(citations, pmid)
-    values['citations'] = citations
+        url_string = urllib.request.urlopen(citation_tool_url%(pmid))
+        xml_string = url_string.read()
+        root = etree.fromstring(xml_string)
+        dict = {}
+        for group in root:
+            for elem in group:
+                dict[elem.tag] = elem.text
+                print(elem.tag)
+                print(elem.text)
+        print(dict['content'])
+        citations = citations+'*'+dict['content']+'\n'
+
+    #replace encoded accents in names
+    h= html.parser.HTMLParser()
+    values['citations'] = h.unescape(citations)
 
     stub = settings.STUB_SKELETON.format(**values)
     return stub
@@ -105,8 +127,7 @@ def create(entrez, force=False):
        titles = {'name': (root['name'].capitalize(), False),
                  'symbol': (root['symbol'], False),
                  'test': (entrez_id, False),
-                 'altsym': ('{0} (gene)'.format(root['symbol']), False),
-                 'templatename': ('Template:PBB/{0}'.format(entrez), False)}
+                 'altsym': ('{0} (gene)'.format(root['symbol']), False),}
 
        # For each of the titles, build out the correct names and
        # corresponding Boolean for if they're on Wikipedia
