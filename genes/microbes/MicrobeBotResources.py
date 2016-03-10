@@ -37,7 +37,7 @@ def mgi_unip_data(taxid):
         :return: pandas data frame
         """
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=taxid, entrezonly="true", size="10", fields="all")
+        params = dict(q="__all__", species=taxid, entrezonly="true", size="10000", fields="all")
         data = requests.get(url=url, params=params).json()
         # Reads mgi json hits into dataframe
         res = [json_normalize(hit) for hit in data["hits"]]
