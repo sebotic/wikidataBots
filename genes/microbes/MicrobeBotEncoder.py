@@ -17,7 +17,7 @@ def encodes(gene_record, login):
     start = time.time()
     #  find gene and protein qids
     gene_qid = wdo.WDSparqlQueries(prop='P351', string=gene_record['_id']).wd_prop2qid()
-    protein_qid = wdo.WDSparqlQueries(prop='P352', string=gene_record['Combined_ID']).wd_prop2qid()
+    protein_qid = wdo.WDSparqlQueries(prop='P352', string=gene_record['UNIPROT']).wd_prop2qid()
     # if a gene or protein item is not found skip this one
     if gene_qid is not None and protein_qid is not None:
         print('gene {} and protein {} found'.format(gene_qid, protein_qid))
@@ -53,7 +53,7 @@ def encodes(gene_record, login):
             wd_encoded_by_item = PBB_Core.WDItemEngine(wd_item_id=protein_qid, data=protein_encoded_by)
             wd_encoded_by_item.write(login)
             PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
-            main_data_id=gene_record['Combined_ID'],
+            main_data_id=gene_record['UNIPROT'],
             exception_type='',
             message='encoded by claim written successfully',
             wd_id=wd_encoded_by_item.wd_item_id,

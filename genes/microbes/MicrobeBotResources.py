@@ -9,9 +9,8 @@ __author__ = 'timputman'
 def get_ref_microbe_taxids():
     """
     Download the latest bacterial genome assembly summary from the NCBI genome ftp site
-    and generate a list of relevant data for strain items based on taxids of the bacterial reference genomes.
-    :return: List of strain data lists e.g. [['species taxid1','strain taxid1','genus1', 'species1', 'strain1'],
-                                             ['species taxid2','strain taxid2','genus2', 'species2', 'strain2']]
+    and generate a pd.DataFrame of relevant data for strain items based on taxids of the bacterial reference genomes.
+    :return: pandas dataframe of bacteria reference genome data
     """
     assembly = urllib.request.urlretrieve("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
     data = pd.read_csv(assembly[0], sep="\t")
@@ -42,9 +41,16 @@ def mgi_unip_data(taxid):
         # Reads mgi json hits into dataframe
         res = [json_normalize(hit) for hit in data["hits"]]
         df = pd.concat(res).reset_index(drop=True)
-        df['Combined_ID'] = df[['uniprot.Swiss-Prot','uniprot.TrEMBL']].fillna('').sum(axis=1)
+        # generate combined UNIPROT column based on some microbes only having TrEMBL, Swiss-Prot Ids, or both
+        if 'uniprot.TrEMBL' in df.columns and 'uniprot.Swiss-Prot' in df.columns:
+            df['UNIPROT'] = df[['uniprot.Swiss-Prot','uniprot.TrEMBL']].fillna('').sum(axis=1)
+            print('yes')
+        else:
+            for i in df.columns:
+                if 'uniprot' in i:
+                    df['UNIPROT'] = df[i]
         return df
-
     # joins dataframes from uniprot and mgi on the uniprot id
     return pd.merge(uniprot_rest_go_ec(), mygeneinfo_rest_query(), how='inner',
-                    left_on='Entry', right_on='Combined_ID')
+                    left_on='Entry', right_on='UNIPROT')
+

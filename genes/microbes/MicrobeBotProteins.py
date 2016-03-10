@@ -52,11 +52,11 @@ def wd_item_construction(gene_record, login):
         construct list of referenced statements to past to PBB_Core Item engine
         :return:
         """
-        uniprot_reference = wdo.reference_store(source='uniprot', identifier=gene_record['Combined_ID'])
+        uniprot_reference = wdo.reference_store(source='uniprot', identifier=gene_record['UNIPROT'])
 
         WD_String_CLAIMS = {'P637': str(gene_record['refseq.protein']),
                             'P2393': gene_record['locus_tag'],
-                            'P352': str(gene_record['Combined_ID']),
+                            'P352': str(gene_record['UNIPROT']),
                             'P591': str(gene_record['EC number'])
                             }
         WD_Item_CLAIMS = {'P703': [strain_qid],

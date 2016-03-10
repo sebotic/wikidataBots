@@ -67,7 +67,7 @@ def wd_item_construction(gene_record, login):
     try:
         wd_item_gene = PBB_Core.WDItemEngine(item_name=item_name, domain='genes', data=gene_item_statements(),
                                              use_sparql=True)
-        pprint.pprint(wd_item_gene.get_wd_json_representation())
+        #pprint.pprint(wd_item_gene.get_wd_json_representation())
         wd_item_gene.set_label(item_name)
         wd_item_gene.set_description(item_description, lang='en')
         wd_item_gene.set_aliases([gene_record['symbol'], gene_record['locus_tag']])
