@@ -34,14 +34,14 @@ STUB_SKELETON = """{{{{Infobox_gene}}}}
 
 {{{{reflist}}}}
 
-== Further Reading ==
+== Further reading ==
 
 {{{{refbegin | 2}}}}
 {citations}
 {{{{refend}}}}
 
 
-{{{{gene-{chromosome}-stub}}}}
+{{{{gene{chromosome}-stub}}}}
 {footer}
 """
 
