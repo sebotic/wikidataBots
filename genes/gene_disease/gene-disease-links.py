@@ -68,7 +68,7 @@ for line in result.iter_lines():
         values["Phenotype URIs"] = fields[6]
         values["Pubmeds"] = fields[7]
         values["Web Link"] = fields[8]
-        if (values["Gene Symbol"] == "SLC30A8"):
+        if (values["Gene Symbol"] == "NPHP4"):
             if str(values["Gene NCBI"]) in ncbi_gene_wikidata_ids.keys():
                 print("Gene ID in Wikidata...")
                 values["gene_wdid"] = 'Q' + str(ncbi_gene_wikidata_ids[str(values["Gene NCBI"])])
