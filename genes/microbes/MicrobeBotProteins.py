@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxB
 import PBB_Core
 import PBB_login
 import pprint
-import MicrobeBotResources2 as MBR
+import MicrobeBotResources as MBR
 import MicrobeBotWDFunctions as wdo
 import pandas as pd
 import time
