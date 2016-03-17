@@ -9,18 +9,14 @@ import time
 __author__ = 'timputman'
 
 
-def wd_item_construction(gene_record, login):
+def wd_item_construction(gene_record, spec_strain, login):
     """
     generate pbb_core item object based on resources pandas dataframe for each gene
     :param gene_record: pandas dataframe of combined UniProt NCBI and MyGene.info data
     :return: PBB_Core object of WD item with claims and references for Genes
     """
-    gene_record = gene_record
-    # Gets WD Item Id for microbe gene is found in
-    strain_qid = wdo.WDSparqlQueries(string=gene_record['taxid'], prop='P685').wd_prop2qid()
-    # gets WD Item label for parent microbe based on qid
-    strain_label = wdo.WDSparqlQueries(qid=strain_qid).wd_qid2label()
-    item_description = 'microbial gene found in {}'.format(strain_label)
+    item_name = '{}    {}'.format(gene_record['name'], gene_record['locus_tag'])
+    item_description = 'microbial gene found in {}'.format(spec_strain.iloc[0]['organism_name'])
 
     def gene_item_statements():
         """
@@ -33,34 +29,29 @@ def wd_item_construction(gene_record, login):
         # claims for datatype string.
         WD_String_CLAIMS = {'P351': str(gene_record['_id']),
                             'P2393': gene_record['locus_tag'],
-                            'P644': str(gene_record['genomic_pos.start']),
-                            'P645': str(gene_record['genomic_pos.end']),
+                            'P644': str(int(gene_record['genomic_pos']['start'])),
+                            'P645': str(int(gene_record['genomic_pos']['end'])),
                             }
         # claims for datytpe item
-        WD_Item_CLAIMS = {'P703': strain_qid,
+        WD_Item_CLAIMS = {'P703': spec_strain.iloc[0]['wd_qid'],
                           'P279': 'Q7187',
                           }
+
         # convert integer representation of strand to corresponding WD item (Forward Strand/Reverse Strand)
-        if gene_record['genomic_pos.strand'] == '1':
+        if gene_record['genomic_pos']['strand'] == '1':
             WD_Item_CLAIMS['P2548'] = 'Q22809680'
-        else:
+        elif gene_record['genomic_pos']['strand'] == '-1':
             WD_Item_CLAIMS['P2548'] = 'Q22809711'
 
         statements = []
         # process to pbb_Core data value object and append to statments for each valid item in each datatype dict
         # WDItemID datatype
         for k, v in WD_Item_CLAIMS.items():
-            if v != 'nan':
-                statements.append(PBB_Core.WDItemID(value=v, prop_nr=k,
-                                                    references=[ncbi_gene_reference]))
-        # Entrez gene id
+            statements.append(PBB_Core.WDItemID(value=v, prop_nr=k, references=[ncbi_gene_reference]))
+        # WDString datatype
         for k, v in WD_String_CLAIMS.items():
-            if v != 'nan':
-                statements.append(PBB_Core.WDString(value=v, prop_nr=k,
-                                                    references=[ncbi_gene_reference]))
+            statements.append(PBB_Core.WDString(value=v, prop_nr=k, references=[ncbi_gene_reference]))
         return statements
-
-    item_name = gene_record['name'] + "\t" + gene_record['locus_tag']
 
     # attempt to instantiate PBB_Core item object by finding the proper item in wikidata or creating a new one (Json)
     start = time.time()
