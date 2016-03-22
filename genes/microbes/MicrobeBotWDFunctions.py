@@ -8,7 +8,7 @@ import PBB_Core
 
 __author__ = 'timputman'
 
-
+#can be done with wd_item engine  :to get label enter wd_item_engine(wditemid = Qxxxx).getLabel()
 class WDSparqlQueries(object):
     """
     params: optional depending on type of query (for qid provide prop and string, for label provide qid)

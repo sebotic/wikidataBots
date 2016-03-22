@@ -20,10 +20,24 @@ has part
 
 
 class OBOImporter(object):
-    obo_wd_map = {'http://www.w3.org/2000/01/rdf-schema#subClassOf': 'P279',  # subclassOf aka 'is a'
-                  'http://purl.obolibrary.org/obo/BFO_0000051': 'P527',  # has_part
-                  'http://purl.obolibrary.org/obo/BFO_0000050': 'P361'  # part of
-                  }
+    obo_wd_map = {
+        'http://www.w3.org/2000/01/rdf-schema#subClassOf': 'P279',  # subclassOf aka 'is a'
+        'http://purl.obolibrary.org/obo/BFO_0000051': 'P527',  # has_part
+        'http://purl.obolibrary.org/obo/BFO_0000050': 'P361'  # part of
+    }
+
+    rev_prop_map = {
+        'http://purl.obolibrary.org/obo/BFO_0000051': 'http://purl.obolibrary.org/obo/BFO_0000050',
+        'http://purl.obolibrary.org/obo/BFO_0000050': 'http://purl.obolibrary.org/obo/BFO_0000051'
+    }
+
+    xref_props = {
+        'UBERON': 'P1554',
+        'MSH': 'P486',
+        'NCI': 'P1748',  # NCI thesaurus, there exists a second NCI property
+        'CHEBI': 'P683',
+        'OMIM': 'P492'
+    }
 
     def __init__(self, root_objects, ontology, core_property_nr, ontology_ref_item, login, local_qid_onto_map):
 
@@ -95,6 +109,11 @@ class OBOImporter(object):
 
         def get_item_qid(go_id, data=()):
             start = time.time()
+
+            # for efficiency reasons, skip if item already had a root write performed
+            if go_id in self.local_qid_onto_map and self.local_qid_onto_map[go_id]['had_root_write'] \
+                    and 'qid' in self.local_qid_onto_map[go_id]:
+                return self.local_qid_onto_map[go_id]['qid']
 
             try:
                 data = list(data)
@@ -188,11 +207,17 @@ class OBOImporter(object):
 
         for edge in self.term_graph['edges']:
             if edge['uri'] in self.obo_wd_map and edge['uri'] != 'http://www.w3.org/2000/01/rdf-schema#subClassOf':
-                prop_nr = self.obo_wd_map[edge['uri']]
-                edge_target = edge['target'].split('_')[-1]
-                if edge_target != current_root_id:
-                    pi = get_item_qid(go_id=edge_target)
-                    dt.append(PBB_Core.WDItemID(value=pi, prop_nr=prop_nr, references=[self.create_reference()]))
+                go = edge['target'].split('_')[-1]
+                if go != current_root_id:
+                    prop_nr = self.obo_wd_map[edge['uri']]
+                elif edge['uri'] in self.rev_prop_map and edge['source'].split('_')[-1] != current_root_id:
+                    prop_nr = self.obo_wd_map[self.rev_prop_map[edge['uri']]]
+                    go = edge['source'].split('_')[-1]
+                else:
+                    continue
+
+                pi = get_item_qid(go_id=go)
+                dt.append(PBB_Core.WDItemID(value=pi, prop_nr=prop_nr, references=[self.create_reference()]))
 
         root_qid = get_item_qid(go_id=current_root_id, data=dt)
         OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
