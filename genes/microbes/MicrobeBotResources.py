@@ -55,7 +55,7 @@ def mgi_qg_resources(taxid):
         :return: pandas data frame
         """
         url = 'http://mygene.info/v2/query/'
-        params = dict(q="__all__", species=taxid, entrezonly="true", size="10000", fields="all")
+        params = dict(q="__all__", species=taxid, entrezonly="true", size="10", fields="all")
         data = requests.get(url=url, params=params).json()
         # Reads mgi json hits into dataframe
         return data['hits']

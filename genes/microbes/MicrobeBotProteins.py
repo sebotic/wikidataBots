@@ -98,6 +98,7 @@ def wd_item_construction(gene_record, spec_strain, login):
         ))
 
         print('success')
+        return 'success'
 
     except Exception as e:
         print(e)
