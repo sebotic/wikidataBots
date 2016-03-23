@@ -60,7 +60,8 @@ block content
                 .form-group
                   textarea(rows='15', cols='50', readonly='readonly', style='display:none;').form-control
                     #{results.stub}
-                  p *Note: It may take several minutes for an article to be created please be patient.  
+                  - if results.stub
+                    p *Note: It may take several minutes for an article to be created please be patient.  
 
 block post-footer
     script.
