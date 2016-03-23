@@ -56,6 +56,8 @@ def article_create(request, entrez_id):
         Article.objects.get_or_create(title=talk_title, text=talk_content, article_type=Article.TALK, force_update=True)
         #create interwiki link
         link = interwiki_link(entrez_id, title)
+        #save article again
+        Article.objects.get_or_create(title=title, text=content, article_type=Article.PAGE, force_update=True)
      
         return redirect('genewiki.wiki.views.article_create', entrez_id)
 
