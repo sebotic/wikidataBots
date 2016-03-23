@@ -12,12 +12,13 @@ The code in this repo handles the automated updates of gene templates, and as we
 
 * `sudo apt-get update`
 * `sudo apt-get upgrade`
-* `sudo apt-get install build-essential python python-dev python-pip python-virtualenv libmysqlclient-dev git-core nginx supervisor rabbitmq-server graphviz libgraphviz-dev pkg-config libncurses5-dev`
+* `sudo apt-get install build-essential python3 python-dev python-pip python-virtualenv libmysqlclient-dev git-core nginx supervisor rabbitmq-server graphviz libgraphviz-dev pkg-config libncurses5-dev`
+*  mwclient not compatiable with python3 must change code errors.py client.py (check for upgrades to the package first)
 
 * `mkdir webapps`
 * `cd webapps`
-* `git clone https://github.com/SuLab/genewiki.git`
-* `cd genewiki`
+* `git clone https://sulab@bitbucket.org/sulab/wikidatabots.git`
+* `cd wikidatabots/genewiki`
 * `git fetch --all`
 * `git reset --hard origin/master`
 
@@ -26,12 +27,14 @@ The code in this repo handles the automated updates of gene templates, and as we
 
 A Python Virtual Environment is used to ensure that the application runs in an isolated and protected environment
 
-* Create a new virtual environment: `sudo virtualenv /opt/genewiki-venv`
-* Activate the environment `source /opt/genewiki-venv/bin/activate`
+* Create a new virtual environment: `sudo virtualenv -p /usr/bin/python3.4 /opt/genewiki-venv3`
+* Activate the environment `source /opt/genewiki-venv3/bin/activate`
 
-If you see `(genewiki-venv)` in front of your shell, this worked.
+If you see `(genewiki-venv3)` in front of your shell, this worked.
 
-* `sudo /opt/genewiki-venv/bin/pip install -r requirements.txt`
+* `sudo /opt/genewiki-venv3/bin/pip install -r requirements.txt`
+*  copy python modules 
+	 `cp wikidatabots/PBB_Core/*py /opt/genewiki-venv3/lib/python3.4/site-packages/`
 
 
 #### Setup
@@ -45,6 +48,7 @@ The `config` directory in this project hosts template files and their location f
 #### Configuration
 
 The settings files are not included in the repo for security reasons and must be uploaded to the server.
+*cp settings.py file to wikidatabots/genewiki/genewiki/
 
 * `sudo adduser deploy`
 
@@ -65,7 +69,7 @@ The settings files are not included in the repo for security reasons and must be
 * `import os`
 `os.environ['DJANGO_SETTINGS_MODULE'] = 'genewiki.settings'`
 * 'python manage.py syncdb'
-
+*  `python manage.py collectstatic`
 #### Application
 
 * `sudo supervisorctl restart genewiki_celery`
