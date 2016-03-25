@@ -75,7 +75,7 @@ def wd_item_construction(gene_record, spec_strain, login):
             duration=time.time() - start
         ))
         print('success')
-
+        return 'success'
     except Exception as e:
         print(e)
         PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(

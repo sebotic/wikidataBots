@@ -47,7 +47,7 @@ def wd_item_construction(gene_record, spec_strain, login):
         uniprot_ref = wdo.reference_store(source='uniprot', identifier=uniprot)
 
         WD_String_CLAIMS = {'P637': str(gene_record['refseq']['protein']),
-                            'P2393': gene_record['locus_tag'],
+                            #'P2393': gene_record['locus_tag'],
                             'P352': uniprot
                             #'P591': str(gene_record['EC number'])
                             }
@@ -98,6 +98,7 @@ def wd_item_construction(gene_record, spec_strain, login):
         ))
 
         print('success')
+        return 'success'
 
     except Exception as e:
         print(e)
