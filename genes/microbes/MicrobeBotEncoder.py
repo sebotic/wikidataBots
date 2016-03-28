@@ -27,6 +27,7 @@ def encodes(gene_record, login):
         gene_encodes = [PBB_Core.WDItemID(value=protein_qid, prop_nr='P688', references=[ncbi_gene_reference])]
         protein_encoded_by = [PBB_Core.WDItemID(value=gene_qid, prop_nr='P702', references=[ncbi_gene_reference])]
         # find and write items
+        success_count = 0
         try:
             wd_encodes_item = PBB_Core.WDItemEngine(wd_item_id=gene_qid, data=gene_encodes)
             wd_encodes_item.write(login)
@@ -39,8 +40,8 @@ def encodes(gene_record, login):
                 duration=time.time() - start
             )
                                       )
-            print('success')
-
+            print('gene success')
+            success_count += 1
         except Exception as e:
             print(e)
             PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
@@ -61,8 +62,8 @@ def encodes(gene_record, login):
                 duration=time.time() - start
             )
                                       )
-            print('success')
-
+            print('protein success')
+            success_count += 1
         except Exception as e:
             print(e)
             PBB_Core.WDItemEngine.log('ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
@@ -72,6 +73,8 @@ def encodes(gene_record, login):
                 wd_id='',
                 duration=time.time() - start
             ))
+        if success_count == 2:
+            return 'success'
 
     end = time.time()
     print('Time elapsed:', end - start)

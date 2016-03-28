@@ -12,10 +12,10 @@ import datetime
 
 __author__ = 'timputman'
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 6:
     print("   You did not supply the proper arguments!")
     print("   Usage: MicrobeBotModularPackage.py <Wikidata user name> <Wikidata Password> <run number> <domain "
-          "i.e. genes/proteins/encode_genes/encode_proteins>" )
+          "i.e. genes/proteins/encode_genes/encode_proteins>, <number of genomes to process> " )
     sys.exit()
 else:
     pass
@@ -36,7 +36,7 @@ genome_records = MBR.get_ref_microbe_taxids()
 ref_taxids = genome_records['taxid'].tolist()
 # break up list of taxids into chunks of 5 for subruns
 count = 0
-runs_list = chunks(ref_taxids, 5)
+runs_list = chunks(ref_taxids, int(sys.argv[5]))
 
 taxids = {}
 
@@ -75,6 +75,8 @@ for tid in taxids[sys.argv[3]]:
                 gene_count += 1
         if sys.argv[4] == 'encoder':
             encoder = MBE.encodes(record, login)
+            if encoder == 'success':
+                gene_count += 1
     print('{}/{} items succesfully written'.format(gene_count, len(gene_records)), file=genome_log)
 print('end time: {}'.format(datetime.datetime.now()), file=genome_log)
 genome_log.close()
