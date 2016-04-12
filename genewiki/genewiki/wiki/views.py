@@ -1,5 +1,5 @@
 from django.template import RequestContext
-from django.shortcuts import get_object_or_404, render_to_response, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
@@ -61,7 +61,7 @@ def article_create(request, entrez_id):
      
         return redirect('genewiki.wiki.views.article_create', entrez_id)
 
-    return render_to_response('wiki/create.jade', vals, context_instance=RequestContext(request))
+    return render(request, 'wiki/create.jade', vals)
 
 def wiki_title(entrez_id):
     article_query = """
