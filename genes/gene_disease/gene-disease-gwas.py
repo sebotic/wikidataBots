@@ -41,9 +41,9 @@ from time import gmtime, strftime
 # downloadable dump from Phenocarta. Currently, the bot attempts to write to all genes contained in the dump file, 
 # and uses the genetic association property with references.
 
-# Get Wikidata Ids for all entrez genes in Wikidata.
+# Get Wikidata IDs for all Entrez genes in Wikidata.
 ncbi_gene_wikidata_ids = dict()
-print("Getting all terms with a Disease Ontology ID in WikiData (WDQ)")
+print("Retrieving all terms with a Disease Ontology ID in Wikidata (WDQ)")
 wdqQuery = "CLAIM[351]"
 ncbi_gene_in_wikidata = PBB_Core.WDItemList(wdqQuery, wdprop="351")
 for geneItem in ncbi_gene_in_wikidata.wditems["props"]["351"]:
@@ -57,7 +57,7 @@ result = requests.get(source, stream=True)
 lineNum = 0;
 for line in result.iter_lines():
     lineNum += 1
-    # First separate each tuple into distinct fields.
+    # Separating each tuple into distinct fields.
     values = dict()
     s = str(line)
     fields = s.split("\\t")
@@ -70,6 +70,7 @@ for line in result.iter_lines():
         values["Phenotype URIs"] = fields[6]
         values["Pubmeds"] = fields[7]
         values["Web Link"] = fields[8]
+        # Current gene from dump exists in Wikidata
         if str(values["Gene NCBI"]) in ncbi_gene_wikidata_ids.keys():
             print("Gene ID in Wikidata...")
             values["gene_wdid"] = 'Q' + str(ncbi_gene_wikidata_ids[str(values["Gene NCBI"])])
@@ -81,7 +82,7 @@ for line in result.iter_lines():
                 doid = doid_url.split("_")[1]
                 print(doid)
                 sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
-            # Retrieve Wikidata item from DO ID.
+                # Retrieve Wikidata item from DO ID
                 sparql.setQuery("""
 
                     PREFIX wd: <http://www.wikidata.org/entity/> 
@@ -95,11 +96,12 @@ for line in result.iter_lines():
                 sparql.setReturnFormat(JSON)
                 results = sparql.query().convert()
                 pprint.pprint(results)
-                
+                # The current Disease Ontology term exists in Wikidata
                 if len(results['results']['bindings'])!=0:    
                     disease_wdid = results['results']['bindings'][0]['diseases']['value'].split("/")[4]
                     if results['results']['bindings'][0]['diseases']['value']:
                         login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword()) # put back in when using Jenkins: os.environ['wikidataApi']
+                        # Only hit the API endpoint if we do not already have the gene symbol to Gemma ID mapping
                         if not (values["Gene Symbol"] in gnsym_gemma_ids):
                             gemmaGeneIds =  "http://sandbox.chibi.ubc.ca/Gemma/rest/phenotype/find-candidate-genes?phenotypeValueUris="+doid_url
                             result = requests.get(gemmaGeneIds, stream=True).json()
@@ -114,10 +116,11 @@ for line in result.iter_lines():
                         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
                         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
                         refRetrieved.overwrite_references = True
-                        gnasscn_reference = [[refURL, refURL2, refStated, refImported, refRetrieved]]                    
-                        value = PBB_Core.WDItemID(value=disease_wdid, prop_nr="P2293", references=gnasscn_reference)
+                        gnasscn_reference = [[refURL, refURL2, refStated, refImported, refRetrieved]]    
+                        qualifier = PBB_Core.WDItemID(value='Q1098876', prop_nr='P459', is_qualifier=True)                
+                        value = PBB_Core.WDItemID(value=disease_wdid, prop_nr="P2293", references=gnasscn_reference, qualifiers=[qualifier])
     
-                    # Get a pointer to the Wikidata page on the gene under scrutiny
+                        # Get a pointer to the Wikidata page on the gene under scrutiny
                         wd_gene_page = PBB_Core.WDItemEngine(wd_item_id=values["gene_wdid"], data=[value], server="www.wikidata.org", domain="genes", append_value=['P2293'])
                         wd_gene_page.log('INFO', 'line ' + str(lineNum) + ' ' + values["Gene Symbol"] + ' ' + values["Phenotype Names"] + ' ' + wd_gene_page.write(login))
                     else:
@@ -129,4 +132,3 @@ for line in result.iter_lines():
         else:
             print("Gene " + values["Gene Symbol"] + " not found in Wikidata.")
             PBB_Core.WDItemEngine.log('WARNING', 'line ' + str(lineNum) + ' ' + values["Gene Symbol"] + " not found in Wikidata.")
-
