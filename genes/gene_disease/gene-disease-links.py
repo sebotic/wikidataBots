@@ -68,7 +68,7 @@ for line in result.iter_lines():
         values["Phenotype URIs"] = fields[6]
         values["Pubmeds"] = fields[7]
         values["Web Link"] = fields[8]
-        if (values["Gene Symbol"] == "SLC30A8"):
+        if (values["Gene Symbol"] == "NPHP4"):
             if str(values["Gene NCBI"]) in ncbi_gene_wikidata_ids.keys():
                 print("Gene ID in Wikidata...")
                 values["gene_wdid"] = 'Q' + str(ncbi_gene_wikidata_ids[str(values["Gene NCBI"])])
@@ -91,7 +91,7 @@ for line in result.iter_lines():
 
                 disease_wdid = results['results']['bindings'][0]['diseases']['value'].split("/")[4]
                 if results['results']['bindings'][0]['diseases']['value']:
-                    login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), PBB_settings.getWikiDataPassword())
+                    login = PBB_login.WDLogin(PBB_settings.getWikiDataUser(), os.environ['wikidataApi'])
                     if not (values["Gene Symbol"] in gnsym_gemma_ids):
                         gemmaGeneIds =  "http://sandbox.chibi.ubc.ca/Gemma/rest/phenotype/find-candidate-genes?phenotypeValueUris="+values["Phenotype URIs"]
                         result = requests.get(gemmaGeneIds, stream=True).json()
