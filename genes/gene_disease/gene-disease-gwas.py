@@ -71,6 +71,7 @@ for line in result.iter_lines():
         values["Pubmeds"] = fields[7]
         values["Web Link"] = fields[8]
         # Current gene from dump exists in Wikidata
+        #if (values["Gene Symbol"] == "APOL2"):
         if str(values["Gene NCBI"]) in ncbi_gene_wikidata_ids.keys():
             print("Gene ID in Wikidata...")
             values["gene_wdid"] = 'Q' + str(ncbi_gene_wikidata_ids[str(values["Gene NCBI"])])
@@ -107,7 +108,8 @@ for line in result.iter_lines():
                             result = requests.get(gemmaGeneIds, stream=True).json()
                             for item in result:
                                 gnsym_gemma_ids[item['officialSymbol']] = item['id']
-                        
+                        # not doing for now, until duplicate detection exists (for using qual)
+                        # writing diseases to genes
                         refURL = PBB_Core.WDUrl(value='http://chibi.ubc.ca/Gemma/phenotypes.html?phenotypeUrlId=DOID_'+doid+'&geneId='+str(gnsym_gemma_ids[values["Gene Symbol"]]), prop_nr='P854', is_reference=True)
                         refURL2 = PBB_Core.WDUrl(value=values["Web Link"], prop_nr='P854', is_reference=True)
                         refImported = PBB_Core.WDItemID(value='Q22330995', prop_nr='P143', is_reference=True)
@@ -118,11 +120,26 @@ for line in result.iter_lines():
                         refRetrieved.overwrite_references = True
                         gnasscn_reference = [[refURL, refURL2, refStated, refImported, refRetrieved]]    
                         qualifier = PBB_Core.WDItemID(value='Q1098876', prop_nr='P459', is_qualifier=True)                
-                        value = PBB_Core.WDItemID(value=disease_wdid, prop_nr="P2293", references=gnasscn_reference, qualifiers=[qualifier])
-    
+                        value = PBB_Core.WDItemID(value=disease_wdid, prop_nr="P2293", references=gnasscn_reference, qualifiers=[qualifier], check_qualifier_equality=False)    
                         # Get a pointer to the Wikidata page on the gene under scrutiny
                         wd_gene_page = PBB_Core.WDItemEngine(wd_item_id=values["gene_wdid"], data=[value], server="www.wikidata.org", domain="genes", append_value=['P2293'])
                         wd_gene_page.log('INFO', 'line ' + str(lineNum) + ' ' + values["Gene Symbol"] + ' ' + values["Phenotype Names"] + ' ' + wd_gene_page.write(login))
+                        
+                        # writing genes to diseases
+                        refURL = PBB_Core.WDUrl(value='http://chibi.ubc.ca/Gemma/phenotypes.html?phenotypeUrlId=DOID_'+doid+'&geneId='+str(gnsym_gemma_ids[values["Gene Symbol"]]), prop_nr='P854', is_reference=True)
+                        refURL2 = PBB_Core.WDUrl(value=values["Web Link"], prop_nr='P854', is_reference=True)
+                        refImported = PBB_Core.WDItemID(value='Q22330995', prop_nr='P143', is_reference=True)
+                        refImported.overwrite_references = True
+                        refStated = PBB_Core.WDItemID(value='Q22978334', prop_nr='P248', is_reference=True)
+                        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+                        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+                        refRetrieved.overwrite_references = True
+                        gnasscn_reference = [[refURL, refURL2, refStated, refImported, refRetrieved]]    
+                        qualifier = PBB_Core.WDItemID(value='Q1098876', prop_nr='P459', is_qualifier=True)                
+                        value = PBB_Core.WDItemID(value=values["gene_wdid"], prop_nr="P2293", references=gnasscn_reference, qualifiers=[qualifier], check_qualifier_equality=False)    
+                        # Get a pointer to the Wikidata page on the disease under scrutiny
+                        wd_dis_page = PBB_Core.WDItemEngine(wd_item_id=disease_wdid, data=[value], server="www.wikidata.org", domain="genes", append_value=['P2293'])
+                        wd_dis_page.log('INFO', 'line ' + str(lineNum) + ' ' + values["Gene Symbol"] + ' ' + values["Phenotype Names"] + ' ' + wd_dis_page.write(login))                        
                     else:
                         print("Disease " + values["Phenotype Names"] + " for gene " + values["Gene Symbol"] + " not found in Wikidata.")
                         PBB_Core.WDItemEngine.log('WARNING', 'line ' + str(lineNum) + ' ' + values["Phenotype Names"] + " for gene " + values["Gene Symbol"] + " not found in Wikidata.")
