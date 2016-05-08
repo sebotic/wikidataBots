@@ -1,4 +1,3 @@
-SPARQLWrapper
 requests
 pandas
 numpy

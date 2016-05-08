@@ -6,6 +6,7 @@ import sys
 import pprint
 import re
 import datetime
+import pandas as pd
 
 __author__ = 'Sebastian Burgstaller-Muehlbacher'
 __license__ = 'AGPLv3'
@@ -51,6 +52,7 @@ def main():
     to_timestamp = '{}00'.format(end_date.strftime('%Y%m%d'))
 
     all_items = list()
+    gene_df = pd.DataFrame(columns=list(['Gene_name', 'page_views', 'page_size']))
     url = 'https://en.wikipedia.org/w/api.php'
 
     for count, i in enumerate(sparql_results['results']['bindings']):
@@ -61,6 +63,7 @@ def main():
                              'en.wikipedia/all-access/user/{}/daily/{}/{}'.format(article, from_timestamp,
                                                                                   to_timestamp))
         article_views = 0
+        gene = None
 
         if 'items' in r.json():
 
@@ -81,7 +84,8 @@ def main():
             for x in size_results.values():
                 page_size = x['length']
 
-            all_items.append((urllib.parse.unquote(article), article_views, page_size))
+            gene = (urllib.parse.unquote(article), article_views, page_size)
+            all_items.append(gene)
 
             # do some printing for the user
             print(count, 'article views: ', article_views, 'total views: ', total_views,
@@ -98,6 +102,15 @@ def main():
 
         else:
             pprint.pprint(r.text)
+            gene = (urllib.parse.unquote(article), 0, 0)
+            all_items.append(gene)
+
+        df = pd.DataFrame(data=[list(gene)], columns=['Gene_name', 'page_views', 'page_size'])
+        gene_df = gene_df.append(df, ignore_index=True)
+
+        if count % 100 == 0:
+            gene_df.to_csv('gene_view_counts.csv')
+
 
     # final sort and print top accessed pages
     all_items.sort(key=lambda z: z[1], reverse=True)
