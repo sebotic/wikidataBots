@@ -15,7 +15,13 @@ def get_ref_microbe_taxids():
     :return: pandas dataframe of bacteria reference genome data
     """
     assembly = urllib.request.urlretrieve("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
-    data = pd.read_csv(assembly[0], sep="\t")
+
+    columns = ['assembly_accession', 'bioproject', 'biosample', 'wgs_master', 'refseq_category', 'taxid',
+               'species_taxid', 'organism_name', 'infraspecific_name', 'isolate', 'version_status', 'assembly_level',
+               'release_type', 'genome_rep', 'seq_rel_date', 'asm_name', 'submitter', 'gbrs_paired_asm',
+               'paired_asm_comp', 'ftp_path', 'excluded_from_refseq']
+
+    data = pd.read_csv(assembly[0], sep="\t", dtype=object, skiprows=2, names=columns)
     data = data[data['refseq_category'] == 'reference genome']
 
     def sparql_qid(taxid):
