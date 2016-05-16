@@ -1,8 +1,6 @@
 import urllib.request
 import requests
 import pandas as pd
-from pandas.io.json import json_normalize
-import pprint
 import MicrobeBotWDFunctions as wdo
 
 __author__ = 'timputman'

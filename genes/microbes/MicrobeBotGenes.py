@@ -2,12 +2,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
 import PBB_Core
-import pprint
 import MicrobeBotWDFunctions as wdo
 import time
 
 __author__ = 'timputman'
-
 
 def wd_item_construction(gene_record, spec_strain, login):
     """
@@ -15,6 +13,7 @@ def wd_item_construction(gene_record, spec_strain, login):
     :param gene_record: pandas dataframe of combined UniProt NCBI and MyGene.info data
     :return: PBB_Core object of WD item with claims and references for Genes
     """
+
     item_name = '{}    {}'.format(gene_record['name'], gene_record['locus_tag'])
     item_description = 'microbial gene found in {}'.format(spec_strain.iloc[0]['organism_name'])
 
@@ -38,9 +37,9 @@ def wd_item_construction(gene_record, spec_strain, login):
                           }
 
         # convert integer representation of strand to corresponding WD item (Forward Strand/Reverse Strand)
-        if gene_record['genomic_pos']['strand'] == '1':
+        if gene_record['genomic_pos']['strand'] == 1:
             WD_Item_CLAIMS['P2548'] = 'Q22809680'
-        elif gene_record['genomic_pos']['strand'] == '-1':
+        elif gene_record['genomic_pos']['strand'] == -1:
             WD_Item_CLAIMS['P2548'] = 'Q22809711'
 
         statements = []
@@ -88,4 +87,5 @@ def wd_item_construction(gene_record, spec_strain, login):
 
     end = time.time()
     print('Time elapsed:', end - start)
+
 

@@ -2,11 +2,9 @@ import MicrobeBotResources as MBR
 import MicrobeBotGenes as MBG
 import MicrobeBotProteins as MBP
 import MicrobeBotEncoder as MBE
-import MicrobeBotWDFunctions as wdo
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
-import PBB_Core
 import PBB_login
 import datetime
 
@@ -32,6 +30,7 @@ login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 # Retrieve Current Bacterial Reference Genomes from NCBI
 print('Retrieving current list of NCBI Bacterial Reference Genomes')
 print('Standby...')
+
 genome_records = MBR.get_ref_microbe_taxids()
 ref_taxids = genome_records['taxid'].tolist()
 # break up list of taxids into chunks of 5 for subruns
@@ -43,13 +42,19 @@ taxids = {}
 for i in runs_list:
     count += 1
     taxids['run{}'.format(count)] = i
-
 print('{} reference genomes retrieved'.format(genome_records.shape[0]))
+
 genome_log = open('{}_{}.log'.format(sys.argv[3], sys.argv[4]), 'w')
+
 print('{} {}'.format(sys.argv[3], sys.argv[4]), 'start time: {}'.format(datetime.datetime.now()), file=genome_log)
 
+
+
+
+
 for tid in taxids[sys.argv[3]]:
-    spec_strain = genome_records.loc[genome_records['taxid'] == int(tid)]
+    spec_strain = genome_records[genome_records['taxid'] == tid]
+
     print('taxa: {} {}'.format(spec_strain.iloc[0]['organism_name'], spec_strain.iloc[0]['taxid']), file=genome_log)
     # Check for the organism wikidata item and skip if not created
     if spec_strain.iloc[0]['wd_qid'] is 'None':
