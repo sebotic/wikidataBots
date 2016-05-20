@@ -4,6 +4,7 @@ import MicrobeBotProteins as MBP
 import MicrobeBotEncoder as MBE
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ProteinBoxBot_Core")
 import PBB_login
 import datetime
@@ -13,7 +14,7 @@ __author__ = 'timputman'
 if len(sys.argv) < 6:
     print("   You did not supply the proper arguments!")
     print("   Usage: MicrobeBotModularPackage.py <Wikidata user name> <Wikidata Password> <run number> <domain "
-          "i.e. genes/proteins/encode_genes/encode_proteins>, <number of genomes to process> " )
+          "i.e. genes/proteins/encode_genes/encode_proteins>, <number of genomes to process> ")
     sys.exit()
 else:
     pass
@@ -22,7 +23,8 @@ else:
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for c in range(0, len(l), n):
-        yield l[c:c+n]
+        yield l[c:c + n]
+
 
 # Login to Wikidata with bot credentials
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
@@ -48,10 +50,6 @@ genome_log = open('{}_{}.log'.format(sys.argv[3], sys.argv[4]), 'w')
 
 print('{} {}'.format(sys.argv[3], sys.argv[4]), 'start time: {}'.format(datetime.datetime.now()), file=genome_log)
 
-
-
-
-
 for tid in taxids[sys.argv[3]]:
     spec_strain = genome_records[genome_records['taxid'] == tid]
 
@@ -69,7 +67,7 @@ for tid in taxids[sys.argv[3]]:
     gene_count = 0
     for record in gene_records:
 
-        print('{}/{}'.format(gene_count, len(gene_records)))
+        print('{}/{}'.format(gene_count, len(gene_records)), spec_strain['organism_name'])
         if sys.argv[4] == 'genes':
             gene = MBG.wd_item_construction(record, spec_strain, login)
             if gene == 'success':

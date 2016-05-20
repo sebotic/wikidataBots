@@ -100,7 +100,7 @@ def wd_item_construction(gene_record, spec_strain, login):
         wd_item_protein.set_label(item_name)
         wd_item_protein.set_description(item_description, lang='en')
         wd_item_protein.set_aliases([gene_record['symbol'], gene_record['locus_tag']])
-        pprint.pprint(wd_item_protein.get_wd_json_representation())
+        #pprint.pprint(wd_item_protein.get_wd_json_representation())
         # attempt to write json representation of item to wd
         wd_item_protein.write(login=login)
 
