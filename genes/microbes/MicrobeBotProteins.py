@@ -52,6 +52,8 @@ def wd_item_construction(gene_record, spec_strain, login):
 
     item_name = '{}    {}'.format(gene_record['name'], gene_record['locus_tag'])
     item_description = 'microbial protein found in {}'.format(spec_strain.iloc[0]['organism_name'])
+
+
     uniprot = str(list(gene_record['uniprot'].values())[0])
 
     def protein_item_statements():
@@ -75,9 +77,13 @@ def wd_item_construction(gene_record, spec_strain, login):
             goprop = go_props[gt[1]]
             govalue = wdo.WDSparqlQueries(prop='P686', string=gt[0]).wd_prop2qid() #  Get GeneOntology Item by GO ID
             evprop = 'P459'
-            evvalue = go_evidence_codes[gt[2]]
-            evstat = PBB_Core.WDItemID(value=evvalue, prop_nr=evprop, is_qualifier=True)
-            statements.append(PBB_Core.WDItemID(value=govalue, prop_nr=goprop, references=[uniprot_ref], qualifiers=[evstat]))
+            try:
+                evvalue = go_evidence_codes[gt[2]]
+                evstat = PBB_Core.WDItemID(value=evvalue, prop_nr=evprop, is_qualifier=True)
+                statements.append(PBB_Core.WDItemID(value=govalue, prop_nr=goprop, references=[uniprot_ref], qualifiers=[evstat]))
+            except Exception as e:
+                statements.append(PBB_Core.WDItemID(value=govalue, prop_nr=goprop, references=[uniprot_ref]))
+
 
         # generate list of pbb core value objects for all valid claims
         for k, v in WD_Item_CLAIMS.items():
@@ -99,7 +105,7 @@ def wd_item_construction(gene_record, spec_strain, login):
                                                 use_sparql=True)
         wd_item_protein.set_label(item_name)
         wd_item_protein.set_description(item_description, lang='en')
-        wd_item_protein.set_aliases([gene_record['symbol'], gene_record['locus_tag']])
+        wd_item_protein.set_aliases([gene_record['symbol'], gene_record['locus_tag'], 'protein'])
         #pprint.pprint(wd_item_protein.get_wd_json_representation())
         # attempt to write json representation of item to wd
         wd_item_protein.write(login=login)
