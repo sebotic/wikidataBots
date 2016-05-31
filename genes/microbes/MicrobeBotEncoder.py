@@ -16,12 +16,16 @@ def encodes(gene_record, login):
     :param gene_record: gene record from MGI_UNIP_MERGER()
     :return: links gene and protein wikidata items.
     """
+
     uniprot = str(list(gene_record['uniprot'].values())[0])
     start = time.time()
     #  find gene and protein qids
     gene_qid = wdo.WDSparqlQueries(prop='P351', string=gene_record['_id']).wd_prop2qid()
     protein_qid = wdo.WDSparqlQueries(prop='P352', string=uniprot).wd_prop2qid()
+    print(gene_qid, protein_qid)
+
     # if a gene or protein item is not found skip this one
+
     if gene_qid is not None and protein_qid is not None:
         print('gene {} and protein {} found'.format(gene_qid, protein_qid))
         # generate reference and claim values for each item
@@ -84,4 +88,6 @@ def encodes(gene_record, login):
 
     end = time.time()
     print('Time elapsed:', end - start)
+
+
 

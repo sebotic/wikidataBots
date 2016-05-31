@@ -25,6 +25,7 @@ tid = sys.argv[3]
 
 spec_strain = genome_records[genome_records['taxid'] == tid]
 
+
 # Retrieve gene and protein records from UniProt and Mygene.info by taxid
 print('Retrieving gene records for {} taxid:{}'.format(spec_strain.iloc[0]['organism_name'], tid))
 gene_records = MBR.mgi_qg_resources(tid)  # PANDAS DataFrame
@@ -33,7 +34,7 @@ gene_records = MBR.mgi_qg_resources(tid)  # PANDAS DataFrame
 print('Commencing {} bot run  for {}'.format(sys.argv[4], spec_strain.iloc[0]['organism_name']))
 gene_count = 0
 for record in gene_records:
-    #print('{}/{}'.format(gene_count, len(gene_records)), spec_strain['organism_name'])
+    print('{}/{}'.format(gene_count, len(gene_records)), spec_strain['organism_name'])
     if sys.argv[4] == 'genes':
         gene = MBG.wd_item_construction(record, spec_strain, login)
         if gene == 'success':
