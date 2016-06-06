@@ -2,7 +2,7 @@ import urllib.request
 import requests
 import pandas as pd
 import MicrobeBotWDFunctions as wdo
-
+import pprint
 __author__ = 'timputman'
 
 
@@ -44,11 +44,19 @@ def mgi_qg_resources(taxid):
         url = 'https://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&tax={}'.format(taxid)
         data = urllib.request.urlretrieve(url)
         df = pd.read_csv(data[0], sep="\t")
-        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect'], aggfunc=lambda x: list(x))
+        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect', 'With'], aggfunc=lambda x: list(x))
         goterms = {}
         for index, row in df_joined.iterrows():
+            ecnumber = df_joined.loc[index]['With']
+            ec2 = []
+            for ec in ecnumber:
+                if ec.startswith('EC:'):
+                    ec2.append(ec)
+                else:
+                    ec2.append('None')
             goterms[index] = set(list(zip(df_joined.loc[index]['GO ID'],
                                           df_joined.loc[index]['Aspect'],
+                                          ec2,
                                           df_joined.loc[index]['Evidence'])))
 
         return goterms
@@ -81,4 +89,5 @@ def mgi_qg_resources(taxid):
         all_list.append(i)
 
     return all_list
+
 

@@ -14,8 +14,7 @@ block content
                   h3 Article: <span class='title'>#{title}</span>
 
                 div(role='alert').alert.alert-warning
-                  p Further editing will need to be done manually. 
-
+                p Further editing will need to be done manually.
           .row
             .col-xs-12
               form(role='form', method='POST')
@@ -60,8 +59,7 @@ block content
                 .form-group
                   textarea(rows='15', cols='50', readonly='readonly', style='display:none;').form-control
                     #{results.stub}
-                  - if results.stub
-                    p *Note: It may take several minutes for an article to be created please be patient.  
+                 p *Note: It may take several minutes for an article to be created please be patient. If an article link  is not displayed you may need to refresh your browser after waiting a few minutes. 
 
 block post-footer
     script.
