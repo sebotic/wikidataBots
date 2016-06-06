@@ -7,6 +7,7 @@ from string import ascii_lowercase
 import time
 import os
 import gc
+import sys
 
 
 def parse_compound(cas_nr):
@@ -17,7 +18,7 @@ def parse_compound(cas_nr):
     print(results.status_code)
     raw_html = comp_results.text
 
-    file_name = './chemidplus_pages/{}.html'.format(cas_nr)
+    file_name = '{}/{}.html'.format(file_path, cas_nr)
     if not os.path.exists(file_name) or os.path.getsize(file_name) < 1500:
         f = open(file_name, 'w')
         f.write(comp_results.text)
@@ -88,8 +89,11 @@ def parse_compound(cas_nr):
 # base_url = 'http://chem.sis.nlm.nih.gov/chemidplus/name/startswith/a?DT_START_ROW=1&DT_ROWS_PER_PAGE=10'
 base_url = 'http://chem.sis.nlm.nih.gov/chemidplus/name/startswith/{}?DT_START_ROW={}&DT_ROWS_PER_PAGE={}'
 
-if not os.path.exists('./chemidplus_pages'):
-    os.makedirs('./chemidplus_pages')
+print(sys.argv[1])
+file_path = sys.argv[1]
+
+if not os.path.exists(file_path):
+    os.makedirs(file_path)
 
 wait_required = True
 
@@ -97,6 +101,7 @@ start_letters = []
 start_letters.extend(list(range(0, 10)))
 start_letters.extend(list(ascii_lowercase))
 start_letters.extend(['(', '#', "'"])
+print(start_letters)
 
 search_results = {}
 
@@ -104,7 +109,8 @@ total_results_count = 0
 start = time.time()
 
 for start_letter in start_letters:
-    rs = requests.get(base_url.format(start_letter, '1', '2'))
+    time.sleep(3)
+    rs = requests.get(base_url.format(start_letter, '1', '5'))
     sp = BeautifulSoup(rs.text, 'html.parser')
 
     print(rs.status_code)
@@ -160,12 +166,12 @@ for start_letter in start_letters:
             if wait_required:
                 time.sleep(3)
 
-            search_results[cas] = {
+            search_results[cas].update({
                 'inchi': inchi,
                 'inchi_key': inchi_key,
                 'smiles': smiles,
                 'unii': unii
-            }
+            })
 
             del search_results[cas]['new']
 
