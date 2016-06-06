@@ -1,10 +1,8 @@
 import urllib.request
 import requests
 import pandas as pd
-from pandas.io.json import json_normalize
-import pprint
 import MicrobeBotWDFunctions as wdo
-
+import pprint
 __author__ = 'timputman'
 
 
@@ -15,7 +13,13 @@ def get_ref_microbe_taxids():
     :return: pandas dataframe of bacteria reference genome data
     """
     assembly = urllib.request.urlretrieve("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
-    data = pd.read_csv(assembly[0], sep="\t")
+
+    columns = ['assembly_accession', 'bioproject', 'biosample', 'wgs_master', 'refseq_category', 'taxid',
+               'species_taxid', 'organism_name', 'infraspecific_name', 'isolate', 'version_status', 'assembly_level',
+               'release_type', 'genome_rep', 'seq_rel_date', 'asm_name', 'submitter', 'gbrs_paired_asm',
+               'paired_asm_comp', 'ftp_path', 'excluded_from_refseq']
+
+    data = pd.read_csv(assembly[0], sep="\t", dtype=object, skiprows=2, names=columns)
     data = data[data['refseq_category'] == 'reference genome']
 
     def sparql_qid(taxid):
@@ -40,11 +44,19 @@ def mgi_qg_resources(taxid):
         url = 'https://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&tax={}'.format(taxid)
         data = urllib.request.urlretrieve(url)
         df = pd.read_csv(data[0], sep="\t")
-        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect'], aggfunc=lambda x: list(x))
+        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect', 'With'], aggfunc=lambda x: list(x))
         goterms = {}
         for index, row in df_joined.iterrows():
+            ecnumber = df_joined.loc[index]['With']
+            ec2 = []
+            for ec in ecnumber:
+                if ec.startswith('EC:'):
+                    ec2.append(ec)
+                else:
+                    ec2.append('None')
             goterms[index] = set(list(zip(df_joined.loc[index]['GO ID'],
                                           df_joined.loc[index]['Aspect'],
+                                          ec2,
                                           df_joined.loc[index]['Evidence'])))
 
         return goterms
@@ -77,4 +89,5 @@ def mgi_qg_resources(taxid):
         all_list.append(i)
 
     return all_list
+
 

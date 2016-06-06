@@ -69,7 +69,7 @@ def create_stub(gene_id):
     generif=mg.getgene(gene_id, fields="generif")
     pmids = []
     if 'generif' in generif:
-        pmids = generif['generif'][0]['pubmed'].split(",")
+        pmids = str(generif['generif'][0]['pubmed']).split(",")
     
     limit = 9 if len(pmids) > 9 else len(pmids)
     citations = ''
