@@ -54,49 +54,47 @@ def get_expasy_enzyme():
     enz_records = []
     count = 0
     for record in enzyme_p:
-        count += 1
-        print(count)
-        if count < 11:
-            enz_rec = {}
-            enz_rec['Reaction(s)'] = record['CA']
-            #create record for each enzyme with EC number as primary key
-            enz_rec['PreferedName'] = record['DE']
-            enz_rec['ECNumber'] = record['ID']
-            enz_rec['Reaction(s)'] = []
-            enz_rec['Substrates'] = {}
-            enz_rec['Products'] = {}
-            enz_rec['UniProt'] = {}
-            enz_records.append(enz_rec)
 
-            # split split to seperate multiple reactions
-            reaction1 = record['CA'].split('.')
-            for rxn in reaction1:
-                if len(reaction1) > 2:
-                    rxn = rxn[3:]
-                enz_rec['Reaction(s)'].append(rxn)
-                #split reactions into [substrates, products]
-                constituents = rxn.split('=')
-                # split each side of reaction on '+' not '(+)'
-                r = re.compile(r'(?:[^\+(]|\([^)]*\))+')
-                substrates = r.findall(constituents[0])
-                products = r.findall(constituents[-1])
+        enz_rec = {}
+        enz_rec['Reaction(s)'] = record['CA']
+        #create record for each enzyme with EC number as primary key
+        enz_rec['PreferedName'] = record['DE']
+        enz_rec['ECNumber'] = record['ID']
+        enz_rec['Reaction(s)'] = []
+        enz_rec['Substrates'] = {}
+        enz_rec['Products'] = {}
+        enz_rec['UniProt'] = {}
+        enz_records.append(enz_rec)
 
-                if substrates:
-                    for sub in substrates:
-                        sub = replace_strings(sub.lstrip().rstrip())
-                        schebi = link_compound2chebi(sub)
-                        enz_rec['Substrates'][sub] = schebi
-                if products:
-                    for prod in products:
-                        prod = replace_strings(prod.lstrip().rstrip())
-                        pchebi = link_compound2chebi(prod)
-                        enz_rec['Products'][prod] = pchebi
+        # split split to seperate multiple reactions
+        reaction1 = record['CA'].split('.')
+        for rxn in reaction1:
+            if len(reaction1) > 2:
+                rxn = rxn[3:]
+            enz_rec['Reaction(s)'].append(rxn)
+            #split reactions into [substrates, products]
+            constituents = rxn.split('=')
+            # split each side of reaction on '+' not '(+)'
+            r = re.compile(r'(?:[^\+(]|\([^)]*\))+')
+            substrates = r.findall(constituents[0])
+            products = r.findall(constituents[-1])
 
-                    # populate enz_rec['UniProt'] with dictionary of uniprotid:name key, value pairs for protein
-                for unpid in record['DR']:
-                    enz_rec['UniProt'][unpid[0]] = unpid[1]
+            if substrates:
+                for sub in substrates:
+                    sub = replace_strings(sub.lstrip().rstrip())
+                    schebi = link_compound2chebi(sub)
+                    enz_rec['Substrates'][sub] = schebi
+            if products:
+                for prod in products:
+                    prod = replace_strings(prod.lstrip().rstrip())
+                    pchebi = link_compound2chebi(prod)
+                    enz_rec['Products'][prod] = pchebi
 
-            enz_records.append(enz_rec)
+                # populate enz_rec['UniProt'] with dictionary of uniprotid:name key, value pairs for protein
+            for unpid in record['DR']:
+                enz_rec['UniProt'][unpid[0]] = unpid[1]
+
+        enz_records.append(enz_rec)
 
     return enz_records
 

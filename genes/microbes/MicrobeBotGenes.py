@@ -28,9 +28,10 @@ def wd_item_construction(gene_record, spec_strain, login):
         # claims for datatype string.
         WD_String_CLAIMS = {'P351': str(gene_record['_id']),
                             'P2393': gene_record['locus_tag'],
-                            'P644': str(int(gene_record['genomic_pos']['start'])),
-                            'P645': str(int(gene_record['genomic_pos']['end'])),
                             }
+        WD_Genome_Annotation_Claims = {'P644': str(int(gene_record['genomic_pos']['start'])),
+                                       'P645': str(int(gene_record['genomic_pos']['end'])),
+                                       }
         # claims for datytpe item
         WD_Item_CLAIMS = {'P703': spec_strain.iloc[0]['wd_qid'],
                           'P279': 'Q7187',
@@ -41,6 +42,8 @@ def wd_item_construction(gene_record, spec_strain, login):
             WD_Item_CLAIMS['P2548'] = 'Q22809680'
         elif gene_record['genomic_pos']['strand'] == -1:
             WD_Item_CLAIMS['P2548'] = 'Q22809711'
+        chromosome = gene_record['genomic_pos']['chr']
+        rs_chrom = PBB_Core.WDString(value=chromosome, prop_nr='P2249', is_qualifier=True)
 
         statements = []
         # process to pbb_Core data value object and append to statments for each valid item in each datatype dict
@@ -50,7 +53,11 @@ def wd_item_construction(gene_record, spec_strain, login):
         # WDString datatype
         for k, v in WD_String_CLAIMS.items():
             statements.append(PBB_Core.WDString(value=v, prop_nr=k, references=[ncbi_gene_reference]))
+        for k, v in WD_Genome_Annotation_Claims.items():
+            statements.append(PBB_Core.WDString(value=v, prop_nr=k, references=[ncbi_gene_reference], qualifiers=[rs_chrom]))
+
         return statements
+
 
     # attempt to instantiate PBB_Core item object by finding the proper item in wikidata or creating a new one (Json)
     start = time.time()
