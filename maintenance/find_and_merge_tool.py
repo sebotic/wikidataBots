@@ -56,7 +56,7 @@ def print_item(qid):
     for stmt in wd_item.statements:
         # retrieve English prop label and store in prop_label dict to minimize traffic
         prop_nr = stmt.get_prop_nr()
-        prop_label = ''
+
         if prop_nr not in prop_store:
             prop_item = PBB_Core.WDItemEngine(wd_item_id=prop_nr)
             prop_label = prop_item.get_label()
