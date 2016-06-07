@@ -127,7 +127,7 @@ def combine_resources():
 
 
 ops = combine_resources()
-# pprint.pprint(ops)
+#pprint.pprint(ops)
 genestot = len(ops)
 count = 0
 reference = [PBB_Core.WDString(value='19448609', prop_nr='P698', is_reference=True),
@@ -137,16 +137,17 @@ for ref in reference:
     ref.overwrite_references = True
 
 login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
-
-
 for gene in ops:
     statements = []
     if 'locus_tag' in gene.keys():
         item_name = '{}    {}'.format(gene['name'], gene['locus_tag'])
+
         if 'operon' in gene.keys():
             count += 1
             if count > 640:
                 wd_operon = los.listeria_operons[gene['operon']['operon']].rstrip()
+                print(wd_operon)
+
                 statements.append(PBB_Core.WDString(prop_nr='P351', value=gene['_id'], references=[reference]))
                 statements.append(PBB_Core.WDItemID(prop_nr='P361', value=wd_operon, references=[reference]))
 
