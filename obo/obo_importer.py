@@ -6,6 +6,7 @@ import requests
 import pprint
 import json
 import os
+import traceback
 
 __author__ = 'Sebastian Burgstaller'
 __license__ = 'AGPLv3'
@@ -23,7 +24,11 @@ class OBOImporter(object):
     obo_wd_map = {
         'http://www.w3.org/2000/01/rdf-schema#subClassOf': 'P279',  # subclassOf aka 'is a'
         'http://purl.obolibrary.org/obo/BFO_0000051': 'P527',  # has_part
-        'http://purl.obolibrary.org/obo/BFO_0000050': 'P361'  # part of
+        'http://purl.obolibrary.org/obo/BFO_0000050': 'P361',  # part of
+
+        # 'http://purl.obolibrary.org/obo/RO_0002211': '',  # regulates
+        # 'http://purl.obolibrary.org/obo/RO_0002212': '',  # negatively regulates
+        # 'http://purl.obolibrary.org/obo/RO_0002213': '',  # positively regulates
     }
 
     rev_prop_map = {
@@ -38,6 +43,8 @@ class OBOImporter(object):
         'CHEBI': 'P683',
         'OMIM': 'P492'
     }
+
+    ols_session = requests.Session()
 
     def __init__(self, root_objects, ontology, core_property_nr, ontology_ref_item, login, local_qid_onto_map):
 
@@ -67,7 +74,7 @@ class OBOImporter(object):
                             login=login, local_qid_onto_map=self.local_qid_onto_map)
             else:
                 try:
-                    r = requests.get(url=self.base_url + '{}_{}/graph'.format(self.ontology, ro), headers=self.headers)
+                    r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}/graph'.format(self.ontology, ro), headers=self.headers)
                     self.term_graph = r.json()
                 except requests.HTTPError as e:
                     print(e)
@@ -118,7 +125,7 @@ class OBOImporter(object):
             try:
                 data = list(data)
 
-                r = requests.get(url=self.base_url + '{}_{}'.format(self.ontology, go_id), headers=self.headers)
+                r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}'.format(self.ontology, go_id), headers=self.headers)
                 go_term_data = r.json()
                 label = go_term_data['label']
                 description = go_term_data['description'][0]
@@ -132,12 +139,13 @@ class OBOImporter(object):
                 # get parent ontology term info so item can be populated with description, etc.
                 data.append(PBB_Core.WDString(value='GO:{}'.format(go_id), prop_nr=self.core_property_nr,
                                               references=[self.create_reference()]))
-                print(data)
+                #print(data)
                 if go_id in self.local_qid_onto_map:
                     wd_item = PBB_Core.WDItemEngine(wd_item_id=self.local_qid_onto_map[go_id]['qid'], domain='obo',
-                                                    data=data, use_sparql=True)
+                                                    data=data, fast_run=True, fast_run_base_filter={'P686': ''})
                 else:
-                    wd_item = PBB_Core.WDItemEngine(item_name='test', domain='obo', data=data, use_sparql=True)
+                    wd_item = PBB_Core.WDItemEngine(item_name='test', domain='obo', data=data, fast_run=True,
+                                                    fast_run_base_filter={'P686': ''})
                 wd_item.set_label(label=label)
                 if len(description) <= 250:
                     wd_item.set_description(description=description)
@@ -184,6 +192,7 @@ class OBOImporter(object):
 
             except Exception as e:
                 print(e)
+                # traceback.print_exc(e)
 
                 PBB_Core.WDItemEngine.log(
                     'ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'
