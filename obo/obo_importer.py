@@ -41,7 +41,8 @@ class OBOImporter(object):
         'MSH': 'P486',
         'NCI': 'P1748',  # NCI thesaurus, there exists a second NCI property
         'CHEBI': 'P683',
-        'OMIM': 'P492'
+        'OMIM': 'P492',
+        'EC': 'P591',
     }
 
     ols_session = requests.Session()
@@ -139,7 +140,19 @@ class OBOImporter(object):
                 # get parent ontology term info so item can be populated with description, etc.
                 data.append(PBB_Core.WDString(value='GO:{}'.format(go_id), prop_nr=self.core_property_nr,
                                               references=[self.create_reference()]))
-                #print(data)
+
+                # add xrefs
+                if go_term_data['obo_xref']:
+                    for xref in go_term_data['obo_xref']:
+                        if xref['database'] in OBOImporter.xref_props:
+                            if xref['database'] in OBOImporter.xref_props:
+                                wd_prop = OBOImporter.xref_props[xref['database']]
+                            else:
+                                continue
+                            xref_value = xref['id']
+                            data.append(PBB_Core.WDExternalID(value=xref_value, prop_nr=wd_prop,
+                                                              references=[self.create_reference()]))
+
                 if go_id in self.local_qid_onto_map:
                     wd_item = PBB_Core.WDItemEngine(wd_item_id=self.local_qid_onto_map[go_id]['qid'], domain='obo',
                                                     data=data, fast_run=True, fast_run_base_filter={'P686': ''})
@@ -239,13 +252,16 @@ class OBOImporter(object):
         f.close()
 
     def create_reference(self):
-        return [
+        refs = [
             PBB_Core.WDItemID(value=self.ontology_ref_item, prop_nr='P248', is_reference=True),
             PBB_Core.WDItemID(value='Q22230760', prop_nr='P143', is_reference=True),
             PBB_Core.WDTime(time=time.strftime('+%Y-%m-%dT00:00:00Z', time.gmtime()), prop_nr='P813',
                             is_reference=True),
             PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of work
         ]
+        refs[0].overwrite_references = True
+
+        return refs
 
     @staticmethod
     def cleanup_obsolete_edges(ontology_id, core_property_nr, login, current_node_qids=(), obsolete_term=False):
