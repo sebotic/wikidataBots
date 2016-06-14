@@ -202,7 +202,7 @@ class OBOImporter(object):
                             wd_id=qid,
                             duration=time.time() - start
                         ))
-                return qid, go_term_data['is_obsolete']
+                return qid
 
             except Exception as e:
                 print(e)
@@ -222,7 +222,7 @@ class OBOImporter(object):
         dt = []
         parent_qids = []
         for parent_id in parents:
-            pi, obsolete = get_item_qid(parent_id)
+            pi = get_item_qid(parent_id)
 
             if pi is not None:
                 parent_qids.append(pi)
@@ -242,7 +242,7 @@ class OBOImporter(object):
                 pi = get_item_qid(go_id=go)
                 dt.append(self.create_xref_statement(value=pi, xref_dict=xref_dict))
 
-        root_qid, obsolete = get_item_qid(go_id=current_root_id, data=dt)
+        root_qid = get_item_qid(go_id=current_root_id, data=dt)
         OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
                                            login=self.login_obj, core_property_nr=self.core_property_nr,
                                            current_node_qids=current_node_qids)
