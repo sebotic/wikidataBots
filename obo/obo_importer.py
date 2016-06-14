@@ -22,13 +22,13 @@ has part
 
 class OBOImporter(object):
     obo_wd_map = {
-        'http://www.w3.org/2000/01/rdf-schema#subClassOf': 'P279',  # subclassOf aka 'is a'
-        'http://purl.obolibrary.org/obo/BFO_0000051': 'P527',  # has_part
-        'http://purl.obolibrary.org/obo/BFO_0000050': 'P361',  # part of
+        'http://www.w3.org/2000/01/rdf-schema#subClassOf': {'P279': ''},  # subclassOf aka 'is a'
+        'http://purl.obolibrary.org/obo/BFO_0000051': {'P527': ''},  # has_part
+        'http://purl.obolibrary.org/obo/BFO_0000050': {'P361': ''},  # part of
 
-        # 'http://purl.obolibrary.org/obo/RO_0002211': '',  # regulates
-        # 'http://purl.obolibrary.org/obo/RO_0002212': '',  # negatively regulates
-        # 'http://purl.obolibrary.org/obo/RO_0002213': '',  # positively regulates
+        'http://purl.obolibrary.org/obo/RO_0002211': {'P128': ''},  # regulates
+        'http://purl.obolibrary.org/obo/RO_0002212': {'P128': {'P794': 'Q22260640'}},  # negatively regulates WD item: Q22260640
+        'http://purl.obolibrary.org/obo/RO_0002213': {'P128': {'P794': 'Q22260639'}},  # positively regulates WD item: Q22260639
     }
 
     rev_prop_map = {
@@ -126,7 +126,8 @@ class OBOImporter(object):
             try:
                 data = list(data)
 
-                r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}'.format(self.ontology, go_id), headers=self.headers)
+                r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}'.format(self.ontology, go_id),
+                                                headers=self.headers)
                 go_term_data = r.json()
                 label = go_term_data['label']
                 description = go_term_data['description'][0]
@@ -201,7 +202,7 @@ class OBOImporter(object):
                             wd_id=qid,
                             duration=time.time() - start
                         ))
-                return qid
+                return qid, go_term_data['is_obsolete']
 
             except Exception as e:
                 print(e)
@@ -221,7 +222,7 @@ class OBOImporter(object):
         dt = []
         parent_qids = []
         for parent_id in parents:
-            pi = get_item_qid(parent_id)
+            pi, obsolete = get_item_qid(parent_id)
 
             if pi is not None:
                 parent_qids.append(pi)
@@ -231,17 +232,17 @@ class OBOImporter(object):
             if edge['uri'] in self.obo_wd_map and edge['uri'] != 'http://www.w3.org/2000/01/rdf-schema#subClassOf':
                 go = edge['target'].split('_')[-1]
                 if go != current_root_id:
-                    prop_nr = self.obo_wd_map[edge['uri']]
+                    xref_dict = self.obo_wd_map[edge['uri']]
                 elif edge['uri'] in self.rev_prop_map and edge['source'].split('_')[-1] != current_root_id:
-                    prop_nr = self.obo_wd_map[self.rev_prop_map[edge['uri']]]
+                    xref_dict = self.obo_wd_map[self.rev_prop_map[edge['uri']]]
                     go = edge['source'].split('_')[-1]
                 else:
                     continue
 
                 pi = get_item_qid(go_id=go)
-                dt.append(PBB_Core.WDItemID(value=pi, prop_nr=prop_nr, references=[self.create_reference()]))
+                dt.append(self.create_xref_statement(value=pi, xref_dict=xref_dict))
 
-        root_qid = get_item_qid(go_id=current_root_id, data=dt)
+        root_qid, obsolete = get_item_qid(go_id=current_root_id, data=dt)
         OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
                                            login=self.login_obj, core_property_nr=self.core_property_nr,
                                            current_node_qids=current_node_qids)
@@ -263,12 +264,22 @@ class OBOImporter(object):
 
         return refs
 
+    def create_xref_statement(self, value, xref_dict):
+        for prop_nr, v in xref_dict.items():
+            qualifiers = []
+            if v:
+                for p, vv in v.items():
+                    qualifiers.append(PBB_Core.WDItemID(value=vv, prop_nr=p, is_qualifier=True))
+
+            return PBB_Core.WDItemID(value=value, prop_nr=prop_nr, references=[self.create_reference()])
+
     @staticmethod
     def cleanup_obsolete_edges(ontology_id, core_property_nr, login, current_node_qids=(), obsolete_term=False):
         filter_props_string = ''
         if not obsolete_term:
-            for x in OBOImporter.obo_wd_map:
-                filter_props_string += 'Filter (?p = wdt:{})\n'.format(OBOImporter.obo_wd_map[x])
+            for x in OBOImporter.obo_wd_map.values():
+                prop_nr = list(x.keys())[0]
+                filter_props_string += 'Filter (?p = wdt:{})\n'.format(prop_nr)
 
         query = '''
         SELECT DISTINCT ?qid ?p ?onto_qid WHERE {{
@@ -282,6 +293,7 @@ class OBOImporter(object):
         }}
         ORDER BY ?qid
         '''.format(ontology_id, filter_props_string, core_property_nr)
+        print(query)
 
         sr = PBB_Core.WDItemEngine.execute_sparql_query(query=query)
 
