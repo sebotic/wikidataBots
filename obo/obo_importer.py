@@ -121,7 +121,7 @@ class OBOImporter(object):
             # for efficiency reasons, skip if item already had a root write performed
             if go_id in self.local_qid_onto_map and self.local_qid_onto_map[go_id]['had_root_write'] \
                     and 'qid' in self.local_qid_onto_map[go_id]:
-                return self.local_qid_onto_map[go_id]['qid']
+                return self.local_qid_onto_map[go_id]['qid'], False, False
 
             try:
                 data = list(data)
@@ -136,7 +136,7 @@ class OBOImporter(object):
                     OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, go_id),
                                                        login=self.login_obj, core_property_nr=self.core_property_nr,
                                                        obsolete_term=True)
-                    return None
+                    return None, None, None
 
                 # get parent ontology term info so item can be populated with description, etc.
                 data.append(PBB_Core.WDString(value='GO:{}'.format(go_id), prop_nr=self.core_property_nr,
@@ -202,7 +202,7 @@ class OBOImporter(object):
                             wd_id=qid,
                             duration=time.time() - start
                         ))
-                return qid
+                return qid, go_term_data['obo_xref'], wd_item.require_write
 
             except Exception as e:
                 print(e)
@@ -217,14 +217,16 @@ class OBOImporter(object):
                             wd_id='',
                             duration=time.time() - start
                         ))
-                return None
+                return None, None, None
 
         dt = []
         parent_qids = []
+        write_reqired = []
         for parent_id in parents:
-            pi = get_item_qid(parent_id)
+            pi, o, w = get_item_qid(parent_id)
+            write_reqired.append(w)
 
-            if pi is not None:
+            if pi:
                 parent_qids.append(pi)
                 dt.append(PBB_Core.WDItemID(value=pi, prop_nr='P279', references=[self.create_reference()]))
 
@@ -239,13 +241,15 @@ class OBOImporter(object):
                 else:
                     continue
 
-                pi = get_item_qid(go_id=go)
+                pi, o, w = get_item_qid(go_id=go)
+                write_reqired.append(w)
                 dt.append(self.create_xref_statement(value=pi, xref_dict=xref_dict))
 
-        root_qid = get_item_qid(go_id=current_root_id, data=dt)
-        OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
-                                           login=self.login_obj, core_property_nr=self.core_property_nr,
-                                           current_node_qids=current_node_qids)
+        root_qid, obsolete, w = get_item_qid(go_id=current_root_id, data=dt)
+        if obsolete and not any(write_reqired):
+            OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
+                                               login=self.login_obj, core_property_nr=self.core_property_nr,
+                                               current_node_qids=current_node_qids)
 
         print('----COUNT----:', len(self.local_qid_onto_map))
         f = open('temp_{}_onto_map.json'.format(self.ontology), 'w')
@@ -271,7 +275,8 @@ class OBOImporter(object):
                 for p, vv in v.items():
                     qualifiers.append(PBB_Core.WDItemID(value=vv, prop_nr=p, is_qualifier=True))
 
-            return PBB_Core.WDItemID(value=value, prop_nr=prop_nr, references=[self.create_reference()])
+            return PBB_Core.WDItemID(value=value, prop_nr=prop_nr, qualifiers=qualifiers,
+                                     references=[self.create_reference()])
 
     @staticmethod
     def cleanup_obsolete_edges(ontology_id, core_property_nr, login, current_node_qids=(), obsolete_term=False):
