@@ -5,9 +5,11 @@ from ProteinBoxBot_Core import PBB_Core, PBB_login
 from interproscan.WDHelper import WDHelper
 from interproscan.parser import parse_interpro_xml
 
-INTERPRO = "PXXXX"
-WDUSER = 'gstupp'
-WDPASS = 'sulab.org'
+from .local import WDUSER, WDPASS
+
+INTERPRO = "PXXXXX"  ## CHANGE MEEE
+print("CHange interpro Property ID!!")
+SERVER = "www.wikidata.org"
 
 
 class IPRItem:
@@ -76,10 +78,10 @@ class IPRItem:
             print("item {} already exists: {}".format(self.id, wd_item_id))
             return
 
-        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=self.reference)]
-        item = PBB_Core.WDItemEngine(item_name=self.name, domain=None, data=statements)
+        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
+        item = PBB_Core.WDItemEngine(item_name=self.name, domain=None, data=statements, server=SERVER)
         item.set_label(self.name)
-        for lang, description in self.description:
+        for lang, description in self.description.items():
             item.set_description(description, lang=lang)
         item.set_aliases([self.short_name, self.id])
         item.write(login=self.login)
@@ -109,7 +111,7 @@ class IPRItem:
                     PBB_Core.WDItemID(value=ipr_wd[f], prop_nr='P361', references=self.reference))  # part of
 
         # write data
-        item = PBB_Core.WDItemEngine(wd_item_id=self.wd_item_id, data=statements)
+        item = PBB_Core.WDItemEngine(wd_item_id=self.wd_item_id, data=statements, server=SERVER)
         item.write(self.login)
 
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
@@ -128,9 +130,10 @@ def import_interpro_items():
     """
     d, release_info = parse_interpro_xml()
     IPRItem.create_reference(release_info['date'], release_info['version'])
-    IPRItem.login = PBB_login.WDLogin(WDUSER, WDPASS)
+    IPRItem.login = PBB_login.WDLogin(WDUSER, WDPASS, server=SERVER)
     # Start with adding all interpro items
     ipritems = {ipr_id: IPRItem(iprdict) for ipr_id, iprdict in d.items()}
+    # ipritem = next(iter(ipritems.values()))
     for ipritem in ipritems.values():
         ipritem.create_item()
 
@@ -163,7 +166,7 @@ def create_protein_ipr(uniprot_id, families, has_part, reference, login):
         for hp in has_part:
             statements.append(PBB_Core.WDItemID(value=hp, prop_nr='P527', references=reference))
 
-    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements)
+    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER)
     item.write(login)
 
     PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
@@ -182,7 +185,7 @@ def create_all_protein_interpro(ipr_wd=None):
     :return:
     """
 
-    # if you don't pass in a interpro <-> wdID dict, query it from wikidata
+    # if you don't pass in a interpro <-> wdID dict, get it from wikidata
     if not ipr_wd:
         ipr_wd = WDHelper().id_mapper(INTERPRO)
 
