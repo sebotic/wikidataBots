@@ -2,13 +2,12 @@ import json
 from datetime import datetime
 
 from ProteinBoxBot_Core import PBB_Core, PBB_login
+from ProteinBoxBot_Core.PBB_Core import WDApiError
 from interproscan.WDHelper import WDHelper
 from interproscan.parser import parse_interpro_xml
-
 from .local import WDUSER, WDPASS
 
-INTERPRO = "PXXXXX"  ## CHANGE MEEE
-print("CHange interpro Property ID!!")
+INTERPRO = "P2926"
 SERVER = "www.wikidata.org"
 
 
@@ -62,35 +61,53 @@ class IPRItem:
         ref_imported = PBB_Core.WDItemID("Q3047275", 'P143', is_reference=True)
         ref_version = PBB_Core.WDString(version, 'P348', is_reference=True)
         # TODO: This doesn't work because there is a URL in the property ???
-        # ref_date = PBB_Core.WDTime(date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
-        reference = [ref_stated_in, ref_imported, ref_version, ]  # ref_date]
+        ref_date = PBB_Core.WDTime(date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
+        reference = [ref_stated_in, ref_imported, ref_version, ref_date]
         for ref in reference:
             ref.overwrite_references = True
         cls.reference = reference
         return reference
 
     def create_item(self):
-        # Check if item already exists first
-        wd = WDHelper()
-        wd_item_id = wd.prop2qid(INTERPRO, self.id)
+        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
+
+        # Check if item already exists
+        wd_item_id = WDHelper().prop2qid(INTERPRO, self.id)
         if wd_item_id:
             self.wd_item_id = wd_item_id
-            print("item {} already exists: {}".format(self.id, wd_item_id))
-            return
+            print("item {} already exists. Updating: {}".format(self.id, wd_item_id))
+            item = PBB_Core.WDItemEngine(wd_item_id=wd_item_id, domain=None, data=statements, server=SERVER)
+            message = 'updated interpro item'
+        else:
+            # create new item
+            self.wd_item_id = None
+            item = PBB_Core.WDItemEngine(item_name=self.name, domain=None, data=statements, server=SERVER)
+            message = 'created interpro item'
 
-        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
-        item = PBB_Core.WDItemEngine(item_name=self.name, domain=None, data=statements, server=SERVER)
         item.set_label(self.name)
         for lang, description in self.description.items():
             item.set_description(description, lang=lang)
         item.set_aliases([self.short_name, self.id])
-        item.write(login=self.login)
-        self.wd_item_id = item.wd_item_id
 
+        try:
+            item.write(login=self.login)
+        except WDApiError as e:
+            print(e)
+            PBB_Core.WDItemEngine.log('ERROR',
+                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                                          main_data_id=self.id,
+                                          exception_type=type(e),
+                                          message=e.__str__(),
+                                          wd_id=self.wd_item_id,
+                                          duration=datetime.now()
+                                      ))
+            return
+
+        self.wd_item_id = item.wd_item_id
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
             main_data_id=self.id,
             exception_type='',
-            message='created interpro item',
+            message=message,
             wd_id=item.wd_item_id,
             duration=datetime.now()
         ))
@@ -112,7 +129,19 @@ class IPRItem:
 
         # write data
         item = PBB_Core.WDItemEngine(wd_item_id=self.wd_item_id, data=statements, server=SERVER)
-        item.write(self.login)
+        try:
+            item.write(self.login)
+        except WDApiError as e:
+            print(e)
+            PBB_Core.WDItemEngine.log('ERROR',
+                                      '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                                          main_data_id=self.id,
+                                          exception_type=type(e),
+                                          message=e.__str__(),
+                                          wd_id=self.wd_item_id,
+                                          duration=datetime.now()
+                                      ))
+            return
 
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
             main_data_id=self.id,
@@ -133,7 +162,8 @@ def import_interpro_items():
     IPRItem.login = PBB_login.WDLogin(WDUSER, WDPASS, server=SERVER)
     # Start with adding all interpro items
     ipritems = {ipr_id: IPRItem(iprdict) for ipr_id, iprdict in d.items()}
-    # ipritem = next(iter(ipritems.values()))
+    # x = iter(ipritems.values())
+    # ipritem = next(x)
     for ipritem in ipritems.values():
         ipritem.create_item()
 
@@ -167,7 +197,19 @@ def create_protein_ipr(uniprot_id, families, has_part, reference, login):
             statements.append(PBB_Core.WDItemID(value=hp, prop_nr='P527', references=reference))
 
     item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER)
-    item.write(login)
+    try:
+        item.write(login)
+    except WDApiError as e:
+        print(e)
+        PBB_Core.WDItemEngine.log('ERROR',
+                                  '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                                      main_data_id=uniprot_id,
+                                      exception_type=type(e),
+                                      message=e.__str__(),
+                                      wd_id=uniprot_wdid,
+                                      duration=datetime.now()
+                                  ))
+        return
 
     PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
         main_data_id=uniprot_id,
