@@ -4,8 +4,8 @@ from datetime import datetime
 from ProteinBoxBot_Core import PBB_Core, PBB_login
 from ProteinBoxBot_Core.PBB_Core import WDApiError
 from interproscan.WDHelper import WDHelper
+from interproscan.local import WDUSER, WDPASS
 from interproscan.parser import parse_interpro_xml
-from .local import WDUSER, WDPASS
 
 INTERPRO = "P2926"
 SERVER = "www.wikidata.org"
@@ -25,9 +25,18 @@ class IPRItem:
           "InterPro PTM": "MPT InterPro",
           "InterPro Repeat": "Répétition InterPro"}
 
-    def __init__(self, ipr):
+    type2subclass = {"Active_site": "Q423026",  # Active site
+                     "Binding_site": "Q616005",  # Binding site
+                     "Conserved_site": "Q7644128",  # Supersecondary_structure
+                     "Domain": "Q898273",  # Protein domain
+                     "Family": "Q417841",  # Protein family
+                     "PTM": "Q898362",  # Post-translational modification
+                     "Repeat": "Q3273544"}  # Structural motif
+
+    def __init__(self, ipr, date, version):
         self.name = ipr.name
         self.id = ipr.id
+        self.type = ipr.type
         self.description = dict()
         self.description['en'] = ipr.description
         self.description['fr'] = IPRItem.fr[ipr.description]
@@ -37,12 +46,16 @@ class IPRItem:
         self.contains = ipr.contains  # has part (P527)
         self.found_in = ipr.found_in  # part of (P361)
         self.short_name = ipr.short_name
+        self.date = date
+        self.version = version
+        self.reference = None
 
         # to be created
         self.wd_item_id = None
 
-    @classmethod
-    def create_reference(cls, date, version):
+        self.create_reference()
+
+    def create_reference(self):
         """
         Create wikidata references for interpro
 
@@ -56,33 +69,21 @@ class IPRItem:
         publication date (P577)
 
         """
-        # This same reference will be used for everything
+        # This same reference will be used for everything. Except for a ref to the interpro item itself
         ref_stated_in = PBB_Core.WDItemID("Q3047275", 'P248', is_reference=True)
         ref_imported = PBB_Core.WDItemID("Q3047275", 'P143', is_reference=True)
-        ref_version = PBB_Core.WDString(version, 'P348', is_reference=True)
-        # TODO: This doesn't work because there is a URL in the property ???
-        ref_date = PBB_Core.WDTime(date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
-        reference = [ref_stated_in, ref_imported, ref_version, ref_date]
-        for ref in reference:
+        ref_version = PBB_Core.WDString(self.version, 'P348', is_reference=True)
+        ref_date = PBB_Core.WDTime(self.date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
+        ref_ipr = PBB_Core.WDString(self.id, "P2926", is_reference=True)
+        self.reference = [ref_stated_in, ref_imported, ref_version, ref_date, ref_ipr]
+        for ref in self.reference:
             ref.overwrite_references = True
-        cls.reference = reference
-        return reference
 
     def create_item(self):
-        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
+        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference]),
+                      PBB_Core.WDItemID(value=IPRItem.type2subclass[self.type], prop_nr="P279", references=[self.reference])]
 
-        # Check if item already exists
-        wd_item_id = WDHelper().prop2qid(INTERPRO, self.id)
-        if wd_item_id:
-            self.wd_item_id = wd_item_id
-            print("item {} already exists. Updating: {}".format(self.id, wd_item_id))
-            item = PBB_Core.WDItemEngine(wd_item_id=wd_item_id, domain=None, data=statements, server=SERVER)
-            message = 'updated interpro item'
-        else:
-            # create new item
-            self.wd_item_id = None
-            item = PBB_Core.WDItemEngine(item_name=self.name, domain=None, data=statements, server=SERVER)
-            message = 'created interpro item'
+        item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER)
 
         item.set_label(self.name)
         for lang, description in self.description.items():
@@ -107,28 +108,28 @@ class IPRItem:
         PBB_Core.WDItemEngine.log('INFO', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
             main_data_id=self.id,
             exception_type='',
-            message=message,
+            message='created/updated interpro item',
             wd_id=item.wd_item_id,
             duration=datetime.now()
         ))
 
     def create_relationships(self, ipr_wd):
         # ipr_wd is a dict ipr ID to wikidata ID mapping
-        statements = []
+        statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
         if self.parent:
             statements.append(
-                PBB_Core.WDItemID(value=ipr_wd[self.parent], prop_nr='P279', references=self.reference))  # subclass of
+                PBB_Core.WDItemID(value=ipr_wd[self.parent], prop_nr='P279', references=[self.reference]))  # subclass of
         if self.contains:
             for c in self.contains:
                 statements.append(
-                    PBB_Core.WDItemID(value=ipr_wd[c], prop_nr='P527', references=self.reference))  # has part
+                    PBB_Core.WDItemID(value=ipr_wd[c], prop_nr='P527', references=[self.reference]))  # has part
         if self.found_in:
             for f in self.found_in:
                 statements.append(
-                    PBB_Core.WDItemID(value=ipr_wd[f], prop_nr='P361', references=self.reference))  # part of
+                    PBB_Core.WDItemID(value=ipr_wd[f], prop_nr='P361', references=[self.reference]))  # part of
 
         # write data
-        item = PBB_Core.WDItemEngine(wd_item_id=self.wd_item_id, data=statements, server=SERVER)
+        item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER, append_value=["P279", "P527", "P361"])
         try:
             item.write(self.login)
         except WDApiError as e:
@@ -152,23 +153,36 @@ class IPRItem:
         ))
 
 
-def import_interpro_items():
+def import_interpro_items(only_new=False):
     """
     Main function for doing interpro item import and building interpro relationships (to each other)
+    if only_new: only insert new items
     :return:
     """
+    ipr_wd = {}
+    if only_new:
+        ipr_wd = WDHelper().id_mapper(INTERPRO)
+
     d, release_info = parse_interpro_xml()
-    IPRItem.create_reference(release_info['date'], release_info['version'])
+    date = release_info['date']
+    version = release_info['version']
+
     IPRItem.login = PBB_login.WDLogin(WDUSER, WDPASS, server=SERVER)
+
     # Start with adding all interpro items
-    ipritems = {ipr_id: IPRItem(iprdict) for ipr_id, iprdict in d.items()}
+    ipritems = {ipr_id: IPRItem(iprdict, date, version) for ipr_id, iprdict in d.items()}
+
     # x = iter(ipritems.values())
     # ipritem = next(x)
     for ipritem in ipritems.values():
-        ipritem.create_item()
+        if only_new and ipritem.id not in ipr_wd:
+            ipritem.create_item()
+        elif not only_new:
+            ipritem.create_item()
 
     # store IPRID -> wikidata ID mapping
     ipr_wd = {iprid: ipritem.wd_item_id for iprid, ipritem in ipritems.items()}
+
     # Add parents
     for ipritem in ipritems.values():
         ipritem.create_relationships(ipr_wd)
@@ -259,3 +273,29 @@ def create_all_protein_interpro(ipr_wd=None):
         has_part_wd = [ipr_wd[x] for x in has_part]
 
         create_protein_ipr(uniprot_id, specific_families_wd, has_part_wd, reference, login)
+
+
+def test_number_of_interpro_items():
+    """
+    As of release 58. There should be 29,415 interpro items
+
+    :return:
+    """
+    d, release_info = parse_interpro_xml()
+    from SPARQLWrapper import SPARQLWrapper, JSON
+    endpoint = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
+    query = 'PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nSELECT * WHERE {?gene wdt:P2926 ?id}'
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    results = endpoint.query().convert()
+    if not results['results']['bindings']:
+        raise ValueError("No interpro items found")
+    bindings = results['results']['bindings']
+    if len(bindings) != len(d):
+        raise ValueError("{} InterPro items expected. {} found".format(len(d), len(bindings)))
+
+
+""" delete me
+https://www.wikidata.org/wiki/Q24727825
+
+"""
