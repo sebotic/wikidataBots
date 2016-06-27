@@ -1,6 +1,9 @@
 import json
 from datetime import datetime
 
+import pandas as pd
+from tqdm import tqdm
+
 from ProteinBoxBot_Core import PBB_Core, PBB_login
 from ProteinBoxBot_Core.PBB_Core import WDApiError
 from interproscan.WDHelper import WDHelper
@@ -127,7 +130,8 @@ class IPRItem:
             for f in self.found_in:
                 statements.append(
                     PBB_Core.WDItemID(value=ipr_wd[f], prop_nr='P361', references=[self.reference]))  # part of
-
+        if len(statements) == 1:
+            return
         # write data
         item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER, append_value=["P279", "P527", "P361"])
         try:
@@ -183,13 +187,27 @@ def import_interpro_items(only_new=False):
     # store IPRID -> wikidata ID mapping
     ipr_wd = {iprid: ipritem.wd_item_id for iprid, ipritem in ipritems.items()}
 
+
+# resume = "/logs/WD_bot_run-2016-06-24_18:55.log"
+def add_parents(resume=None):
+    log = set()
+    if resume:
+        log = set([x.split(",")[2].strip() for x in open(resume).readlines()])
+
+    ipr_wd = WDHelper().id_mapper(INTERPRO)
+    d, release_info = parse_interpro_xml()
+    date = release_info['date']
+    version = release_info['version']
+    IPRItem.login = PBB_login.WDLogin(WDUSER, WDPASS, server=SERVER)
+    ipritems = {ipr_id: IPRItem(iprdict, date, version) for ipr_id, iprdict in d.items()}
     # Add parents
-    for ipritem in ipritems.values():
-        ipritem.create_relationships(ipr_wd)
+    for ipritem in tqdm(ipritems.values()):
+        if ipritem not in log:
+            ipritem.create_relationships(ipr_wd)
     return ipr_wd
 
 
-def create_protein_ipr(uniprot_id, families, has_part, reference, login):
+def create_protein_ipr(uniprot_id, uniprot_wdid, families, has_part, release_info, login):
     """
     Create interpro relationships to one protein
     :param uniprot_id: uniprot ID of the protein to modify
@@ -198,19 +216,29 @@ def create_protein_ipr(uniprot_id, families, has_part, reference, login):
     :param has_part: list of ipr wd ids the protein has (P527) has part
     :return:
     """
+    date = release_info['date']
+    version = release_info['version']
 
-    # Get the wikidata qid of the protein
-    uniprot_wdid = WDHelper().uniprot2qid(uniprot_id)
+    # create ref
+    ref_stated_in = PBB_Core.WDItemID("Q3047275", 'P248', is_reference=True)
+    ref_imported = PBB_Core.WDItemID("Q3047275", 'P143', is_reference=True)
+    ref_version = PBB_Core.WDString(version, 'P348', is_reference=True)
+    ref_date = PBB_Core.WDTime(date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
+    ref_ipr = PBB_Core.WDString("http://www.ebi.ac.uk/interpro/protein/{}".format(uniprot_id), "P854", is_reference=True)
+    reference = [ref_stated_in, ref_imported, ref_version, ref_date, ref_ipr]
+    for ref in reference:
+        ref.overwrite_references = True
 
     statements = []
     if families:
         for f in families:
-            statements.append(PBB_Core.WDItemID(value=f, prop_nr='P279', references=reference))
+            statements.append(PBB_Core.WDItemID(value=f, prop_nr='P279', references=[reference]))
     if has_part:
         for hp in has_part:
-            statements.append(PBB_Core.WDItemID(value=hp, prop_nr='P527', references=reference))
+            statements.append(PBB_Core.WDItemID(value=hp, prop_nr='P527', references=[reference]))
 
-    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER)
+    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER, append_value=["P279", "P527", "P361"])
+    # print(item.get_wd_json_representation())
     try:
         item.write(login)
     except WDApiError as e:
@@ -234,31 +262,34 @@ def create_protein_ipr(uniprot_id, families, has_part, reference, login):
     ))
 
 
-def create_all_protein_interpro(ipr_wd=None):
+#resume = "logs/WD_bot_run-2016-06-26_16:43.log"
+def create_all_protein_interpro_human(resume=None):
     """
     Main function for creating all protein <-> interpro relationships
-    :param ipr_wd: dict[interpro ID]: wikidata ID
+    :param ipr_wd:
     :return:
     """
+    log = set()
+    if resume:
+        # Read the uniprot IDs of ones we've already done through from the log, don't process those again
+        log = set([x.split(",")[2].strip() for x in open(resume).readlines()])
 
-    # if you don't pass in a interpro <-> wdID dict, get it from wikidata
-    if not ipr_wd:
-        ipr_wd = WDHelper().id_mapper(INTERPRO)
+    # dict of interpro ID -> wikidata ID
+    ipr_wd = WDHelper().id_mapper(INTERPRO)
+    # dict of uniprot ID -> wikidata ID (human)
+    uniprot_wd = WDHelper().id_mapper("P352", (("P703", "Q5"),))
 
-    # parse the interpro item info
     d, release_info = parse_interpro_xml()
-
-    # create the reference statements
-    # Same as we used for the interpro item relationships
-    reference = IPRItem.create_reference(release_info['date'], release_info['version'])
     login = PBB_login.WDLogin(WDUSER, WDPASS)
 
     # parse the protein <-> interpro relationships
+    # this was created by parser.parse_human_protein_ipr
     with open("interproscan/data/interproscan_uniprot_human.json", 'r') as f:
         uni_dict = json.load(f)
 
-    # uniprot_id = 'P28223'
-    for uniprot_id in uni_dict.keys():
+    for uniprot_id in tqdm(uni_dict):
+        if uniprot_id in log:
+            continue
         items = [d[x] for x in set(x['interpro_id'] for x in uni_dict[uniprot_id])]
         # Of all families, which one is the most precise? (remove families that are parents of any other family in this list)
         families = [x for x in items if x.type == "Family"]
@@ -269,10 +300,10 @@ def create_all_protein_interpro(ipr_wd=None):
         specific_families_wd = [ipr_wd[x] for x in specific_families]
 
         # all other items (not family) are has part (P527)
-        has_part = [x for x in items if x.type != "Family"]
+        has_part = [x.id for x in items if x.type != "Family"]
         has_part_wd = [ipr_wd[x] for x in has_part]
 
-        create_protein_ipr(uniprot_id, specific_families_wd, has_part_wd, reference, login)
+        create_protein_ipr(uniprot_id, uniprot_wd[uniprot_id], specific_families_wd, has_part_wd, release_info, login)
 
 
 def test_number_of_interpro_items():
@@ -293,9 +324,3 @@ def test_number_of_interpro_items():
     bindings = results['results']['bindings']
     if len(bindings) != len(d):
         raise ValueError("{} InterPro items expected. {} found".format(len(d), len(bindings)))
-
-
-""" delete me
-https://www.wikidata.org/wiki/Q24727825
-
-"""

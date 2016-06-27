@@ -38,7 +38,7 @@ class WDHelper:
     def uniprot2qid(self, uniprotID):
         return self.prop2qid("P352", uniprotID)
 
-    def id_mapper(self, prop):
+    def id_mapper(self, prop, filters = None):
         """
         Get all wikidata ID <-> prop <-> value mappings
         Example: id_mapper("P352") -> { 'A0KH68': 'Q23429083',
@@ -46,10 +46,16 @@ class WDHelper:
                                          'Q53WF2': 'Q21766762', .... }
         :param prop: wikidata property
         :return:
+
+        id_mapper("P352",(("P703", "Q5"),)) # get all uniprot to wdid, where taxon is human
+
         """
-        arguments = '?gene wdt:{} ?id'.format(prop)
-        select_where = 'SELECT * WHERE {{{}}}'.format(arguments)
-        query = self.wdt + " " + select_where
+        query =  self.wdt + "\n" + self.wd + "\nSELECT * WHERE {"
+        query += "?gene wdt:{} ?id .\n".format(prop)
+        if filters:
+            for f in filters:
+                query += "?gene wdt:{} wd:{} .\n".format(f[0], f[1])
+        query = query + "}"
         results = self.execute_query(query)
         if not results['results']['bindings']:
             return None
