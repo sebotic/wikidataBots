@@ -260,8 +260,9 @@ class ProteinBot(object):
 
         try:
             new_msg = ''
-            if self.uniprot_qid != '':
-                wd_item = PBB_Core.WDItemEngine(wd_item_id=self.uniprot_qid, domain='proteins', data=self.statements)
+            if self.uniprot_qid:
+                wd_item = PBB_Core.WDItemEngine(wd_item_id=self.uniprot_qid, domain='proteins', data=self.statements,
+                                                append_value=['P279'])
             else:
                 wd_item = PBB_Core.WDItemEngine(item_name=self.label, domain='proteins', data=self.statements)
                 new_msg = 'new protein created'
@@ -403,10 +404,12 @@ def main():
         query = '''
         SELECT * WHERE {
             ?gene wdt:P351 ?entrez .
-            {?gene wdt:P703 wd:Q5}
-            UNION {?gene wdt:P703 wd:Q83310} .
-            {?gene wdt:P354 ?res_id}
-            UNION {?gene wdt:P671 ?res_id} .
+            {?gene wdt:P703 wd:Q5 .} UNION
+            {?gene wdt:P703 wd:Q83310 .}
+            OPTIONAL {
+                {?gene wdt:P354 ?hgnc_id .} UNION
+                {?gene wdt:P671 ?mgi_id .}
+            }
         }
         '''
 
@@ -418,11 +421,18 @@ def main():
 
         for z in results:
             # ensure that the correct prefix exists so the identifier can be found in the Uniprot XML file
-            res_id = z['res_id']['value']
             entrez_qid = z['gene']['value'].split('/')[-1]
             entrez_id = z['entrez']['value']
-            if len(res_id.split(':')) <= 1:
-                res_id = 'HGNC:' + z['res_id']['value']
+
+            res_id = ''
+            if 'hgnc_id' in z:
+                res_id = z['hgnc_id']['value']
+                if len(res_id.split(':')) <= 1:
+                    res_id = 'HGNC:' + res_id
+            elif 'mgi_id' in z:
+                res_id = z['mgi_id']['value']
+                if len(res_id.split(':')) <= 1:
+                    res_id = 'MGI:' + res_id
 
             entrez_to_qid[entrez_id] = (entrez_qid, res_id)
             res_id_to_entrez_qid.update({res_id: (entrez_qid, entrez_id)})
@@ -528,7 +538,26 @@ def main():
 
         results = PBB_Core.WDItemEngine.execute_sparql_query(query=query)['results']['bindings']
 
-        return {z['uniprot']['value']: z['protein']['value'].split('/')[-1] for z in results}
+        wd_up_map = dict()
+        for z in results:
+            up = z['uniprot']['value']
+            qid = z['protein']['value'].split('/')[-1]
+
+            # Make sure to reliably detect duplicate Uniprot IDs in Wikidata.
+            # For performance reasons, this is done here and not by using PBB_core.
+            if up in wd_up_map:
+                PBB_Core.WDItemEngine.log(
+                    'ERROR', '{main_data_id}, "{exception_type}", "{message}", {wd_id}, {duration}'.format(
+                        main_data_id='{}'.format(up),
+                        exception_type='Duplicate Uniprot ID error.',
+                        message='Duplicate Uniprot IDs in Wikidata. Cleanup required!!',
+                        wd_id=qid,
+                        duration=time.time()
+                    ))
+            else:
+                wd_up_map.update({up: qid})
+
+        return wd_up_map
 
     def get_go_map():
         query = '''
@@ -657,7 +686,7 @@ def main():
 
     read_local = args.run_locally
 
-    login = PBB_login.WDLogin(user=args.user, pwd=args.user)
+    login = PBB_login.WDLogin(user=args.user, pwd=args.pwd)
 
     # generate a basic mapping of Uniprot to Entrez and Wikidata genes and proteins
     base_map = get_uniprot_for_entrez()
