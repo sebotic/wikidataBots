@@ -2,42 +2,41 @@ import PBB_Core
 import PBB_login
 import sys
 import time
-import pprint
+import argparse
 
-__author__ = 'Sebastian Burgstaller'
+__author__ = 'Sebastian Burgstaller-Muehlbacher'
+__licence__ = 'AGPLv3'
 
 """
-This script retrieves Wikidata GO terms which do not match the current formatter URL (without GO: prefix) and fix those.
+This script retrieves all Wikidata items with identifiers which lack a certain prefix and adds the prefix for all items.
 It will only work if the GO term ID is the last digits of a string.
 """
 
+
 class GOCleaner(object):
-    def __init__(self, login):
+    def __init__(self, login, prop_nr, prefix_str, separator=':'):
+        """
+        A class to take care of fixing certain identifer prefixes
+        :param login: The Wikidata login object instance of PBB_login.WDLogin()
+        :param prop_nr: the property number of the identifier the prefix should be fixed for
+        :param prefix_str: the prefix string. e.g. 'GO', 'DOID'
+        :param separator: the separator character between prefix and string
+        """
 
         self.login_obj = login
 
-        # wdq_results = PBB_Core.WDItemList('CLAIM[686]', '686').wditems
-        # wd_go_terms = list(map(lambda z: z[2], wdq_results['props']['686']))
-        # go_qid_list = list(map(lambda z: 'Q{}'.format(z[0]), wdq_results['props']['686']))
-
         query = '''
-            SELECT distinct ?gene ?go WHERE {
-                ?gene wdt:P686 ?go .
-                FILTER(!REGEX(?go, "^GO:[0-9]", "i"))
-            }
-        '''
+            SELECT distinct ?s ?id WHERE {{
+                ?s wdt:{0} ?id .
+                FILTER(!REGEX(?id, "^{1}{2}[0-9]", "i"))
+            }}
+        '''.format(prop_nr, prefix_str, separator)
+
         qids_to_clean = set()
         for x in PBB_Core.WDItemEngine.execute_sparql_query(query=query)['results']['bindings']:
-            qids_to_clean.add(x['gene']['value'].split('/')[-1])
+            qids_to_clean.add(x['s']['value'].split('/')[-1])
 
-        # print(len(wd_go_terms))
-        # for count, go_term in enumerate(wd_go_terms):
-        #     curr_qid = go_qid_list[wd_go_terms.index(go_term)]
-        #
-        #     # try:
-        #     #     int(go_term)
-        #     # except ValueError as e:
-        #     qids_to_clean.add(curr_qid)
+        print('Cleaning up', len(qids_to_clean), 'items.')
 
         for count, curr_qid in enumerate(qids_to_clean):
             start = time.time()
@@ -46,18 +45,14 @@ class GOCleaner(object):
 
             cleanup_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid)
             for wd_value in cleanup_item.statements:
-                if wd_value.get_prop_nr() == 'P686':
+                if wd_value.get_prop_nr() == prop_nr:
                     go_value = wd_value.get_value()
 
-                    # int(go_value)
-
-                    if not go_value.startswith('GO'):
-                        clean_gos.append(PBB_Core.WDString(value='GO:' + go_value, prop_nr='P686'))
+                    if not go_value.startswith(prefix_str):
+                        clean_gos.append(PBB_Core.WDString(value=prefix_str + separator + go_value, prop_nr=prop_nr))
 
             try:
                 go_item = PBB_Core.WDItemEngine(wd_item_id=curr_qid, data=clean_gos)
-                # pprint.pprint(go_item.get_wd_json_representation())
-
                 go_item.write(self.login_obj)
 
                 PBB_Core.WDItemEngine.log('INFO', '"{exception_type}", "{message}", {wd_id}, {duration}'.format(
@@ -79,11 +74,21 @@ class GOCleaner(object):
 
 
 def main():
-    print(sys.argv[1])
-    # pwd = input('Password:')
-    login = PBB_login.WDLogin(user='ProteinBoxBot', pwd=sys.argv[1])
+    parser = argparse.ArgumentParser(description='Gene Ontology prefix cleaner')
+    parser.add_argument('--user', action='store', help='Username on Wikidata', required=True)
+    parser.add_argument('--pwd', action='store', help='Password on Wikidata', required=True)
+    parser.add_argument('--prefix', action='store', help='The prefix which should be added', required=True)
+    parser.add_argument('--prop-nr', action='store', help='The Wikidata property number where the '
+                                                          'prefixes need to be checked and fixed', required=True)
+    parser.add_argument('--separator', action='store', help='The separator character between prefix '
+                                                            'and actual identifier. ":" as default.',
+                        required=False, default=':')
 
-    GOCleaner(login)
+    args = parser.parse_args()
+    print(args.user, args.pwd, args.prefix, args.prop_nr, args.separator)
+    login = PBB_login.WDLogin(user=args.user, pwd=args.pwd)
+
+    GOCleaner(login, prop_nr=args.prop_nr, prefix_str=args.prefix, separator=args.separator)
 
 
 if __name__ == '__main__':
