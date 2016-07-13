@@ -45,9 +45,16 @@ class OBOImporter(object):
         'EC': 'P591',
     }
 
+    base_onto_struct_props = [
+        'http://www.w3.org/2000/01/rdf-schema#subClassOf',
+    ]
+
+    obo_synonyms = {}
+
     ols_session = requests.Session()
 
-    def __init__(self, root_objects, ontology, core_property_nr, ontology_ref_item, login, local_qid_onto_map):
+    def __init__(self, root_objects, ontology, core_property_nr, ontology_ref_item, login, local_qid_onto_map,
+                 use_prefix=True, fast_run=True, fast_run_base_filter=None):
 
         # run go prefix fixer before any attempts to make new go terms!
         self.login_obj = login
@@ -57,6 +64,9 @@ class OBOImporter(object):
         self.ontology_ref_item = ontology_ref_item
         self.base_url = 'http://www.ebi.ac.uk/ols/beta/api/ontologies/{}/terms/'.format(ontology)
         self.base_url += 'http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252F'
+        self.use_prefix = use_prefix
+        self.fast_run = fast_run
+        self.fast_run_base_filter = fast_run_base_filter
 
         self.headers = {
             'Accept': 'application/json'
@@ -72,7 +82,8 @@ class OBOImporter(object):
 
                 OBOImporter(root_objects=self.local_qid_onto_map[ro]['children'], ontology=ontology,
                             core_property_nr=self.core_property_nr, ontology_ref_item=self.ontology_ref_item,
-                            login=login, local_qid_onto_map=self.local_qid_onto_map)
+                            login=login, local_qid_onto_map=self.local_qid_onto_map, use_prefix=self.use_prefix,
+                            fast_run=self.fast_run, fast_run_base_filter=self.fast_run_base_filter)
             else:
                 try:
                     r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}/graph'.format(self.ontology, ro), headers=self.headers)
@@ -109,7 +120,8 @@ class OBOImporter(object):
 
                 OBOImporter(root_objects=children, ontology=ontology, core_property_nr=self.core_property_nr,
                             ontology_ref_item=self.ontology_ref_item, login=login,
-                            local_qid_onto_map=self.local_qid_onto_map)
+                            local_qid_onto_map=self.local_qid_onto_map, use_prefix=self.use_prefix,
+                            fast_run=self.fast_run, fast_run_base_filter=self.fast_run_base_filter)
 
     def write_term(self, current_root_id, parents, children):
         print('current_root', current_root_id, parents, children)
@@ -117,6 +129,11 @@ class OBOImporter(object):
 
         def get_item_qid(go_id, data=()):
             start = time.time()
+
+            if self.use_prefix:
+                id_string = '{}:{}'.format(self.ontology, go_id)
+            else:
+                id_string = go_id
 
             # for efficiency reasons, skip if item already had a root write performed
             if go_id in self.local_qid_onto_map and self.local_qid_onto_map[go_id]['had_root_write'] \
@@ -133,38 +150,49 @@ class OBOImporter(object):
                 description = go_term_data['description'][0]
 
                 if go_term_data['is_obsolete']:
-                    OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, go_id),
+                    OBOImporter.cleanup_obsolete_edges(ontology_id=id_string,
                                                        login=self.login_obj, core_property_nr=self.core_property_nr,
                                                        obsolete_term=True)
                     return None, None, None
 
                 # get parent ontology term info so item can be populated with description, etc.
-                data.append(PBB_Core.WDString(value='GO:{}'.format(go_id), prop_nr=self.core_property_nr,
+                data.append(PBB_Core.WDString(value=id_string, prop_nr=self.core_property_nr,
                                               references=[self.create_reference()]))
 
                 # add xrefs
                 if go_term_data['obo_xref']:
                     for xref in go_term_data['obo_xref']:
                         if xref['database'] in OBOImporter.xref_props:
-                            if xref['database'] in OBOImporter.xref_props:
-                                wd_prop = OBOImporter.xref_props[xref['database']]
-                            else:
-                                continue
-                            xref_value = xref['id']
-                            data.append(PBB_Core.WDExternalID(value=xref_value, prop_nr=wd_prop,
-                                                              references=[self.create_reference()]))
+                            wd_prop = OBOImporter.xref_props[xref['database']]
+                        else:
+                            continue
+                        xref_value = xref['id']
+                        data.append(PBB_Core.WDExternalID(value=xref_value, prop_nr=wd_prop,
+                                                          references=[self.create_reference()]))
+
+                if go_term_data['obo_synonym']:
+                    for syn in go_term_data['obo_synonym']:
+                        if syn['type'] in OBOImporter.obo_synonyms:
+                            wd_prop = OBOImporter.obo_synonyms[syn['type']]
+                        else:
+                            continue
+                        syn_value = syn['name']
+                        data.append(PBB_Core.WDExternalID(value=syn_value, prop_nr=wd_prop,
+                                                          references=[self.create_reference()]))
 
                 if go_id in self.local_qid_onto_map:
                     wd_item = PBB_Core.WDItemEngine(wd_item_id=self.local_qid_onto_map[go_id]['qid'], domain='obo',
-                                                    data=data, fast_run=True, fast_run_base_filter={'P686': ''})
+                                                    data=data, fast_run=self.fast_run,
+                                                    fast_run_base_filter=self.fast_run_base_filter)
                 else:
-                    wd_item = PBB_Core.WDItemEngine(item_name='test', domain='obo', data=data, fast_run=True,
-                                                    fast_run_base_filter={'P686': ''})
+                    wd_item = PBB_Core.WDItemEngine(item_name='test', domain='obo', data=data, fast_run=self.fast_run,
+                                                    fast_run_base_filter=self.fast_run_base_filter)
                 wd_item.set_label(label=label)
-                if len(description) <= 250:
-                    wd_item.set_description(description=description)
-                else:
-                    wd_item.set_description(description='Gene Ontology term')
+                wd_item.set_description(description=description[0:250])
+                # if len(description) <= 250:
+                #     wd_item.set_description(description=description)
+                # else:
+                #     wd_item.set_description(description='Gene Ontology term')
                 if go_term_data['synonyms'] is not None and len(go_term_data['synonyms']) > 0:
                     aliases = []
                     for alias in go_term_data['synonyms']:
@@ -175,7 +203,7 @@ class OBOImporter(object):
 
                 new_msg = ''
                 if wd_item.create_new_item:
-                    new_msg = ': created new GO term'
+                    new_msg = ': created new {} term'.format(self.ontology)
 
                 qid = wd_item.write(login=self.login_obj)
 
@@ -247,7 +275,12 @@ class OBOImporter(object):
 
         root_qid, obsolete, w = get_item_qid(go_id=current_root_id, data=dt)
         if obsolete and not any(write_reqired):
-            OBOImporter.cleanup_obsolete_edges(ontology_id='{}:{}'.format(self.ontology, current_root_id),
+            if self.use_prefix:
+                id_string = '{}:{}'.format(self.ontology, current_root_id)
+            else:
+                id_string = current_root_id
+
+            OBOImporter.cleanup_obsolete_edges(ontology_id=id_string,
                                                login=self.login_obj, core_property_nr=self.core_property_nr,
                                                current_node_qids=current_node_qids)
 
@@ -264,6 +297,7 @@ class OBOImporter(object):
                             is_reference=True),
             PBB_Core.WDItemID(value='Q1860', prop_nr='P407', is_reference=True),  # language of work
         ]
+        # old references should be overwritten
         refs[0].overwrite_references = True
 
         return refs
@@ -396,7 +430,8 @@ def main():
 
     # Ontology ref item is the Wikidata 'Gene Ontolgy' item
     OBOImporter(root_objects=root_objects, ontology='GO', core_property_nr='P686',
-                ontology_ref_item='Q135085', login=login, local_qid_onto_map=local_qid_onto_map)
+                ontology_ref_item='Q135085', login=login, local_qid_onto_map=local_qid_onto_map,
+                use_prefix=True, fast_run=True, fast_run_base_filter={'P686': ''})
 
 if __name__ == '__main__':
     sys.exit(main())
