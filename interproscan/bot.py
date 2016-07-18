@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 
+from SPARQLWrapper import SPARQLWrapper, JSON
 from tqdm import tqdm
 
 from ProteinBoxBot_Core import PBB_Core, PBB_login
@@ -273,25 +274,19 @@ def create_all_protein_interpro_human(resume=None):
     return create_all_protein_interpro("Q5", resume=resume)
 
 
-def create_all_protein_interpro(taxon_wdid=None, resume=None):
+def create_all_protein_interpro(taxon_wdid=None, resume=False):
     """
     Main function for creating all protein <-> interpro relationships for a particular taxon
 
     :param taxon_wdid: wikidata id of the taxon whoes protein to process
     :type taxon_wdid: str
-    :param resume: If resume, Read the uniprot IDs of ones we've already done through from the log, don't process those again
-    :type resume: paths to log file, or list of paths
+    :param resume: If resume, only attempt to process proteins with no interpro annotations
+    :type resume: bool
     :return:
     """
-    log = set()
-    if resume and isinstance(resume, str):
-        log = set([x.split(",")[2].strip() for x in open(resume).readlines()])
-        PBB_Core.WDItemEngine.log_file_name = resume
-    if resume and isinstance(resume, list):
-        resume.sort()
-        for r in resume:
-            log.update(set([x.split(",")[2].strip() for x in open(r).readlines()]))
-        PBB_Core.WDItemEngine.log_file_name = resume[-1]
+    done = set()
+    if resume:
+        done = get_done_prot()
 
     # parse the protein <-> interpro relationships
     uni_dict_f = os.path.join(DATA_DIR, "interproscan_uniprot_{}.json".format(taxon_wdid) if taxon_wdid else "interproscan_uniprot_all.json")
@@ -310,7 +305,8 @@ def create_all_protein_interpro(taxon_wdid=None, resume=None):
     login = PBB_login.WDLogin(WDUSER, WDPASS)
 
     for uniprot_id in tqdm(uni_dict):
-        if uniprot_id in log:
+        if uniprot_id in done:
+            print("skipping: {}".format(uniprot_id))
             continue
         if uniprot_id not in uniprot_wd:
             print("Warning uniprot item {} not found".format(uniprot_id))
@@ -363,3 +359,49 @@ def test_number_of_interpro_items():
     bindings = results['results']['bindings']
     if len(bindings) != len(d):
         raise ValueError("{} InterPro items expected. {} found".format(len(d), len(bindings)))
+
+
+def get_done_prot():
+    """Get the wd items that have a uniprot ID and are instance of a protein family or have 'has part' any type of domiain.
+    Return the uniprot IDs """
+    endpoint = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
+    if False:
+        # ?item wdt:P703 wd:Q5 .
+        query = """
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            select distinct ?item where { \n""" + \
+                "?item wdt:P352 ?uniprot .}"
+        endpoint.setQuery(query)
+        endpoint.setReturnFormat(JSON)
+        response = endpoint.query().convert()['results']['bindings']
+        all_prots = {x['item']['value'].replace('http://www.wikidata.org/entity/', '') for x in response}
+
+    query = """
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        select distinct ?uniprot where { \n""" + \
+            """?item wdt:P352 ?uniprot .
+             ?item wdt:P279 ?subclass .
+             ?subclass wdt:P279 wd:Q417841 . }"""
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    response = endpoint.query().convert()['results']['bindings']
+    family_prots = {x['uniprot']['value'] for x in response}
+
+    query = """
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        select distinct ?uniprot where { \n""" + \
+            """VALUES ?domain {wd:Q423026 wd:Q616005 wd:Q7644128 wd:Q898273 wd:Q898362 wd:Q3273544}
+            ?item wdt:P352 ?uniprot .
+             ?item wdt:P527 ?haspart .
+             ?haspart wdt:P279 ?domain .}"""
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    response = endpoint.query().convert()['results']['bindings']
+    domain_prots = {x['uniprot']['value'] for x in response}
+
+    done = family_prots | domain_prots
+
+    return done
