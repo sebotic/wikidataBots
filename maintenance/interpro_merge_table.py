@@ -36,11 +36,8 @@ def pd_to_table(df):
         |[[:en:Contryphan|Contryphan]]||[[Q3689200]]||[www.ebi.ac.uk/interpro/entry/IPR011062 IPR011062]||[[Q24738476]]||False||False
         |}
     """
-    out = """{| border="1" class="dataframe"
-    |- style="text-align: right;"
-    !\n"""
+    out = "{| border='1' class='wikitable sortable table-yes table-no' style='text-align: left;'\n!\n"
     out += '!'.join(['! {}'.format(x) for x in list(df.columns)])
-
     for record in df.to_records():
         record = tuple(record)
         out += "\n|-\n"
@@ -116,6 +113,15 @@ def make_table():
     # Need the wikidata IDs for the interpro items
     ipr_wd = WDHelper().id_mapper("P2926")
 
+    # Get the names of each interpro item
+    query = """SELECT ?a ?itemLabel WHERE
+    {	?item <http://www.wikidata.org/prop/direct/P2926> ?a
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en" } }"""
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    response = endpoint.query().convert()['results']['bindings']
+    ipr_names = {x['a']['value'].replace('http://www.wikidata.org/entity/', ''): x['itemLabel']['value'] for x in response}
+
     # Build a dataframe
     # [[:en:Death_domain|Death_domain]]
     an = pd.Series(['[[:en:{x}|{x}]]'.format(x=x) for x in article2ipr.keys()], name="Article Name")
@@ -128,14 +134,25 @@ def make_table():
         article2ipr.values()]
     df['InterPro WDIDs'] = [', '.join(['[[{wdid}]]'.format(wdid=ipr_wd.get(iprid, '')) for iprid in x]) for x in
                             article2ipr.values()]
-    df['About Gene'] = wdid.isin(gene_items)
-    # Need to mark items that are already merged
-    # just mark those where the article wdid is the same as the ipr wdid
-    # alternative, check if the ipr item is a subclass of protein family, domain, etc.
-    # This would enable better error checking, but we can do this check seperately.
-    df['Done'] = df['wikidata ID'] == df['InterPro WDIDs']
+    df['AboutGene'] = wdid.isin(gene_items)
+
+    df['Same Name'] = [article_name.lower() == ipr_names.get(list(ipr)[0], '').lower() if len(ipr) == 1 else False for article_name, ipr in article2ipr.items() ]
+
+    # For each article's wdid, we want to see if its already been merged. As in, does it have an IPR ID property already
+    df['merged'] = wdid.map(lambda x:x in ipr_wd.values())
+
+    # This will be for people to fill in
+    df['status'] = df.merged.map(lambda x:"done" if x else "")
+
+    # Remove the "about gene" items from table
+    df = df.query("AboutGene == False")
+    del df['AboutGene']
+    df.index = range(len(df))
+
     with open("table.md", 'w') as f:
         f.write(pd_to_table(df))
+    with open("table.html", 'w') as f:
+        f.write(df.to_html())
 
 
 if __name__ == "__main__":
