@@ -55,7 +55,9 @@ class ProteinBot(object):
         'IMR': 'Q23190842'
     }
 
-    def __init__(self, uniprot, base_map, pdb_to_go, go_prop_map, login, progress):
+    quick_go_session = requests.Session()
+
+    def __init__(self, uniprot, base_map, pdb_to_go, go_prop_map, login, progress, fast_run=True):
         self.uniprot = uniprot
         self.uniprot_qid = base_map[uniprot]['qid']
         self.ensp = set()
@@ -183,10 +185,14 @@ class ProteinBot(object):
 
                 if go_id in go_prop_map:
                     go_prop_map[go_id]['go_class_prop'] = ProteinBot.get_go_class(go_id, go_aspect)
-        except requests.HTTPError:
-            pass
+        except requests.HTTPError as e:
+            print(e.__str__())
+            print('Quick GO service not available, exiting!')
+            sys.exit(1)
         except IndexError:
-            pass
+            print(e.__str__())
+            print('Quick GO data error, service likely not available, exiting!')
+            sys.exit(1)
 
         # set description according to the annotation the Uniprot entry is coming from
         self.description = self.descr_map[self.tax_id]['en']
@@ -224,8 +230,10 @@ class ProteinBot(object):
                     print('added class code {} to {}'.format(go_prop_map[go]['go_class_prop'], go))
 
                 # create a set of WD QIDs representing GO evidence code items in WD
-                evidence = {self.go_evidence_codes[ev] for count, ev in enumerate(pdb_to_go[self.uniprot]['evidence'])
-                            if pdb_to_go[self.uniprot]['go_terms'][count] == go}
+                evidence = list()
+                for count, ev in enumerate(pdb_to_go[self.uniprot]['evidence']):
+                    if pdb_to_go[self.uniprot]['go_terms'][count] == go and self.go_evidence_codes[ev] not in evidence:
+                        evidence.append(self.go_evidence_codes[ev])
 
                 # iterate though the evidence code set and create a new qualifier for each one
                 qualifiers = [PBB_Core.WDItemID(value=ev, prop_nr='P459', is_qualifier=True) for ev in evidence if ev]
@@ -254,15 +262,17 @@ class ProteinBot(object):
 
         # remove all Wikidata properties where no data has been provided, but are handled by the bot
         all_stmnt_props = list(map(lambda x: x.get_prop_nr(), self.statements))
-        for pr in ['P680', 'P681', 'P682', 'P705', 'P637', 'P702']:
+        for pr in ['P680', 'P681', 'P682', 'P705', 'P637', 'P638', 'P692', 'P702']:
             if pr not in all_stmnt_props:
                 self.statements.append(PBB_Core.WDBaseDataType.delete_statement(prop_nr=pr))
 
         try:
+            taxon_qid = self.taxon_map[self.tax_id]
             new_msg = ''
             if self.uniprot_qid:
                 wd_item = PBB_Core.WDItemEngine(wd_item_id=self.uniprot_qid, domain='proteins', data=self.statements,
-                                                append_value=['P279'])
+                                                append_value=['P279'], fast_run=fast_run,
+                                                fast_run_base_filter={'P703': taxon_qid, 'P279': 'Q8054'})
             else:
                 wd_item = PBB_Core.WDItemEngine(item_name=self.label, domain='proteins', data=self.statements)
                 new_msg = 'new protein created'
@@ -276,7 +286,9 @@ class ProteinBot(object):
             if self.entrez_quid != '':
                 encodes = PBB_Core.WDItemID(value=self.uniprot_qid, prop_nr='P688',
                                             references=[self.create_reference()])
-                gene_item = PBB_Core.WDItemEngine(wd_item_id=self.entrez_quid, data=[encodes], append_value=['P688'])
+                gene_item = PBB_Core.WDItemEngine(wd_item_id=self.entrez_quid, data=[encodes], append_value=['P688'],
+                                                  fast_run=fast_run,
+                                                  fast_run_base_filter={'P703': taxon_qid, 'P279': 'Q7187'})
                 gene_item.write(login)
 
             progress[self.uniprot] = self.uniprot_qid
@@ -356,6 +368,8 @@ class ProteinBot(object):
 
 
 def main():
+    current_taxon_id = ''
+    current_taxon_qid = ''
 
     def read_file(url):
         if not os.path.exists('./data'):
@@ -386,9 +400,8 @@ def main():
 
         cnt = 0
         while f:
-
             line = f.readline()
-            if line is None or line == '':
+            if not line:
                 break
 
             cnt += 1
@@ -402,16 +415,15 @@ def main():
         # query Uniprot for all high quality annotated Uniprots based on the entrez id.
 
         query = '''
-        SELECT * WHERE {
+        SELECT * WHERE {{
             ?gene wdt:P351 ?entrez .
-            {?gene wdt:P703 wd:Q5 .} UNION
-            {?gene wdt:P703 wd:Q83310 .}
-            OPTIONAL {
-                {?gene wdt:P354 ?hgnc_id .} UNION
-                {?gene wdt:P671 ?mgi_id .}
-            }
-        }
-        '''
+            ?gene wdt:P703 wd:{} .
+            OPTIONAL {{
+                {{?gene wdt:P354 ?hgnc_id .}} UNION
+                {{?gene wdt:P671 ?mgi_id .}}
+            }}
+        }}
+        '''.format(current_taxon_qid)
 
         results = PBB_Core.WDItemEngine.execute_sparql_query(query=query)['results']['bindings']
 
@@ -454,16 +466,15 @@ def main():
         }
 
         up_query = '''
-        SELECT DISTINCT * WHERE {
+        SELECT DISTINCT * WHERE {{
             ?uniprot rdfs:seeAlso ?gene .
             ?uniprot up:reviewed ?reviewed .
-            {?uniprot up:organism taxon:9606}
-            UNION {?uniprot up:organism taxon:10090} .
+            ?uniprot up:organism taxon:{} .
 
             FILTER regex(?gene, "^http://purl.uniprot.org/geneid/")
-        }
+        }}
         GROUP BY ?uniprot ?gene ?reviewed
-        '''
+        '''.format(current_taxon_id)
 
         query_string = up_prefix + up_query
 
@@ -472,14 +483,15 @@ def main():
             'query': query_string
         }
 
-        if read_local and os.path.isfile('uniprot_entrez_map.json'):
-            with open('uniprot_entrez_map.json', 'r') as f:
+        uniprot_entrez_map_filename = 'uniprot_entrez_map_{}.json'.format(current_taxon_id)
+        if read_local and os.path.isfile(uniprot_entrez_map_filename):
+            with open(uniprot_entrez_map_filename, 'r') as f:
                 results = json.load(f)
         else:
             reply = requests.post(url='http://sparql.uniprot.org/sparql/', params=data, headers=headers)
             results = reply.json()
 
-            with open('uniprot_entrez_map.json', 'w') as of:
+            with open(uniprot_entrez_map_filename, 'w') as of:
                 json.dump(results, of)
 
         print('Uniprot query complete')
@@ -529,12 +541,11 @@ def main():
 
     def get_all_wd_uniprots():
         query = '''
-        SELECT * WHERE {
+        SELECT * WHERE {{
             ?protein wdt:P352 ?uniprot .
-            {?protein wdt:P703 wd:Q5}
-            UNION {?protein wdt:P703 wd:Q83310} .
-        }
-        '''
+            ?protein wdt:P703 wd:{} .
+        }}
+        '''.format(current_taxon_qid)
 
         results = PBB_Core.WDItemEngine.execute_sparql_query(query=query)['results']['bindings']
 
@@ -639,41 +650,41 @@ def main():
         entrez_to_uniprot = {base_map[z]['entrez']['id']: z for z in base_map if base_map[z]['entrez']['id']}
 
         # Download and process latest human and mouse GO term annotation files
-        files = [
-            'http://geneontology.org/gene-associations/gene_association.goa_human.gz',
-            'http://geneontology.org/gene-associations/gene_association.mgi.gz'
-        ]
-
-        for file in files:
-            for line in read_file(file):
-                if line.startswith('!'):
-                    continue
-
-                cols = line.split('\t')
-                uniprot = cols[1]
-                go_id = cols[4]
-                evidence = cols[6]
-                go_class = cols[8]
-
-                if cols[0] == 'MGI':
-                    try:
-                        mgi = cols[1]
-                        entrez = res_id_to_entrez_qid[mgi][1]
-                        uniprot = entrez_to_uniprot[entrez]
-                    except KeyError:
-                        continue
-
-                if uniprot not in pdb_go_map:
-                    pdb_go_map[uniprot] = copy.deepcopy(base_dict)
-
-                pdb_go_map[uniprot]['go_terms'].append(go_id)
-                pdb_go_map[uniprot]['evidence'].append(evidence)
-
-                try:
-                    go_prop_map[go_id]['go_class_prop'] = ProteinBot.get_go_class(go_id, go_class)
-                except KeyError:
-                    print('GO term {} not yet in Wikidata'.format(go_id))
-                    continue
+        # files = [
+        #     'http://geneontology.org/gene-associations/gene_association.goa_human.gz',
+        #     'http://geneontology.org/gene-associations/gene_association.mgi.gz'
+        # ]
+        #
+        # for file in files:
+        #     for line in read_file(file):
+        #         if line.startswith('!'):
+        #             continue
+        #
+        #         cols = line.split('\t')
+        #         uniprot = cols[1]
+        #         go_id = cols[4]
+        #         evidence = cols[6]
+        #         go_class = cols[8]
+        #
+        #         if cols[0] == 'MGI':
+        #             try:
+        #                 mgi = cols[1]
+        #                 entrez = res_id_to_entrez_qid[mgi][1]
+        #                 uniprot = entrez_to_uniprot[entrez]
+        #             except KeyError:
+        #                 continue
+        #
+        #         if uniprot not in pdb_go_map:
+        #             pdb_go_map[uniprot] = copy.deepcopy(base_dict)
+        #
+        #         pdb_go_map[uniprot]['go_terms'].append(go_id)
+        #         pdb_go_map[uniprot]['evidence'].append(evidence)
+        #
+        #         try:
+        #             go_prop_map[go_id]['go_class_prop'] = ProteinBot.get_go_class(go_id, go_class)
+        #         except KeyError:
+        #             print('GO term {} not yet in Wikidata'.format(go_id))
+        #             continue
 
         return pdb_go_map
 
@@ -682,38 +693,52 @@ def main():
                                                                    'will be used. Acts also as if continuing a run.')
     parser.add_argument('--user', action='store', help='Username on Wikidata', required=True)
     parser.add_argument('--pwd', action='store', help='Password on Wikidata', required=True)
+    parser.add_argument('--taxon-ids', action='store',
+                        help='Taxonomy IDs for the species the proteins should be written. Enter separated by a colon!'
+                             'e.g. 9606,10090 for human and mouse')
     args = parser.parse_args()
 
     read_local = args.run_locally
 
     login = PBB_login.WDLogin(user=args.user, pwd=args.pwd)
 
-    # generate a basic mapping of Uniprot to Entrez and Wikidata genes and proteins
-    base_map = get_uniprot_for_entrez()
+    taxon_ids = [x.strip() for x in args.taxon_ids.split(',')]
 
-    # generate mappings of GO terms to their Wikidata QIDs
-    go_prop_map = get_go_map()
+    if len(taxon_ids) == 0:
+        print('No taxon IDs given, falling back to human (9606) and mouse (10090)')
+        taxon_ids = ['9606', '10090']
 
-    # generate a map of Uniprot IDs with the matches PDB IDs, GO term and GO evidence codes
-    pdb_to_go = const_go_map()
+    for ti in taxon_ids:
+        current_taxon_id = ti
+        current_taxon_qid = ProteinBot.taxon_map[ti]
+        progress_file_name = 'uniprot_progress_taxon_{}.json'.format(ti)
 
-    if read_local and os.path.isfile('uniprot_progress.json'):
-        with open('uniprot_progress.json', 'r') as infile:
-            progress = json.load(infile)
-    else:
-        progress = dict()
+        # generate a basic mapping of Uniprot to Entrez and Wikidata genes and proteins
+        base_map = get_uniprot_for_entrez()
 
-    for count, x in enumerate(base_map):
-        if x in progress:
-            continue
+        # generate mappings of GO terms to their Wikidata QIDs
+        go_prop_map = get_go_map()
 
-        pprint.pprint(x)
-        pprint.pprint(base_map[x])
-        ProteinBot(uniprot=x, base_map=base_map, pdb_to_go=pdb_to_go, go_prop_map=go_prop_map, login=login,
-                   progress=progress)
+        # generate a map of Uniprot IDs with the matches PDB IDs, GO term and GO evidence codes
+        pdb_to_go = const_go_map()
 
-        with open('uniprot_progress.json', 'w') as outfile:
-                json.dump(progress, outfile)
+        if read_local and os.path.isfile(progress_file_name):
+            with open(progress_file_name, 'r') as infile:
+                progress = json.load(infile)
+        else:
+            progress = dict()
+
+        for count, x in enumerate(base_map):
+            if x in progress:
+                continue
+
+            pprint.pprint(x)
+            pprint.pprint(base_map[x])
+            ProteinBot(uniprot=x, base_map=base_map, pdb_to_go=pdb_to_go, go_prop_map=go_prop_map, login=login,
+                       progress=progress, fast_run=True)
+
+            with open(progress_file_name, 'w') as outfile:
+                    json.dump(progress, outfile)
 
 if __name__ == '__main__':
     sys.exit(main())
