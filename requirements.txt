@@ -5,3 +5,5 @@ matplotlib
 tqdm
 SPARQLWrapper
 lxml
+urllib3
+numpy
