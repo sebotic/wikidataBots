@@ -3,7 +3,11 @@ import requests
 import pandas as pd
 import MicrobeBotWDFunctions as wdo
 import pprint
+import time
 __author__ = 'timputman'
+
+
+
 
 
 def get_ref_microbe_taxids():

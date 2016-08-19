@@ -1,8 +1,11 @@
+__author__ = 'timputman'
+
+
 import MicrobeBotResources as MBR
 import MicrobeBotGenes as MBG
 import MicrobeBotProteins as MBP
 import MicrobeBotEncoder as MBE
-import Micrbobe
+import MicrobeBotStrains as MBS
 import sys
 import os
 
@@ -12,19 +15,7 @@ import datetime
 
 __author__ = 'timputman'
 
-if len(sys.argv) < 6:
-    print("   You did not supply the proper arguments!")
-    print("   Usage: MicrobeBotModularPackage.py <Wikidata user name> <Wikidata Password> <run number> <domain "
-          "i.e. genes/proteins/encode_genes/encode_proteins>, <number of genomes to process> ")
-    sys.exit()
-else:
-    pass
 
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for c in range(0, len(l), n):
-        yield l[c:c + n]
 
 
 # Login to Wikidata with bot credentials
@@ -34,14 +25,15 @@ login = PBB_login.WDLogin(sys.argv[1], sys.argv[2])
 print('Retrieving current list of NCBI Bacterial Reference Genomes')
 print('Standby...')
 
-genome_records = MBR.get_ref_microbe_taxids()
-ref_taxids = genome_records['taxid'].tolist()
-# break up list of taxids into chunks of 5 for subruns
-count = 0
-runs_list = chunks(ref_taxids, int(sys.argv[5]))
+runs_list = [115713, 211586, 100226, 568707, 226185, 394, 243090, 196627, 190485, 386585, 333849, 264732, 1133852,
+               243231, 871585, 257313, 511145, 441771, 309807, 272560, 413999, 272562, 223283, 224308, 272563, 402612,
+               220341, 321967, 246196, 190650, 366394, 260799, 224324, 362948, 233413, 36809, 243274, 198094, 206672,
+               266834, 1028307, 226900, 1208660, 99287, 243160, 365659, 281309, 205918, 265311, 585056, 197221, 749927,
+               160490, 300267, 685038, 272623, 272624, 272631, 272632, 272634, 702459, 220668, 716541]
 
 taxids = {}
-
+count = 0
+genome_records = MBR.get_ref_microbe_taxids()
 for i in runs_list:
     count += 1
     taxids['run{}'.format(count)] = i
@@ -82,9 +74,8 @@ for tid in taxids[sys.argv[3]]:
             if encoder == 'success':
                 gene_count += 1
         if sys.argv[4] == 'strains':
-            strains = MBS.create_strain_item(record, login)
-            if encoder == 'success':
-                gene_count += 1
+            strains = MBS.organism_item_creator(record, login)
+
     print('{}/{} items succesfully written'.format(gene_count, len(gene_records)), file=genome_log)
 print('end time: {}'.format(datetime.datetime.now()), file=genome_log)
 genome_log.close()
