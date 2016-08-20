@@ -146,7 +146,8 @@ class OBOImporter(object):
                 r = OBOImporter.ols_session.get(url=self.base_url + '{}_{}'.format(self.ontology, go_id),
                                                 headers=self.headers)
                 go_term_data = r.json()
-                label = go_term_data['label']
+                label = go_term_data['label'].replace('_', ' ')
+
                 description = go_term_data['description'][0]
 
                 if go_term_data['is_obsolete']:
@@ -158,6 +159,9 @@ class OBOImporter(object):
                 # get parent ontology term info so item can be populated with description, etc.
                 data.append(PBB_Core.WDString(value=id_string, prop_nr=self.core_property_nr,
                                               references=[self.create_reference()]))
+
+                exact_match_string = 'http://purl.obolibrary.org/obo/{}_{}'.format(self.ontology, go_id)
+                data.append(PBB_Core.WDUrl(value=exact_match_string, prop_nr='P2888'))
 
                 # add xrefs
                 if go_term_data['obo_xref']:
