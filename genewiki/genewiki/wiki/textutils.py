@@ -6,6 +6,7 @@ import xml.etree.ElementTree as etree
 
 citation_tool_url = "http://tools.wmflabs.org/citation-template-filling/cgi-bin/index.cgi?ddb=&type=pubmed_id&id=%s&format=xml"
 
+
 def check(titles):
     '''
         Tries, as fast as possible, to check the presence of titles passed to it as
@@ -49,9 +50,9 @@ def create_stub(gene_id):
 
     genomic_pos = root.get('genomic_pos')[0] if isinstance(root.get('genomic_pos'), list) else root.get('genomic_pos')
     if genomic_pos:
-         chromo = '-'+genomic_pos.get('chr')
+        chromo = '-' + genomic_pos.get('chr')
     else:
-         chromo = ''
+        chromo = ''
     values = {
         'id': root.get('entrezgene'),
         'name': root.get('name')[0].capitalize() + root.get('name')[1:],
@@ -66,15 +67,15 @@ def create_stub(gene_id):
 
     # build out the citations
     mg = mygene.MyGeneInfo()
-    generif=mg.getgene(gene_id, fields="generif")
+    generif = mg.getgene(gene_id, fields="generif")
     pmids = []
     if 'generif' in generif:
         pmids = str(generif['generif'][0]['pubmed']).split(",")
-    
+
     limit = 9 if len(pmids) > 9 else len(pmids)
     citations = ''
     for pmid in pmids[:limit]:
-        url_string = urllib.request.urlopen(citation_tool_url%(pmid))
+        url_string = urllib.request.urlopen(citation_tool_url % (pmid))
         xml_string = url_string.read()
         root = etree.fromstring(xml_string)
         dict = {}
@@ -84,10 +85,10 @@ def create_stub(gene_id):
                 print(elem.tag)
                 print(elem.text)
         print(dict['content'])
-        citations = citations+'*'+dict['content']+'\n'
+        citations = citations + '*' + dict['content'] + '\n'
 
-    #replace encoded accents in names
-    h= html.parser.HTMLParser()
+    # replace encoded accents in names
+    h = html.parser.HTMLParser()
     values['citations'] = h.unescape(citations)
 
     stub = settings.STUB_SKELETON.format(**values)
@@ -103,13 +104,13 @@ def create(entrez, force=False):
     except ValueError:
         # invalid entrez
         return None
- 
+
     # Query wikidata for existance of entrez_id don't create new pages for entrez_ids not in wikidata
 
     entrez_query = """
         SELECT ?entrez_id  WHERE {
         ?cid wdt:P351 ?entrez_id  .
-        FILTER(?entrez_id ='"""+str(entrez)+"""') .
+        FILTER(?entrez_id ='""" + str(entrez) + """') .
     }
     """
 
@@ -120,25 +121,26 @@ def create(entrez, force=False):
     if entrez_id != str(entrez):
         return None
     else:
-       # Dictionary of each title key and tuple of it's (STR_NAME, IF_CREATED_ON_WIKI)
-       titles = {'name': (root['name'].capitalize(), False),
-                 'symbol': (root['symbol'], False),
-                 'test': (entrez_id, False),
-                 'altsym': ('{0} (gene)'.format(root['symbol']), False),}
+        # Dictionary of each title key and tuple of it's (STR_NAME, IF_CREATED_ON_WIKI)
+        titles = {'name': (root['name'].capitalize(), False),
+                  'symbol': (root['symbol'], False),
+                  'test': (entrez_id, False),
+                  'altsym': ('{0} (gene)'.format(root['symbol']), False)}
 
-       # For each of the titles, build out the correct names and
-       # corresponding Boolean for if they're on Wikipedia
-       checked = check([titles[key][0] for key in list(titles.keys())])
-       for key, value in list(titles.items()):
-           if checked.get(value[0]):
-               titles[key] = (value[0], True)
-       results['titles'] = titles
+        # For each of the titles, build out the correct names and
+        # corresponding Boolean for if they're on Wikipedia
+        checked = check([titles[key][0] for key in list(titles.keys())])
+        for key, value in list(titles.items()):
+            if checked.get(value[0]):
+                titles[key] = (value[0], True)
+        results['titles'] = titles
 
-       # Generate the Stub code if the Page (for any of the possible names) isn't on Wikipedia
-       if not (titles['name'][1] or titles['symbol'][1] or titles['altsym'][1]) or force:
-           results['stub'] = create_stub(entrez)
+        # Generate the Stub code if the Page (for any of the possible names) isn't on Wikipedia
+        if not (titles['name'][1] or titles['symbol'][1] or titles['altsym'][1]) or force:
+            results['stub'] = create_stub(entrez)
 
-       return results
+        return results
+
 
 def interwiki_link(entrez, name):
     # Query wikidata for Q-item id (cid)
@@ -146,7 +148,7 @@ def interwiki_link(entrez, name):
     cid_query = """
         SELECT ?cid  WHERE {
         ?cid wdt:P351 ?entrez_id  .
-        FILTER(?entrez_id ='"""+str(entrez)+"""') .
+        FILTER(?entrez_id ='""" + str(entrez) + """') .
     }
     """
 
@@ -155,7 +157,7 @@ def interwiki_link(entrez, name):
     for x in wikidata_results:
         cid = x['cid']['value'].split('/')[-1]
 
-    #create interwiki link
+    # create interwiki link
     username = models.CharField(max_length=200, blank=False)
     password = models.CharField(max_length=200, blank=False)
     # create your login object with your user and password (or the ProteinBoxBot account?)
@@ -166,6 +168,7 @@ def interwiki_link(entrez, name):
     wd_gene_item.set_sitelink(site='enwiki', title=name)
     # write the changes to the item
     wd_gene_item.write(login_obj)
+
 
 def strip_references(wikitext):
     '''
