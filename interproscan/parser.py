@@ -14,11 +14,11 @@ import gzip
 import json
 import os
 import subprocess
+import sys
 from itertools import groupby
 
 import lxml.etree as et
 import requests
-import sys
 from dateutil import parser as dup
 from tqdm import tqdm
 
@@ -84,6 +84,27 @@ def get_unprot_ids_from_species(species_wdid):
     return uniprot_ids
 
 
+def get_all_unprot_ids():
+    """
+    returns set of all uniprot id for all items in wikidata
+    :return:
+    """
+    query = """
+    PREFIX wd: <http://www.wikidata.org/entity/>
+    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    SELECT DISTINCT ?protein ?uniprotID WHERE {
+       ?protein wdt:P352 ?uniprotID . # P352 UniProt ID
+       #?protein wdt:P703 ?species . # P703 Found in taxon
+    }"""
+    url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
+    data = requests.get(url, params={'query': query, 'format': 'json'}).json()
+
+    # x['protein']['value'].replace('http://www.wikidata.org/entity/', '')
+    return {x['uniprotID']['value'] for x in data['results']['bindings']}
+
+
 def parse_protein2ipr(p2ipr_filename, keep_ids=None):
     """
     A0A060XN28	IPR029064	50S ribosomal protein L30e-like	SSF55315	17	101
@@ -118,19 +139,14 @@ def parse_protein2ipr(p2ipr_filename, keep_ids=None):
     return uni_dict
 
 
-def parse_human_protein_ipr():
+def parse_protein_ipr(species_wdid=None):
     p2ipr_filename = os.path.join(DATA_DIR, "protein2ipr.dat.gz")
-    uni_dict = parse_protein2ipr(p2ipr_filename, keep_ids=get_unprot_ids_from_species("Q5"))
+    keep_ids = get_unprot_ids_from_species(species_wdid) if species_wdid else get_all_unprot_ids()
+    print("Found {} proteins".format(len(keep_ids)))
+    uni_dict = parse_protein2ipr(p2ipr_filename, keep_ids=keep_ids)
 
-    with open(os.path.join(DATA_DIR, "interproscan_uniprot_human.json"), 'w') as f:
-        json.dump(uni_dict, f, indent=2)
-
-
-def parse_species_protein_ipr(species_wdid):
-    p2ipr_filename = os.path.join(DATA_DIR, "protein2ipr.dat.gz")
-    uni_dict = parse_protein2ipr(p2ipr_filename, keep_ids=get_unprot_ids_from_species(species_wdid))
-
-    with open(os.path.join(DATA_DIR, "interproscan_uniprot_{}.json".format(species_wdid)), 'w') as f:
+    filename = "interproscan_uniprot_{}.json".format(species_wdid) if species_wdid else "interproscan_uniprot_all.json"
+    with open(os.path.join(DATA_DIR, filename), 'w') as f:
         json.dump(uni_dict, f, indent=2)
 
 
@@ -164,15 +180,6 @@ def parse_interpro_xml():
     return d, release_info
 
 
-"""
-# stats
-from .parser import parse_interproscan_items
-d = parse_interproscan_items()
-Counter([any([d[x['interpro_id']].type=="Family" for x in value]) for value in uni_dict.values()])
-Counter([x.type for x in d.values() if x.id in human_ipr])
-"""
-
-
 if __name__ == "__main__":
     # check for or download flat files
     quit = False
@@ -186,7 +193,8 @@ if __name__ == "__main__":
         quit = True
     if quit:
         sys.exit(1)
-    if len(sys.argv) == 1:
-        print("must pass wiki data ID of species you'd like to parse from interpro flat file")
-        sys.exit(1)
-    parse_species_protein_ipr(sys.argv[1])
+    if len(sys.argv) == 2:
+        parse_protein_ipr(sys.argv[1])
+    else:
+        print("you can pass wiki data ID of species you'd like to parse from interpro flat file")
+        parse_protein_ipr()

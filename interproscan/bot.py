@@ -1,7 +1,8 @@
 import json
+import os
 from datetime import datetime
 
-import pandas as pd
+from SPARQLWrapper import SPARQLWrapper, JSON
 from tqdm import tqdm
 
 from ProteinBoxBot_Core import PBB_Core, PBB_login
@@ -10,6 +11,7 @@ from interproscan.WDHelper import WDHelper
 from interproscan.local import WDUSER, WDPASS
 from interproscan.parser import parse_interpro_xml
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 INTERPRO = "P2926"
 SERVER = "www.wikidata.org"
 
@@ -84,7 +86,8 @@ class IPRItem:
 
     def create_item(self):
         statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference]),
-                      PBB_Core.WDItemID(value=IPRItem.type2subclass[self.type], prop_nr="P279", references=[self.reference])]
+                      PBB_Core.WDItemID(value=IPRItem.type2subclass[self.type], prop_nr="P279",
+                                        references=[self.reference])]
 
         item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER)
 
@@ -121,7 +124,8 @@ class IPRItem:
         statements = [PBB_Core.WDExternalID(value=self.id, prop_nr=INTERPRO, references=[self.reference])]
         if self.parent:
             statements.append(
-                PBB_Core.WDItemID(value=ipr_wd[self.parent], prop_nr='P279', references=[self.reference]))  # subclass of
+                PBB_Core.WDItemID(value=ipr_wd[self.parent], prop_nr='P279',
+                                  references=[self.reference]))  # subclass of
         if self.contains:
             for c in self.contains:
                 statements.append(
@@ -133,7 +137,8 @@ class IPRItem:
         if len(statements) == 1:
             return
         # write data
-        item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER, append_value=["P279", "P527", "P361"])
+        item = PBB_Core.WDItemEngine(item_name=self.name, domain='interpro', data=statements, server=SERVER,
+                                     append_value=["P279", "P527", "P361"])
         try:
             item.write(self.login)
         except WDApiError as e:
@@ -212,6 +217,7 @@ def create_protein_ipr(uniprot_id, uniprot_wdid, families, has_part, release_inf
     Create interpro relationships to one protein
     :param uniprot_id: uniprot ID of the protein to modify
     :type uniprot_id: str
+    :param uniprot_wdid: wikidata ID of the protein
     :param families: list of ipr wd ids the protein is a (P279) subclass of
     :param has_part: list of ipr wd ids the protein has (P527) has part
     :return:
@@ -224,7 +230,8 @@ def create_protein_ipr(uniprot_id, uniprot_wdid, families, has_part, release_inf
     ref_imported = PBB_Core.WDItemID("Q3047275", 'P143', is_reference=True)
     ref_version = PBB_Core.WDString(version, 'P348', is_reference=True)
     ref_date = PBB_Core.WDTime(date.strftime("+%Y-%m-%dT00:00:00Z"), 'P577', is_reference=True)
-    ref_ipr = PBB_Core.WDString("http://www.ebi.ac.uk/interpro/protein/{}".format(uniprot_id), "P854", is_reference=True)
+    ref_ipr = PBB_Core.WDString("http://www.ebi.ac.uk/interpro/protein/{}".format(uniprot_id), "P854",
+                                is_reference=True)
     reference = [ref_stated_in, ref_imported, ref_version, ref_date, ref_ipr]
     for ref in reference:
         ref.overwrite_references = True
@@ -237,7 +244,8 @@ def create_protein_ipr(uniprot_id, uniprot_wdid, families, has_part, release_inf
         for hp in has_part:
             statements.append(PBB_Core.WDItemID(value=hp, prop_nr='P527', references=[reference]))
 
-    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER, append_value=["P279", "P527", "P361"])
+    item = PBB_Core.WDItemEngine(wd_item_id=uniprot_wdid, data=statements, server=SERVER,
+                                 append_value=["P279", "P527", "P361"])
     # print(item.get_wd_json_representation())
     try:
         item.write(login)
@@ -262,34 +270,55 @@ def create_protein_ipr(uniprot_id, uniprot_wdid, families, has_part, release_inf
     ))
 
 
-#resume = "logs/WD_bot_run-2016-06-26_16:43.log"
 def create_all_protein_interpro_human(resume=None):
+    return create_all_protein_interpro("Q5", resume=resume)
+
+
+def create_all_protein_interpro(taxon_wdid=None, resume=False):
     """
-    Main function for creating all protein <-> interpro relationships
-    :param ipr_wd:
+    Main function for creating all protein <-> interpro relationships for a particular taxon
+
+    :param taxon_wdid: wikidata id of the taxon whoes protein to process
+    :type taxon_wdid: str
+    :param resume: If resume, only attempt to process proteins with no interpro annotations
+    :type resume: bool
     :return:
     """
-    log = set()
+    done = set()
     if resume:
-        # Read the uniprot IDs of ones we've already done through from the log, don't process those again
-        log = set([x.split(",")[2].strip() for x in open(resume).readlines()])
+        done = get_done_prot()
+
+    # parse the protein <-> interpro relationships
+    uni_dict_f = os.path.join(DATA_DIR, "interproscan_uniprot_{}.json".format(taxon_wdid) if taxon_wdid else "interproscan_uniprot_all.json")
+    if not os.path.exists(uni_dict_f):
+        raise ValueError(
+            "file not found: {}\nMust create interpro uniprot mapping file first. see parser.py".format(uni_dict_f))
+    with open(uni_dict_f, 'r') as f:
+        uni_dict = json.load(f)
 
     # dict of interpro ID -> wikidata ID
     ipr_wd = WDHelper().id_mapper(INTERPRO)
     # dict of uniprot ID -> wikidata ID (human)
-    uniprot_wd = WDHelper().id_mapper("P352", (("P703", "Q5"),))
+    uniprot_wd = WDHelper().id_mapper("P352", (("P703", taxon_wdid),)) if taxon_wdid else WDHelper().id_mapper("P352")
 
     d, release_info = parse_interpro_xml()
     login = PBB_login.WDLogin(WDUSER, WDPASS)
 
-    # parse the protein <-> interpro relationships
-    # this was created by parser.parse_human_protein_ipr
-    with open("interproscan/data/interproscan_uniprot_human.json", 'r') as f:
-        uni_dict = json.load(f)
-
     for uniprot_id in tqdm(uni_dict):
-        if uniprot_id in log:
+        if uniprot_id in done:
+            print("skipping: {}".format(uniprot_id))
             continue
+        if uniprot_id not in uniprot_wd:
+            print("Warning uniprot item {} not found".format(uniprot_id))
+            PBB_Core.WDItemEngine.log('WARNING', '{main_data_id}, "{ex_type}", "{message}", {wd_id}, {duration}'.format(
+                main_data_id=uniprot_id,
+                ex_type='',
+                message="uniprot item not found in wikidata",
+                wd_id="",
+                duration=datetime.now()
+            ))
+            continue
+
         items = [d[x] for x in set(x['interpro_id'] for x in uni_dict[uniprot_id])]
         # Of all families, which one is the most precise? (remove families that are parents of any other family in this list)
         families = [x for x in items if x.type == "Family"]
@@ -297,11 +326,17 @@ def create_all_protein_interpro_human(resume=None):
         parents = set(family.parent for family in families)
         # A protein be in multiple families. ex: http://www.ebi.ac.uk/interpro/protein/A0A0B5J454
         specific_families = families_id - parents
+
         specific_families_wd = [ipr_wd[x] for x in specific_families]
 
         # all other items (not family) are has part (P527)
         has_part = [x.id for x in items if x.type != "Family"]
         has_part_wd = [ipr_wd[x] for x in has_part]
+        for ipr_id in has_part:
+            has_part_items = [x for x in uni_dict[uniprot_id] if x['interpro_id'] == ipr_id]
+            # TODO add specfiic start and stop positions for each member domain
+            # for example: https://www.wikidata.org/wiki/Q21097531
+            # complicated example: http://www.ebi.ac.uk/interpro/protein/Q149N8
 
         create_protein_ipr(uniprot_id, uniprot_wd[uniprot_id], specific_families_wd, has_part_wd, release_info, login)
 
@@ -324,3 +359,49 @@ def test_number_of_interpro_items():
     bindings = results['results']['bindings']
     if len(bindings) != len(d):
         raise ValueError("{} InterPro items expected. {} found".format(len(d), len(bindings)))
+
+
+def get_done_prot():
+    """Get the wd items that have a uniprot ID and are instance of a protein family or have 'has part' any type of domiain.
+    Return the uniprot IDs """
+    endpoint = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
+    if False:
+        # ?item wdt:P703 wd:Q5 .
+        query = """
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            select distinct ?item where { \n""" + \
+                "?item wdt:P352 ?uniprot .}"
+        endpoint.setQuery(query)
+        endpoint.setReturnFormat(JSON)
+        response = endpoint.query().convert()['results']['bindings']
+        all_prots = {x['item']['value'].replace('http://www.wikidata.org/entity/', '') for x in response}
+
+    query = """
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        select distinct ?uniprot where { \n""" + \
+            """?item wdt:P352 ?uniprot .
+             ?item wdt:P279 ?subclass .
+             ?subclass wdt:P279 wd:Q417841 . }"""
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    response = endpoint.query().convert()['results']['bindings']
+    family_prots = {x['uniprot']['value'] for x in response}
+
+    query = """
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        select distinct ?uniprot where { \n""" + \
+            """VALUES ?domain {wd:Q423026 wd:Q616005 wd:Q7644128 wd:Q898273 wd:Q898362 wd:Q3273544}
+            ?item wdt:P352 ?uniprot .
+             ?item wdt:P527 ?haspart .
+             ?haspart wdt:P279 ?domain .}"""
+    endpoint.setQuery(query)
+    endpoint.setReturnFormat(JSON)
+    response = endpoint.query().convert()['results']['bindings']
+    domain_prots = {x['uniprot']['value'] for x in response}
+
+    done = family_prots | domain_prots
+
+    return done

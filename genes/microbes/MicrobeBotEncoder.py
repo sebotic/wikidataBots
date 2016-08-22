@@ -35,7 +35,7 @@ def encodes(gene_record, login):
         # find and write items
         success_count = 0
         wd_encodes_item = PBB_Core.WDItemEngine(wd_item_id=gene_qid, data=gene_encodes)
-        pprint.pprint(wd_encodes_item.get_wd_json_representation())
+        #pprint.pprint(wd_encodes_item.get_wd_json_representation())
 
         try:
             wd_encodes_item = PBB_Core.WDItemEngine(wd_item_id=gene_qid, data=gene_encodes)
