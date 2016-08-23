@@ -51,19 +51,19 @@ def get_homolog(json_res):
       Arguments:
       - `json_res`:  the mygene.info json document for original gene
     '''
-    if json_res.get('genes') == None:
+    if json_res.get('genes') is None:
         return None
     else:
-       homologs = json_res.get('homologene').get('genes')
-       # isolate our particular taxon (returns [[taxon, gene]])
-       if homologs:
-           pair = [x for x in homologs if x[0] == settings.MOUSE_TAXON_ID]
-           if pair:
-               return pair[0][1]
-           else:
-               return None
-       else:
-           return None
+        homologs = json_res.get('homologene').get('genes')
+        # isolate our particular taxon (returns [[taxon, gene]])
+        if homologs:
+            pair = [x for x in homologs if x[0] == settings.MOUSE_TAXON_ID]
+            if pair:
+                return pair[0][1]
+            else:
+                return None
+        else:
+            return None
 
 
 def get_response(entrez):

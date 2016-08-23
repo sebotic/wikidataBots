@@ -28,7 +28,7 @@ class Bot(models.Model):
 
     def connection(self):
         useragent = 'Protein Box Bot, Run by The Scripps Research Institute: nanis@scripps.edu'
-        connection = mwclient.Site(('https', settings.BASE_SITE),clients_useragent=useragent)
+        connection = mwclient.Site(('https', settings.BASE_SITE), clients_useragent=useragent)
 
         connection.login(self.username, self.password)
         return connection
@@ -40,7 +40,7 @@ class Bot(models.Model):
         connection = self.connection()
         lists = connection.usercontributions(self.username, start=None, end=None, dir='older', namespace=None, prop=None, show=None, limit=limit)
         for item in lists:
-            print ((item['title']))
+            print((item['title']))
 
     def fetch_update_articles(self):
         connection = self.connection()
@@ -81,19 +81,17 @@ class Article(models.Model):
 
     def __unicode__(self):
         return '{0}'.format(self.title)
-   
+
     class Meta:
         ordering = ('-updated',)
 
     def url_for_article(self):
         return 'http://{0}/wiki/{1}'.format(settings.BASE_SITE, self.title)
 
-
     def get_page(self):
         bot = Bot.objects.get_pbb()
         connection = bot.connection()
         return connection.Pages[self.title]
-
 
     def bots_allowed(self):
         '''
