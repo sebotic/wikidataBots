@@ -64,15 +64,6 @@ def getMetabolitesFromWP():
         pc_reference = [refStatedIn, refPcId, refRetrieved]
         return pc_reference
 
-    ## Pubchem mappings
-    pbcreq = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=PREFIX+wdt%3A+%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fdirect%2F%3E%0D%0A%0D%0Aselect+distinct+%3Fmb+%3FpubchemCID+%3Fwikidata+where+%7B%0D%0A%0D%0A++SERVICE+%3Chttps%3A%2F%2Fquery.wikidata.org%2Fbigdata%2Fnamespace%2Fwdq%2Fsparql%3E+%7B%0D%0A++++%3Fwd_item+wdt%3AP662++%3Fwd_pubchem_cid+.%0D%0A%7D%0D%0A+++%3Fmb+a+wp%3AMetabolite+%3B%0D%0A+++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring%3B%0D%0A+++dcterms%3Aidentifier+%3FpubchemCID+%3B%0D%0A+++wp%3AbdbWikidata+%3Fwikidata+.%0D%0A+++FILTER+%28str%28%3FpubchemCID%29+%3D+str%28%3Fwd_pubchem_cid%29%29%0D%0A%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
-    pbres = pbcreq.json()
-    pubchem_mappings = dict()
-    for result in pbres["results"]["bindings"]:
-       pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"]
-
-    pprint.pprint(pubchem_mappings)
-
     x = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=SELECT+DISTINCT+%3Fmetabolite+%3Fmetabolite_label+%3Fidentifier+%3FidentifierUri+%28GROUP_CONCAT%28DISTINCT%28%3Fpathway%29%3B+separator%3D%22%2C+%22%29+as+%3Fpathways%29+WHERE+%7B%0D%0A%3Fmetabolite+a+wp%3AMetabolite+%3B%0D%0Ardfs%3Alabel+%3Fmetabolite_label+%3B%0D%0Adcterms%3Aidentifier+%3Fidentifier+%3B%0D%0A%09++++++dc%3Aidentifier+%3FidentifierUri+%3B%0D%0A%09++++++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring+.%0D%0A%3Fmetabolite+dcterms%3AisPartOf+%3Fpathway+.%0D%0A%3Fpathway+a+wp%3APathway+%3B%0D%0Adc%3Aidentifier+%3Fwp_id+%3B%0D%0Awp%3AorganismName+%22Homo+sapiens%22%5E%5Exsd%3Astring+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
     res = x.json()
     compounds = []
@@ -105,30 +96,42 @@ def getMetabolitesFromWP():
 
     return compounds
 
+def getPubchemMappings():
+        ## Pubchem mappings
+        pbcreq = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=PREFIX+wdt%3A+%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fdirect%2F%3E%0D%0A%0D%0Aselect+distinct+%3Fmb+%3FpubchemCID+%3Fwikidata+where+%7B%0D%0A%0D%0A++SERVICE+%3Chttps%3A%2F%2Fquery.wikidata.org%2Fbigdata%2Fnamespace%2Fwdq%2Fsparql%3E+%7B%0D%0A++++%3Fwd_item+wdt%3AP662++%3Fwd_pubchem_cid+.%0D%0A%7D%0D%0A+++%3Fmb+a+wp%3AMetabolite+%3B%0D%0A+++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring%3B%0D%0A+++dcterms%3Aidentifier+%3FpubchemCID+%3B%0D%0A+++wp%3AbdbWikidata+%3Fwikidata+.%0D%0A+++FILTER+%28str%28%3FpubchemCID%29+%3D+str%28%3Fwd_pubchem_cid%29%29%0D%0A%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
+        pbres = pbcreq.json()
+        pubchem_mappings = dict()
+        for result in pbres["results"]["bindings"]:
+            pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"]
+        pprint.pprint(pubchem_mappings)
+        return pubchem_mappings
+
 found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True)
 logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
+pubchem_mappings = getPubchemMappings()
 for metabolite in wp_metabolites:
-    pprint.pprint(metabolite)
-    prep = dict()
-    # instance of P31
-    prep["P31"] = [PBB_Core.WDItemID(value='Q407595', prop_nr='P279', references=[copy.deepcopy(metabolite["wp_reference"])], qualifiers=[found_in_taxon_Qualifier])]
-    # PubChem ID (CID) P662
-    prep["P662"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P662', references=[copy.deepcopy(metabolite["wp_reference"])])]
-    # Canonical SMILES P233
-    prep["P233"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P233', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
-    # InChI P234
-    prep["P234"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P234', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
-    # InChIKey P235
-    prep["P235"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P235', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
-    data2add = []
-    for key in prep.keys():
-        for statement in prep[key]:
-            data2add.append(statement)
-    wdPage = PBB_Core.WDItemEngine("Q26690136", data=data2add, server="www.wikidata.org",
-                                           domain="drugs")
-    output = wdPage.get_wd_json_representation()
-    pprint.pprint(output)
-    sys.exit()
+    if str(metabolite["pubchem"]) in pubchem_mappings.keys():
+        pprint.pprint(metabolite)
+        prep = dict()
+        # instance of P31
+        prep["P31"] = [PBB_Core.WDItemID(value='Q407595', prop_nr='P279', references=[copy.deepcopy(metabolite["wp_reference"])], qualifiers=[found_in_taxon_Qualifier])]
+        # PubChem ID (CID) P662
+        prep["P662"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P662', references=[copy.deepcopy(metabolite["wp_reference"])])]
+        # Canonical SMILES P233
+        prep["P233"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P233', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        # InChI P234
+        prep["P234"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P234', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        # InChIKey P235
+        prep["P235"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P235', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        data2add = []
+        for key in prep.keys():
+            for statement in prep[key]:
+                data2add.append(statement)
+        wdPage = PBB_Core.WDItemEngine("Q26690136", data=data2add, server="www.wikidata.org",
+                                               domain="drugs")
+        output = wdPage.get_wd_json_representation()
+        pprint.pprint(output)
+        sys.exit()
 
