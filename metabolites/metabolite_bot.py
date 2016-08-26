@@ -41,18 +41,21 @@ def getMetabolitesFromWP():
         return result
 
     # source ref to WikiPathways
-    def wp_reference(wpid):
+    def wp_reference(wpid, wpurl):
         # P248 = Stated in: Q7999828 = Wikipathways
-        refStatedIn = PBB_Core.WDItemID(value="Q7999828", prop_nr='P248', is_reference=True)
+        refStatedIn = PBB_Core.WDItemID(value="Q7999828", prop_nr=u'P248', is_reference=True)
         refStatedIn.overwrite_references = True
         # P2410 = WikiPathways ID
-        refWpId = PBB_Core.WDString(value=str(wpid), prop_nr='P2410', is_reference=True)
+        refWpId = PBB_Core.WDString(value=u''+str(wpid[0]), prop_nr=u'P2410', is_reference=True)
         refWpId.overwrite_references = True
         # P813 = retrieved
-        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        timeStringNow = u''+strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
         refRetrieved.overwrite_references = True
-        wp_reference = [refStatedIn, refWpId, refRetrieved]
+        # P854 = reference URL
+        refURL = PBB_Core.WDUrl(value=u"http://identifiers.org/wikipathways/" + str(wpurl), prop_nr=u'P854', is_reference=True)
+        refURL.overwrite_references = True
+        wp_reference = [refStatedIn, refRetrieved, refWpId, refURL]
         return wp_reference
 
     # source ref to PubChem
@@ -96,7 +99,7 @@ def getMetabolitesFromWP():
             compound ["revision"] = []
         compound["revision"].append(result["pathways"]["value"].replace("http://identifiers.org/wikipathways/",  "").split("_")[1])
 
-        compound ["wp_reference"] = wp_reference(compound ["pw_id"])
+        compound ["wp_reference"] = wp_reference(compound ["pw_id"], compound["pathway"][0])
         compound ["pubchem_reference"] = pc_reference(compound ["pubchem"])
         compounds.append(compound)
 
@@ -122,9 +125,9 @@ for metabolite in wp_metabolites:
     if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") in pubchem_mappings.keys():
         prep = dict()
         # P31 = instance of P31, Q407595 = metabolite
-        prep["P31"] = [
+        prep[u"P31"] = [
           PBB_Core.WDItemID(
-            value='Q407595', prop_nr='P31',
+            value='Q407595', prop_nr=u'P31',
             references=[copy.deepcopy(metabolite["wp_reference"])],
             qualifiers=[found_in_taxon_Qualifier]
           )
