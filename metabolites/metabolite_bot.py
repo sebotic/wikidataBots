@@ -69,7 +69,11 @@ def getMetabolitesFromWP():
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
         refRetrieved.overwrite_references = True
-        pc_reference = [refStatedIn, refPcId, refRetrieved]
+        # P854 = reference URL
+        url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{}/property/InChI,InChIKey,CanonicalSMILES/JSON".format(str(pcid))
+        refURL = PBB_Core.WDUrl(value=u'' + url, prop_nr=u'P854', is_reference=True)
+        refURL.overwrite_references = True
+        pc_reference = [refStatedIn, refPcId, refRetrieved, refURL]
         return pc_reference
 
     wpSparql = """
