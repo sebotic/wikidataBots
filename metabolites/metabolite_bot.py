@@ -69,9 +69,9 @@ def getMetabolitesFromWP():
     pbres = pbcreq.json()
     pubchem_mappings = dict()
     for result in pbres["results"]["bindings"]:
-       pubchem_mappings[str(result["pubchemCID"])] = result["wikidata"]
+       pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"]
 
-    pprint.pprint(pubchemMappings) 
+    pprint.pprint(pubchem_mappings)
 
     x = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=SELECT+DISTINCT+%3Fmetabolite+%3Fmetabolite_label+%3Fidentifier+%3FidentifierUri+%28GROUP_CONCAT%28DISTINCT%28%3Fpathway%29%3B+separator%3D%22%2C+%22%29+as+%3Fpathways%29+WHERE+%7B%0D%0A%3Fmetabolite+a+wp%3AMetabolite+%3B%0D%0Ardfs%3Alabel+%3Fmetabolite_label+%3B%0D%0Adcterms%3Aidentifier+%3Fidentifier+%3B%0D%0A%09++++++dc%3Aidentifier+%3FidentifierUri+%3B%0D%0A%09++++++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring+.%0D%0A%3Fmetabolite+dcterms%3AisPartOf+%3Fpathway+.%0D%0A%3Fpathway+a+wp%3APathway+%3B%0D%0Adc%3Aidentifier+%3Fwp_id+%3B%0D%0Awp%3AorganismName+%22Homo+sapiens%22%5E%5Exsd%3Astring+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
     res = x.json()
