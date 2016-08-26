@@ -15,7 +15,6 @@ except ImportError as e:
 import requests
 from SPARQLWrapper import SPARQLWrapper, JSON
 from time import gmtime, strftime
-from pubchempy import get_compounds, Compound
 import copy
 import pprint
 
