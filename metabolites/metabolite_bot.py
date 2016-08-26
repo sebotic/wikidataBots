@@ -102,7 +102,7 @@ def getPubchemMappings():
         pbres = pbcreq.json()
         pubchem_mappings = dict()
         for result in pbres["results"]["bindings"]:
-            pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"]
+            pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"].replace('http://www.wikidata.org/entity/', '')
         pprint.pprint(pubchem_mappings)
         return pubchem_mappings
 
