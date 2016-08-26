@@ -220,8 +220,10 @@ for metabolite in wp_metabolites:
         for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
-        wdPage = PBB_Core.WDItemEngine("Q26690136", data=data2add, server="www.wikidata.org",
-                                               domain="drugs")
+        wdPage = PBB_Core.WDItemEngine(
+            "Q26690136", data=data2add, server="www.wikidata.org",
+            domain="drugs", append_value=['P31','P233','P234','P235']
+        )
         output = wdPage.get_wd_json_representation()
         pprint.pprint(output)
         #wdPage.write(logincreds)
