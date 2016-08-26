@@ -66,7 +66,7 @@ def getMetabolitesFromWP():
         refPcId = PBB_Core.WDExternalID(value=u''+str(pcid), prop_nr=u'P662', is_reference=True)
         refPcId.overwrite_references = True
         # P813 = retrieved
-        timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
+        timeStringNow = u''+strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
         refRetrieved.overwrite_references = True
         # P854 = reference URL
@@ -162,7 +162,7 @@ def getPubChemMappings():
         pprint.pprint(pubchem_mappings)
         return pubchem_mappings
 
-found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True)
+found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True, rank=u'normal')
 logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
@@ -176,7 +176,7 @@ for metabolite in wp_metabolites:
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
           PBB_Core.WDItemID(
-            value='Q407595', prop_nr=u'P31',
+            value='Q407595', prop_nr=u'P31', rank=u'normal',
             references=[copy.deepcopy(metabolite["wp_reference"])],
             qualifiers=[found_in_taxon_Qualifier]
           )
