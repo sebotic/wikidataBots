@@ -144,7 +144,7 @@ WHERE {
 }
     """
 
-def getPubchemMappings():
+def getPubChemMappings():
         ## Pubchem mappings
         pbcreq = requests.get(
           "http://sparql.wikipathways.org/?default-graph-uri=&query=" +
@@ -162,7 +162,7 @@ found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', 
 logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
-pubchem_mappings = getPubchemMappings()
+pubchem_mappings = getPubChemMappings()
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
@@ -220,5 +220,6 @@ for metabolite in wp_metabolites:
                                                domain="drugs")
         output = wdPage.get_wd_json_representation()
         pprint.pprint(output)
+        #wdPage.write(logincreds)
         sys.exit()
 
