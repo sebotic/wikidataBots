@@ -68,7 +68,7 @@ def line_chart(results):
                 chart_data += '[new Date(%s, %s, %s), %s, ' % (cdate_yyyy, cdate_mm, cdate_dd, ccount)
             else:
                 chart_data += '%s, ' % (ccount)
-            if species in unique_species:
+            if species not in unique_species:
                 legend += '''data.addColumn('number', '%s');\n''' % (species_name)
             curdate = date
             unique_species[str(species)] = 1
