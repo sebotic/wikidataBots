@@ -63,7 +63,7 @@ def getMetabolitesFromWP():
         refStatedIn = PBB_Core.WDItemID(value="Q278487", prop_nr=u'P248', is_reference=True)
         refStatedIn.overwrite_references = True
         # P662 = PubChem ID (CID)
-        refPcId = PBB_Core.WDString(value=u''+str(pcid), prop_nr=u'P662', is_reference=True)
+        refPcId = PBB_Core.WDExternalID(value=u''+str(pcid), prop_nr=u'P662', is_reference=True)
         refPcId.overwrite_references = True
         # P813 = retrieved
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
@@ -183,7 +183,7 @@ for metabolite in wp_metabolites:
         ]
         # PubChem ID (CID) P662
         prep[u"P662"] = [
-          PBB_Core.WDString(
+          PBB_Core.WDExternalID(
             value=u''+pccid,
             prop_nr=u'P662',
             references=[copy.deepcopy(metabolite["wp_reference"])]
