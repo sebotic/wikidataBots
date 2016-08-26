@@ -120,5 +120,3 @@ for metabolite in wp_metabolites:
     pprint.pprint(output)
     sys.exit()
 
-#wdPage = PBB_Core.WDItemEngine(item_name=self.name, data=data2add, server="www.wikidata.org", domain="diseases", append_value=['P279'])
-
