@@ -135,7 +135,8 @@ for metabolite in wp_metabolites:
         # PubChem ID (CID) P662
         prep[u"P662"] = [
           PBB_Core.WDString(
-            value=metabolite["pubchem"], prop_nr=u'P662',
+            value=str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", ""),
+            prop_nr=u'P662',
             references=[copy.deepcopy(metabolite["wp_reference"])]
           )
         ]
