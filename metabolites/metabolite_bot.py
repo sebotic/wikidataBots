@@ -127,9 +127,31 @@ WHERE {
 
     return compounds
 
+mappingSparql = """
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+SELECT DISTINCT ?mb ?pubchemCID ?wikidata
+WHERE {
+
+  SERVICE <https://query.wikidata.org/bigdata/namespace/wdq/sparql> {
+    ?wd_item wdt:P662  ?wd_pubchem_cid .
+  }
+
+  ?mb a wp:Metabolite ;
+  dc:source "PubChem-compound"^^xsd:string;
+  dcterms:identifier ?pubchemCID ;
+  wp:bdbWikidata ?wikidata .
+  FILTER (str(?pubchemCID) = str(?wd_pubchem_cid))
+}
+    """
+
 def getPubchemMappings():
         ## Pubchem mappings
-        pbcreq = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=PREFIX+wdt%3A+%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fdirect%2F%3E%0D%0A%0D%0Aselect+distinct+%3Fmb+%3FpubchemCID+%3Fwikidata+where+%7B%0D%0A%0D%0A++SERVICE+%3Chttps%3A%2F%2Fquery.wikidata.org%2Fbigdata%2Fnamespace%2Fwdq%2Fsparql%3E+%7B%0D%0A++++%3Fwd_item+wdt%3AP662++%3Fwd_pubchem_cid+.%0D%0A%7D%0D%0A+++%3Fmb+a+wp%3AMetabolite+%3B%0D%0A+++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring%3B%0D%0A+++dcterms%3Aidentifier+%3FpubchemCID+%3B%0D%0A+++wp%3AbdbWikidata+%3Fwikidata+.%0D%0A+++FILTER+%28str%28%3FpubchemCID%29+%3D+str%28%3Fwd_pubchem_cid%29%29%0D%0A%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
+        pbcreq = requests.get(
+          "http://sparql.wikipathways.org/?default-graph-uri=&query=" +
+          urllib.quote(mappingSparql) +
+          "&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on"
+        )
         pbres = pbcreq.json()
         pubchem_mappings = dict()
         for result in pbres["results"]["bindings"]:
