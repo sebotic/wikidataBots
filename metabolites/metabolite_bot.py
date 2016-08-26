@@ -133,30 +133,30 @@ for metabolite in wp_metabolites:
           )
         ]
         # PubChem ID (CID) P662
-        prep["P662"] = [
+        prep[u"P662"] = [
           PBB_Core.WDString(
-            value=metabolite["pubchem"], prop_nr='P662',
+            value=metabolite["pubchem"], prop_nr=u'P662',
             references=[copy.deepcopy(metabolite["wp_reference"])]
           )
         ]
         # Canonical SMILES P233
-        prep["P233"] = [
+        prep[u"P233"] = [
           PBB_Core.WDString(
-            value=metabolite["smiles"], prop_nr='P233',
+            value=metabolite["smiles"], prop_nr=u'P233',
             references=[copy.deepcopy(metabolite["pubchem_reference"])]
           )
         ]
         # InChI P234
-        prep["P234"] = [
+        prep[u"P234"] = [
           PBB_Core.WDString(
-            value=metabolite["inchi"], prop_nr='P234',
+            value=metabolite["inchi"], prop_nr=u'P234',
             references=[copy.deepcopy(metabolite["pubchem_reference"])]
           )
         ]
         # InChIKey P235
-        prep["P235"] = [
+        prep[u"P235"] = [
           PBB_Core.WDString(
-            value=metabolite["inchikey"], prop_nr='P235',
+            value=metabolite["inchikey"], prop_nr=u'P235',
             references=[copy.deepcopy(metabolite["pubchem_reference"])]
           )
         ]
