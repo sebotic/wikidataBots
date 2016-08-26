@@ -23,23 +23,21 @@ import copy
 import pprint
 import urllib
 
-def getMetabolitesFromWP():
+# Use the PubChem API to look up the SMILES, InChI, and InChIKey using the
+# PubChem CID provided by WikiPathways
+def get_inchi_key(cid):
+    # use the RDF REST API
+    url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{}/property/InChI,InChIKey,CanonicalSMILES/JSON".format(str(cid))
+    print(url)
+    results = requests.get(url)
+    pccall = results.json()
+    result = dict()
+    result["inchi"]    = pccall["PropertyTable"]["Properties"][0]["InChI"]
+    result["inchikey"] = pccall["PropertyTable"]["Properties"][0]["InChIKey"]
+    result["smiles"]   = pccall["PropertyTable"]["Properties"][0]["CanonicalSMILES"]
+    return result
 
-    # Use the PubChem API to look up the SMILES, InChI, and InChIKey using the
-    # PubChem CID provided by WikiPathways
-    def get_inchi_key(cid):
-        # use the RDF REST API
-        url = "https://pubchem.ncbi.nlm.nih.gov/rest/rdf/descriptor/{}_IUPAC_InChI.json".format(cid)
-        print(url)
-        inchiresults = requests.get(url)
-        inchicall = inchiresults.json()
-        smilescall = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/rdf/descriptor/{}_Isomeric_SMILES.json".format(cid)).json()
-        inchikeycall = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/rdf/descriptor/{}_IUPAC_InChIKey.json".format(cid)).json()
-        result = dict()
-        result["inchi"]=inchicall["descriptor/{}_IUPAC_InChI".format(cid)]["http://semanticscience.org/resource/has-value"]["value"]
-        result["smiles"]=smilescall["descriptor/{}_Isomeric_SMILES".format(cid)]["http://semanticscience.org/resource/has-value"]["value"]
-        result["inchikey"]=inchikeycall["descriptor/{}_IUPAC_InChIKey.json".format(cid)]["http://semanticscience.org/resource/has-value"]["value"]
-        return result
+def getMetabolitesFromWP():
 
     # source ref to WikiPathways
     def wp_reference(wpid, wpurl):
@@ -62,14 +60,14 @@ def getMetabolitesFromWP():
     # source ref to PubChem
     def pc_reference(pcid):
         # P248 = Stated in: Q278487 = PubChem
-        refStatedIn = PBB_Core.WDItemID(value="Q278487", prop_nr='P248', is_reference=True)
+        refStatedIn = PBB_Core.WDItemID(value="Q278487", prop_nr=u'P248', is_reference=True)
         refStatedIn.overwrite_references = True
         # P662 = PubChem ID (CID)
-        refPcId = PBB_Core.WDString(value=str(pcid), prop_nr='P662', is_reference=True)
+        refPcId = PBB_Core.WDString(value=u''+str(pcid), prop_nr=u'P662', is_reference=True)
         refPcId.overwrite_references = True
         # P813 = retrieved
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
         refRetrieved.overwrite_references = True
         pc_reference = [refStatedIn, refPcId, refRetrieved]
         return pc_reference
@@ -122,7 +120,8 @@ WHERE {
         compound["revision"].append(result["pathways"]["value"].replace("http://identifiers.org/wikipathways/",  "").split("_")[1])
 
         compound ["wp_reference"] = wp_reference(compound ["pw_id"], compound["pathway"][0])
-        compound ["pubchem_reference"] = pc_reference(compound ["pubchem"])
+        pccid = str(compound["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
+        compound ["pubchem_reference"] = pc_reference(pccid)
         compounds.append(compound)
 
     return compounds
@@ -166,8 +165,9 @@ wp_metabolites = getMetabolitesFromWP()
 pubchem_mappings = getPubchemMappings()
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
-    #if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") in pubchem_mappings.keys():
-    if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") == "116545":
+    pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
+    #if cid in pubchem_mappings.keys():
+    if pccid == "116545":
         prep = dict()
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
@@ -180,18 +180,21 @@ for metabolite in wp_metabolites:
         # PubChem ID (CID) P662
         prep[u"P662"] = [
           PBB_Core.WDString(
-            value=str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", ""),
+            value=u''+pccid,
             prop_nr=u'P662',
             references=[copy.deepcopy(metabolite["wp_reference"])]
           )
         ]
-        # Canonical SMILES P233
-        prep[u"P233"] = [
-          PBB_Core.WDString(
-            value=metabolite["smiles"], prop_nr=u'P233',
-            references=[copy.deepcopy(metabolite["pubchem_reference"])]
-          )
-        ]
+        # get some more details from PubChem
+        results = get_inchi_key(pccid)
+        # output Canonical SMILES P233
+        if results["smiles"]:
+          prep[u"P233"] = [
+            PBB_Core.WDString(
+              value=results["smiles"], prop_nr=u'P233',
+              references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            )
+          ]
         # InChI P234
         prep[u"P234"] = [
           PBB_Core.WDString(
