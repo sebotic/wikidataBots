@@ -1,5 +1,9 @@
 __author__ = 'egonw' # 0000-0001-7542-0286
 
+# set the following two env variables (e.g. with EXPORT):
+#  wikidataUser -> user name
+#  wikidataApi  -> password
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../ProteinBoxBot_Core")
@@ -94,7 +98,7 @@ def getMetabolitesFromWP():
     return compounds
 
 found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True)
-logincreds = PBB_login.WDLogin(<wikidatausername>, os.environ['wikidataApi'])
+logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
 for metabolite in wp_metabolites:
