@@ -196,19 +196,21 @@ for metabolite in wp_metabolites:
             )
           ]
         # InChI P234
-        prep[u"P234"] = [
-          PBB_Core.WDString(
-            value=metabolite["inchi"], prop_nr=u'P234',
-            references=[copy.deepcopy(metabolite["pubchem_reference"])]
-          )
-        ]
+        if results["inchi"]:
+          prep[u"P234"] = [
+            PBB_Core.WDString(
+              value=results["inchi"].replace("InChI=",""), prop_nr=u'P234',
+              references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            )
+          ]
         # InChIKey P235
-        prep[u"P235"] = [
-          PBB_Core.WDString(
-            value=metabolite["inchikey"], prop_nr=u'P235',
-            references=[copy.deepcopy(metabolite["pubchem_reference"])]
-          )
-        ]
+        if results["inchikey"]:
+          prep[u"P235"] = [
+            PBB_Core.WDString(
+              value=results["inchikey"], prop_nr=u'P235',
+              references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            )
+          ]
 
         data2add = []
         for key in prep.keys():
