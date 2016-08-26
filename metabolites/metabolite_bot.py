@@ -49,7 +49,7 @@ def getMetabolitesFromWP():
         refWpId.overwrite_references = True
         # P813 = retrieved
         timeStringNow = u''+strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True, calendarmodel=u'http://www.wikidata.org/entity/Q1985727')
         refRetrieved.overwrite_references = True
         # P854 = reference URL
         refURL = PBB_Core.WDUrl(value=u"http://identifiers.org/wikipathways/" + str(wpurl), prop_nr=u'P854', is_reference=True)
@@ -67,7 +67,7 @@ def getMetabolitesFromWP():
         refPcId.overwrite_references = True
         # P813 = retrieved
         timeStringNow = u''+strftime("+%Y-%m-%dT00:00:00Z", gmtime())
-        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True)
+        refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr=u'P813', is_reference=True, calendarmodel=u'http://www.wikidata.org/entity/Q1985727')
         refRetrieved.overwrite_references = True
         # P854 = reference URL
         url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{}/property/InChI,InChIKey,CanonicalSMILES/JSON".format(str(pcid))
