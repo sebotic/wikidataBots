@@ -24,6 +24,8 @@ import pprint
 
 def getMetabolitesFromWP():
 
+    # Use the PubChem API to look up the SMILES, InChI, and InChIKey using the
+    # PubChem CID provided by WikiPathways
     def get_inchi_key(cid):
         # use the RDF REST API
         url = "https://pubchem.ncbi.nlm.nih.gov/rest/rdf/descriptor/{}_IUPAC_InChI.json".format(cid)
@@ -38,26 +40,30 @@ def getMetabolitesFromWP():
         result["inchikey"]=inchikeycall["descriptor/{}_IUPAC_InChIKey.json".format(cid)]["http://semanticscience.org/resource/has-value"]["value"]
         return result
 
-    # ref to WikiPathways
+    # source ref to WikiPathways
     def wp_reference(wpid):
         # P248 = Stated in: Q7999828 = Wikipathways
         refStatedIn = PBB_Core.WDItemID(value="Q7999828", prop_nr='P248', is_reference=True)
         refStatedIn.overwrite_references = True
+        # P2410 = WikiPathways ID
         refWpId = PBB_Core.WDString(value=str(wpid), prop_nr='P2410', is_reference=True)
         refWpId.overwrite_references = True
+        # P813 = retrieved
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         refRetrieved.overwrite_references = True
         wp_reference = [refStatedIn, refWpId, refRetrieved]
         return wp_reference
 
-    # ref to PubChem
+    # source ref to PubChem
     def pc_reference(pcid):
         # P248 = Stated in: Q278487 = PubChem
         refStatedIn = PBB_Core.WDItemID(value="Q278487", prop_nr='P248', is_reference=True)
         refStatedIn.overwrite_references = True
-        refPcId = PBB_Core.WDString(value=str(pcid), prop_nr='P2410', is_reference=True)
+        # P662 = PubChem ID (CID)
+        refPcId = PBB_Core.WDString(value=str(pcid), prop_nr='P662', is_reference=True)
         refPcId.overwrite_references = True
+        # P813 = retrieved
         timeStringNow = strftime("+%Y-%m-%dT00:00:00Z", gmtime())
         refRetrieved = PBB_Core.WDTime(timeStringNow, prop_nr='P813', is_reference=True)
         refRetrieved.overwrite_references = True
@@ -114,18 +120,44 @@ pubchem_mappings = getPubchemMappings()
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") in pubchem_mappings.keys():
-        pprint.pprint(metabolite)
         prep = dict()
-        # instance of P31
-        prep["P31"] = [PBB_Core.WDItemID(value='Q407595', prop_nr='P279', references=[copy.deepcopy(metabolite["wp_reference"])], qualifiers=[found_in_taxon_Qualifier])]
+        # P31 = instance of P31, Q407595 = metabolite
+        prep["P31"] = [
+          PBB_Core.WDItemID(
+            value='Q407595', prop_nr='P31',
+            references=[copy.deepcopy(metabolite["wp_reference"])],
+            qualifiers=[found_in_taxon_Qualifier]
+          )
+        ]
         # PubChem ID (CID) P662
-        prep["P662"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P662', references=[copy.deepcopy(metabolite["wp_reference"])])]
+        prep["P662"] = [
+          PBB_Core.WDString(
+            value=metabolite["pubchem"], prop_nr='P662',
+            references=[copy.deepcopy(metabolite["wp_reference"])]
+          )
+        ]
         # Canonical SMILES P233
-        prep["P233"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P233', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        prep["P233"] = [
+          PBB_Core.WDString(
+            value=metabolite["smiles"], prop_nr='P233',
+            references=[copy.deepcopy(metabolite["pubchem_reference"])]
+          )
+        ]
         # InChI P234
-        prep["P234"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P234', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        prep["P234"] = [
+          PBB_Core.WDString(
+            value=metabolite["inchi"], prop_nr='P234',
+            references=[copy.deepcopy(metabolite["pubchem_reference"])]
+          )
+        ]
         # InChIKey P235
-        prep["P235"] = [PBB_Core.WDString(value=metabolite["pubchem"], prop_nr='P235', references=[copy.deepcopy(metabolite["pubchem_reference"])])]
+        prep["P235"] = [
+          PBB_Core.WDString(
+            value=metabolite["inchikey"], prop_nr='P235',
+            references=[copy.deepcopy(metabolite["pubchem_reference"])]
+          )
+        ]
+
         data2add = []
         for key in prep.keys():
             for statement in prep[key]:
