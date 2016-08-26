@@ -94,6 +94,7 @@ def getMetabolitesFromWP():
     return compounds
 
 found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True)
+logincreds = PBB_login.WDLogin(<wikidatausername>, os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
 for metabolite in wp_metabolites:
