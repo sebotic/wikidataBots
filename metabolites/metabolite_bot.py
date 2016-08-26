@@ -64,6 +64,14 @@ def getMetabolitesFromWP():
         pc_reference = [refStatedIn, refPcId, refRetrieved]
         return pc_reference
 
+    ## Pubchem mappings
+    pbcreq = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=PREFIX+wdt%3A+%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fdirect%2F%3E%0D%0A%0D%0Aselect+distinct+%3Fmb+%3FpubchemCID+%3Fwikidata+where+%7B%0D%0A%0D%0A++SERVICE+%3Chttps%3A%2F%2Fquery.wikidata.org%2Fbigdata%2Fnamespace%2Fwdq%2Fsparql%3E+%7B%0D%0A++++%3Fwd_item+wdt%3AP662++%3Fwd_pubchem_cid+.%0D%0A%7D%0D%0A+++%3Fmb+a+wp%3AMetabolite+%3B%0D%0A+++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring%3B%0D%0A+++dcterms%3Aidentifier+%3FpubchemCID+%3B%0D%0A+++wp%3AbdbWikidata+%3Fwikidata+.%0D%0A+++FILTER+%28str%28%3FpubchemCID%29+%3D+str%28%3Fwd_pubchem_cid%29%29%0D%0A%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
+    pbres = pbcreq.json()
+    pubchem_mappings = dict()
+    for result in pbres["results"]["bindings"]:
+       pubchem_mappings[str(result["pubchemCID"])] = result["wikidata"]
+
+    pprint.pprint(pubchemMappings) 
 
     x = requests.get("http://sparql.wikipathways.org/?default-graph-uri=&query=SELECT+DISTINCT+%3Fmetabolite+%3Fmetabolite_label+%3Fidentifier+%3FidentifierUri+%28GROUP_CONCAT%28DISTINCT%28%3Fpathway%29%3B+separator%3D%22%2C+%22%29+as+%3Fpathways%29+WHERE+%7B%0D%0A%3Fmetabolite+a+wp%3AMetabolite+%3B%0D%0Ardfs%3Alabel+%3Fmetabolite_label+%3B%0D%0Adcterms%3Aidentifier+%3Fidentifier+%3B%0D%0A%09++++++dc%3Aidentifier+%3FidentifierUri+%3B%0D%0A%09++++++dc%3Asource+%22PubChem-compound%22%5E%5Exsd%3Astring+.%0D%0A%3Fmetabolite+dcterms%3AisPartOf+%3Fpathway+.%0D%0A%3Fpathway+a+wp%3APathway+%3B%0D%0Adc%3Aidentifier+%3Fwp_id+%3B%0D%0Awp%3AorganismName+%22Homo+sapiens%22%5E%5Exsd%3Astring+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on")
     res = x.json()
@@ -118,7 +126,7 @@ for metabolite in wp_metabolites:
     for key in prep.keys():
         for statement in prep[key]:
             data2add.append(statement)
-    wdPage = PBB_Core.WDItemEngine(item_name=metabolite["metabolite_label"], data=data2add, server="www.wikidata.org",
+    wdPage = PBB_Core.WDItemEngine("Q26690136", data=data2add, server="www.wikidata.org",
                                            domain="drugs")
     output = wdPage.get_wd_json_representation()
     pprint.pprint(output)
