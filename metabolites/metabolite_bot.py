@@ -166,7 +166,8 @@ wp_metabolites = getMetabolitesFromWP()
 pubchem_mappings = getPubchemMappings()
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
-    if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") in pubchem_mappings.keys():
+    #if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") in pubchem_mappings.keys():
+    if str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "") == "116545":
         prep = dict()
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
