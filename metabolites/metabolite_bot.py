@@ -112,7 +112,8 @@ logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataA
 wp_metabolites = getMetabolitesFromWP()
 pubchem_mappings = getPubchemMappings()
 for metabolite in wp_metabolites:
-    if str(metabolite["pubchem"]) in pubchem_mappings.keys():
+    print(str(metabolite["pubchem"]))
+    if str(metabolite["pubchem"].replace("http://identifiers.org/pubchem.compound/", "")) in pubchem_mappings.keys():
         pprint.pprint(metabolite)
         prep = dict()
         # instance of P31
