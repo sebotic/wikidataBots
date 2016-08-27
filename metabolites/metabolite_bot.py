@@ -3,6 +3,10 @@ __author__ = 'egonw' # 0000-0001-7542-0286
 # set the following two env variables (e.g. with EXPORT):
 #  wikidataUser -> user name
 #  wikidataApi  -> password
+#
+# Needs Python 2.6/7 (does not work with Python 3)
+#
+# python metabolite_bot.py
 
 import sys
 import os
