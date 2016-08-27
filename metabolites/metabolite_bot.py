@@ -172,7 +172,7 @@ for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
     #if cid in pubchem_mappings.keys():
-    if pccid == "116545":
+    if pccid == "3397":
         prep = dict()
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
