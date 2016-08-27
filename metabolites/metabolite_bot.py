@@ -41,6 +41,26 @@ def get_inchi_key(cid):
     result["smiles"]   = pccall["PropertyTable"]["Properties"][0]["CanonicalSMILES"]
     return result
 
+# inspired by ../compound/compound_protein_bot.pyt
+def get_identifier_wikidata_map(property):
+    sparql = """
+        SELECT ?wikidata ?extid WHERE {{
+            ?wikidata wdt:{} ?extid .
+        }}
+    """.format(property)
+
+    queryParams = {'query': sparql, 'format': 'json'}
+    httpHeaders = {'Accept': 'application/sparql-results+json'}
+    url = 'https://query.wikidata.org/sparql'
+
+    results = requests.get(url, params=queryParams, headers=httpHeaders).json()['results']['bindings']
+
+    identifier_wikidata_map = dict()
+    for mapping in results:
+        identifier_wikidata_map[mapping['extid']['value']] = mapping['wikidata']['value'].split('/')[-1]
+
+    return identifier_wikidata_map
+
 def getMetabolitesFromWP():
 
     # source ref to WikiPathways
@@ -172,11 +192,15 @@ logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataA
 wp_metabolites = getMetabolitesFromWP()
 pubchem_mappings = getPubChemMappings()
 pubchem_mappings["116545"] = "Q26690136" # manually added compound for initial testing
+pccid_mappings = get_identifier_wikidata_map("P662")
+inchikey_mappings = get_identifier_wikidata_map("P235")
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
     #if cid in pubchem_mappings.keys():
     if pccid == "3397":
+        if pccid in pccid_mappings:
+          print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
         prep = dict()
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
@@ -222,7 +246,10 @@ for metabolite in wp_metabolites:
           #]
 
         if (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
-          print("Found an InChIKey on PubChem: " + results["inchikey"])
+          inchikey = results["inchikey"]
+          print("Found an InChIKey on PubChem: " + inchikey)
+          if inchikey in inchikey_mappings:
+            print("Found the InChIKey in Wikidata: " + inchikey_mappings[inchikey]);
           data2add = []
           for key in prep.keys():
             for statement in prep[key]:
