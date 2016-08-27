@@ -186,39 +186,6 @@ for metabolite in wp_metabolites:
             qualifiers=[found_in_taxon_Qualifier]
           )
         ]
-        # PubChem ID (CID) P662
-        #prep[u"P662"] = [
-          #PBB_Core.WDExternalID(
-            #value=u''+pccid,
-            #prop_nr=u'P662',
-            #references=[copy.deepcopy(metabolite["wp_reference"])]
-          #)
-        #]
-        # get some more details from PubChem
-        # output Canonical SMILES P233
-        #if results["smiles"]:
-          #prep[u"P233"] = [
-            #PBB_Core.WDString(
-              #value=results["smiles"], prop_nr=u'P233',
-              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            #)
-          #]
-        # InChI P234
-        #if results["inchi"]:
-          #prep[u"P234"] = [
-            #PBB_Core.WDString(
-              #value=results["inchi"].replace("InChI=",""), prop_nr=u'P234',
-              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            #)
-          #]
-        # InChIKey P235
-        #if results["inchikey"]:
-          #prep[u"P235"] = [
-            #PBB_Core.WDString(
-              #value=results["inchikey"], prop_nr=u'P235',
-              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            #)
-          #]
 
         if (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
           inchikey = results["inchikey"]
