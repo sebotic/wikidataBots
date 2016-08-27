@@ -154,51 +154,17 @@ WHERE {
 
     return compounds
 
-mappingSparql = """
-PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-
-SELECT DISTINCT ?mb ?pubchemCID ?wikidata
-WHERE {
-
-  SERVICE <https://query.wikidata.org/bigdata/namespace/wdq/sparql> {
-    ?wd_item wdt:P662  ?wd_pubchem_cid .
-  }
-
-  ?mb a wp:Metabolite ;
-  dc:source "PubChem-compound"^^xsd:string;
-  dcterms:identifier ?pubchemCID ;
-  wp:bdbWikidata ?wikidata .
-  FILTER (str(?pubchemCID) = str(?wd_pubchem_cid))
-}
-    """
-
-def getPubChemMappings():
-        ## Pubchem mappings
-        pbcreq = requests.get(
-          "http://sparql.wikipathways.org/?default-graph-uri=&query=" +
-          urllib.quote(mappingSparql) +
-          "&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on"
-        )
-        pbres = pbcreq.json()
-        pubchem_mappings = dict()
-        for result in pbres["results"]["bindings"]:
-            pubchem_mappings[str(result["pubchemCID"]["value"])] = result["wikidata"]["value"].replace('http://www.wikidata.org/entity/', '')
-        pprint.pprint(pubchem_mappings)
-        return pubchem_mappings
-
 found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True, rank=u'normal')
 logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
-pubchem_mappings = getPubChemMappings()
-pubchem_mappings["116545"] = "Q26690136" # manually added compound for initial testing
 pccid_mappings = get_identifier_wikidata_map("P662")
 inchikey_mappings = get_identifier_wikidata_map("P235")
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
-    #if cid in pubchem_mappings.keys():
-    if pccid == "3397":
+    results = get_inchi_key(pccid)
+    if pccid == "116545":
         if pccid in pccid_mappings:
           print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
         prep = dict()
@@ -219,7 +185,6 @@ for metabolite in wp_metabolites:
           #)
         #]
         # get some more details from PubChem
-        results = get_inchi_key(pccid)
         # output Canonical SMILES P233
         #if results["smiles"]:
           #prep[u"P233"] = [
@@ -255,8 +220,8 @@ for metabolite in wp_metabolites:
             for statement in prep[key]:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
-            pubchem_mappings[pccid], data=data2add, server="www.wikidata.org",
-            #pubchem_mappings[pccid], server="www.wikidata.org",
+            inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
+            #inchikey_mappings[inchikey], server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
