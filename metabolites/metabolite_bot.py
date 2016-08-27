@@ -208,13 +208,13 @@ for metabolite in wp_metabolites:
             #)
           #]
         # InChIKey P235
-        if results["inchikey"]:
-          prep[u"P235"] = [
-            PBB_Core.WDString(
-              value=results["inchikey"], prop_nr=u'P235',
-              references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            )
-          ]
+        #if results["inchikey"]:
+          #prep[u"P235"] = [
+            #PBB_Core.WDString(
+              #value=results["inchikey"], prop_nr=u'P235',
+              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            #)
+          #]
 
         if (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
           print("Found an InChIKey on PubChem: " + results["inchikey"])
@@ -223,7 +223,8 @@ for metabolite in wp_metabolites:
             for statement in prep[key]:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
-            "Q26690136", data=data2add, server="www.wikidata.org",
+            pubchem_mappings[pccid], data=data2add, server="www.wikidata.org",
+            #pubchem_mappings[pccid], server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
