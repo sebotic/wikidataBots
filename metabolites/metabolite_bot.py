@@ -160,11 +160,16 @@ logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataA
 wp_metabolites = getMetabolitesFromWP()
 pccid_mappings = get_identifier_wikidata_map("P662")
 inchikey_mappings = get_identifier_wikidata_map("P235")
+itemsEdited = 0
+maxItems = 1
 for metabolite in wp_metabolites:
-    print(str(metabolite["pubchem"]))
-    pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
-    results = get_inchi_key(pccid)
-    if pccid == "7048686":
+    if itemsEdited >= maxItems:
+      print("Done after editing #items: " + str(itemsEdited))
+      sys.exit() # stop after one action, until the bot is approved, then 10, etc
+    else:
+      pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
+      print("considering: " + str(pccid))
+      results = get_inchi_key(pccid)
       inWikidata = False
       if pccid in pccid_mappings:
         print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
@@ -199,14 +204,14 @@ for metabolite in wp_metabolites:
             for statement in prep[key]:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
-            #inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
-            inchikey_mappings[inchikey], server="www.wikidata.org",
+            inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
+            #inchikey_mappings[inchikey], server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
           pprint.pprint(output)
           #wdPage.write(logincreds)
-          sys.exit() # stop after on action, until the bot is approved, then 10, etc
+          itemsEdited = itemsEdited + 1
       else:
         print("No Wikidata entry found for PubChem CID " + pccid + " (but creating one)")
         prep = dict()
@@ -264,6 +269,6 @@ for metabolite in wp_metabolites:
         wdPage.set_label(metabolite["metabolite_label"][0])
         wdPage.set_description("chemical compound found in a biologcal pathway")
         output = wdPage.get_wd_json_representation()
-        pprint.pprint(output)
+        #pprint.pprint(output)
         #wdPage.write(logincreds)
-        sys.exit() # stop after on action, until the bot is approved, then 10, etc
+        #itemsEdited = itemsEdited + 1
