@@ -177,7 +177,7 @@ for metabolite in wp_metabolites:
         # P31 = instance of P31, Q407595 = metabolite
         prep[u"P31"] = [
           PBB_Core.WDItemID(
-            value='Q407595', prop_nr=u'P31', rank=u'normal',
+            value='Q11173', prop_nr=u'P31', rank=u'normal',
             references=[copy.deepcopy(metabolite["wp_reference"])],
             qualifiers=[found_in_taxon_Qualifier]
           )
