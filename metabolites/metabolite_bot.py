@@ -171,14 +171,17 @@ for metabolite in wp_metabolites:
       print("considering: " + str(pccid))
       results = get_inchi_key(pccid)
       inWikidata = False
+      qid = ""
       if pccid in pccid_mappings:
-        print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
+        qid = pccid_mappings[pccid]
+        print("Found PubChem CID in Wikidata: " + qid);
         inWikidata = True
       elif (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
         inchikey = results["inchikey"]
         print("Found an InChIKey on PubChem: " + inchikey)
         if inchikey in inchikey_mappings:
-          print("Found the InChIKey in Wikidata: " + inchikey_mappings[inchikey]);
+          qid = inchikey_mappings[inchikey]
+          print("Found the InChIKey in Wikidata: " + qid);
           inWikidata = True
 
       if inWikidata:
@@ -204,8 +207,8 @@ for metabolite in wp_metabolites:
             for statement in prep[key]:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
-            inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
-            #inchikey_mappings[inchikey], server="www.wikidata.org",
+            qid, data=data2add, server="www.wikidata.org",
+            #qid, server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
