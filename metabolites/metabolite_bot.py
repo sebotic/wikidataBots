@@ -167,6 +167,7 @@ logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataA
 
 wp_metabolites = getMetabolitesFromWP()
 pubchem_mappings = getPubChemMappings()
+pubchem_mappings["116545"] = "Q26690136" # manually added compound for initial testing
 for metabolite in wp_metabolites:
     print(str(metabolite["pubchem"]))
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
@@ -231,4 +232,5 @@ for metabolite in wp_metabolites:
           pprint.pprint(output)
           #wdPage.write(logincreds)
           sys.exit()
-
+    else:
+      print("No Wikidata entry found for PubChem CID " + pccid)
