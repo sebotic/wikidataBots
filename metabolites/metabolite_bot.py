@@ -182,31 +182,31 @@ for metabolite in wp_metabolites:
           )
         ]
         # PubChem ID (CID) P662
-        prep[u"P662"] = [
-          PBB_Core.WDExternalID(
-            value=u''+pccid,
-            prop_nr=u'P662',
-            references=[copy.deepcopy(metabolite["wp_reference"])]
-          )
-        ]
+        #prep[u"P662"] = [
+          #PBB_Core.WDExternalID(
+            #value=u''+pccid,
+            #prop_nr=u'P662',
+            #references=[copy.deepcopy(metabolite["wp_reference"])]
+          #)
+        #]
         # get some more details from PubChem
         results = get_inchi_key(pccid)
         # output Canonical SMILES P233
-        if results["smiles"]:
-          prep[u"P233"] = [
-            PBB_Core.WDString(
-              value=results["smiles"], prop_nr=u'P233',
-              references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            )
-          ]
+        #if results["smiles"]:
+          #prep[u"P233"] = [
+            #PBB_Core.WDString(
+              #value=results["smiles"], prop_nr=u'P233',
+              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            #)
+          #]
         # InChI P234
-        if results["inchi"]:
-          prep[u"P234"] = [
-            PBB_Core.WDString(
-              value=results["inchi"].replace("InChI=",""), prop_nr=u'P234',
-              references=[copy.deepcopy(metabolite["pubchem_reference"])]
-            )
-          ]
+        #if results["inchi"]:
+          #prep[u"P234"] = [
+            #PBB_Core.WDString(
+              #value=results["inchi"].replace("InChI=",""), prop_nr=u'P234',
+              #references=[copy.deepcopy(metabolite["pubchem_reference"])]
+            #)
+          #]
         # InChIKey P235
         if results["inchikey"]:
           prep[u"P235"] = [
@@ -216,16 +216,18 @@ for metabolite in wp_metabolites:
             )
           ]
 
-        data2add = []
-        for key in prep.keys():
+        if (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
+          print("Found an InChIKey on PubChem: " + results["inchikey"])
+          data2add = []
+          for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
-        wdPage = PBB_Core.WDItemEngine(
+          wdPage = PBB_Core.WDItemEngine(
             "Q26690136", data=data2add, server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
-        )
-        output = wdPage.get_wd_json_representation()
-        pprint.pprint(output)
-        #wdPage.write(logincreds)
-        sys.exit()
+          )
+          output = wdPage.get_wd_json_representation()
+          pprint.pprint(output)
+          #wdPage.write(logincreds)
+          sys.exit()
 
