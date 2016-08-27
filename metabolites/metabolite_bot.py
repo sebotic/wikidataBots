@@ -165,10 +165,20 @@ for metabolite in wp_metabolites:
     pccid = str(metabolite["pubchem"][0]).replace("http://identifiers.org/pubchem.compound/", "")
     results = get_inchi_key(pccid)
     if pccid == "116545":
-        if pccid in pccid_mappings:
-          print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
+      inWikidata = False
+      if pccid in pccid_mappings:
+        print("Found PubChem CID in Wikidata: " + pccid_mappings[pccid]);
+        inWikidata = True
+      elif (results["inchikey"]): # only proceed if we have an InChIKey from PubChem
+        inchikey = results["inchikey"]
+        print("Found an InChIKey on PubChem: " + inchikey)
+        if inchikey in inchikey_mappings:
+          print("Found the InChIKey in Wikidata: " + inchikey_mappings[inchikey]);
+          inWikidata = True
+
+      if inWikidata:
         prep = dict()
-        # P31 = instance of P31, Q407595 = metabolite
+        # P31 = instance of P31, Q407595 = metabolite, Q11173 = chemical compound
         prep[u"P31"] = [
           PBB_Core.WDItemID(
             value='Q11173', prop_nr=u'P31', rank=u'normal',
@@ -215,18 +225,20 @@ for metabolite in wp_metabolites:
           print("Found an InChIKey on PubChem: " + inchikey)
           if inchikey in inchikey_mappings:
             print("Found the InChIKey in Wikidata: " + inchikey_mappings[inchikey]);
+
+          # now do the workload
           data2add = []
           for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
-            inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
-            #inchikey_mappings[inchikey], server="www.wikidata.org",
+            #inchikey_mappings[inchikey], data=data2add, server="www.wikidata.org",
+            inchikey_mappings[inchikey], server="www.wikidata.org",
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
           pprint.pprint(output)
           #wdPage.write(logincreds)
-          sys.exit()
-    else:
-      print("No Wikidata entry found for PubChem CID " + pccid)
+          sys.exit() # stop after on action, until the bot is approved, then 10, etc
+      else:
+        print("No Wikidata entry found for PubChem CID " + pccid)
