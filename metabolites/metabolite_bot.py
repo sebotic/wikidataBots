@@ -277,6 +277,6 @@ for metabolite in wp_metabolites:
         wdPage.set_label(metabolite["metabolite_label"][0])
         wdPage.set_description("chemical compound found in a biologcal pathway")
         output = wdPage.get_wd_json_representation()
-        #pprint.pprint(output)
+        pprint.pprint(output)
         #wdPage.write(logincreds)
-        #itemsEdited = itemsEdited + 1
+        itemsEdited = itemsEdited + 1
