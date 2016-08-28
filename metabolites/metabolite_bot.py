@@ -154,7 +154,6 @@ WHERE {
 
     return compounds
 
-found_in_taxon_Qualifier = PBB_Core.WDItemID(value='Q15978631', prop_nr='P703', is_qualifier=True, rank=u'normal')
 logincreds = PBB_login.WDLogin(os.environ['wikidataUser'], os.environ['wikidataApi'])
 
 wp_metabolites = getMetabolitesFromWP()
@@ -186,12 +185,11 @@ for metabolite in wp_metabolites:
 
       if inWikidata:
         prep = dict()
-        # P31 = instance of P31, Q407595 = metabolite, Q11173 = chemical compound
-        prep[u"P31"] = [
+        # P703 = found in taxon, Q15978631 = Homo sapiens
+        prep[u"P703"] = [
           PBB_Core.WDItemID(
-            value='Q11173', prop_nr=u'P31', rank=u'normal',
-            references=[copy.deepcopy(metabolite["wp_reference"])],
-            qualifiers=[found_in_taxon_Qualifier]
+            value='Q15978631', prop_nr=u'P703', rank=u'normal',
+            references=[copy.deepcopy(metabolite["wp_reference"])]
           )
         ]
 
@@ -222,8 +220,14 @@ for metabolite in wp_metabolites:
         prep[u"P31"] = [
           PBB_Core.WDItemID(
             value='Q11173', prop_nr=u'P31', rank=u'normal',
-            references=[copy.deepcopy(metabolite["wp_reference"])],
-            qualifiers=[found_in_taxon_Qualifier]
+            references=[copy.deepcopy(metabolite["wp_reference"])]
+          )
+        ]
+        # P703 = found in taxon, Q15978631 = Homo sapiens
+        prep[u"P703"] = [
+          PBB_Core.WDItemID(
+            value='Q15978631', prop_nr=u'P703', rank=u'normal',
+            references=[copy.deepcopy(metabolite["wp_reference"])]
           )
         ]
         # PubChem ID (CID) P662
