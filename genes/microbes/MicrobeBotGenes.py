@@ -7,6 +7,7 @@ import time
 
 __author__ = 'timputman'
 
+
 def wd_item_construction(gene_record, spec_strain, login):
     """
     generate pbb_core item object based on resources pandas dataframe for each gene

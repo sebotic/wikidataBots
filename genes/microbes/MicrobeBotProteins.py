@@ -11,8 +11,6 @@ import time
 __author__ = 'timputman'
 
 
-
-
 def wd_item_construction(gene_record, spec_strain, login):
     """
     identifies and modifies or writes new wd items for proteins
@@ -70,19 +68,20 @@ def wd_item_construction(gene_record, spec_strain, login):
         WD_Item_CLAIMS = {'P703': [spec_strain.iloc[0]['wd_qid']],  # get strain taxid qid from strain record
                           'P279': ['Q8054'],  # subclass of protein
                           }
-
         statements = []
         #generate go term claims
         for gt in gene_record['GOTERMS']:
             goprop = go_props[gt[1]]
             govalue = wdo.WDSparqlQueries(prop='P686', string=gt[0]).wd_prop2qid() #  Get GeneOntology Item by GO ID
             evprop = 'P459'
+
             try:
-                evvalue = go_evidence_codes[gt[2]]
+                evvalue = go_evidence_codes[gt[3]]
                 evstat = PBB_Core.WDItemID(value=evvalue, prop_nr=evprop, is_qualifier=True)
                 statements.append(PBB_Core.WDItemID(value=govalue, prop_nr=goprop, references=[uniprot_ref], qualifiers=[evstat]))
             except Exception as e:
                 statements.append(PBB_Core.WDItemID(value=govalue, prop_nr=goprop, references=[uniprot_ref]))
+
 
 
         # generate list of pbb core value objects for all valid claims
@@ -141,6 +140,4 @@ def wd_item_construction(gene_record, spec_strain, login):
     print('Time elapsed:', end - start)
 
     return protein_item_statements()
-
-
 
