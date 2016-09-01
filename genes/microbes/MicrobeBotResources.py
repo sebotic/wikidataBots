@@ -4,33 +4,39 @@ import pandas as pd
 import MicrobeBotWDFunctions as wdo
 import pprint
 import time
+
 __author__ = 'timputman'
 
 
-
-
-
-def get_ref_microbe_taxids():
+def get_ref_microbe_taxids(run_type):
     """
     Download the latest bacterial genome assembly summary from the NCBI genome ftp site
     and generate a pd.DataFrame of relevant data for strain items based on taxids of the bacterial reference genomes.
     :return: pandas dataframe of bacteria reference genome data
     """
-    assembly = urllib.request.urlretrieve("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
-
     columns = ['assembly_accession', 'bioproject', 'biosample', 'wgs_master', 'refseq_category', 'taxid',
                'species_taxid', 'organism_name', 'infraspecific_name', 'isolate', 'version_status', 'assembly_level',
                'release_type', 'genome_rep', 'seq_rel_date', 'asm_name', 'submitter', 'gbrs_paired_asm',
                'paired_asm_comp', 'ftp_path', 'excluded_from_refseq']
 
-    data = pd.read_csv(assembly[0], sep="\t", dtype=object, skiprows=2, names=columns)
-    data = data[data['refseq_category'] == 'reference genome']
+    if run_type == 'full':  # if command line argument calls for full run, make request to NCBI ftp site and do full reference genome load
+        assembly = urllib.request.urlretrieve("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt")
+        data = pd.read_csv(assembly[0], sep="\t", dtype=object, skiprows=2, names=columns)
+        data = data[data['refseq_category'] == 'reference genome']
 
-    def sparql_qid(taxid):
-        qidobj = wdo.WDSparqlQueries(string=taxid, prop='P685')
-        return qidobj.wd_prop2qid()
-    data['wd_qid'] = data['taxid'].apply(sparql_qid)
-    return data
+        def sparql_qid(taxid):
+            qidobj = wdo.WDSparqlQueries(string=taxid, prop='P685')
+            return qidobj.wd_prop2qid()
+
+        data['wd_qid'] = data['taxid'].apply(sparql_qid)
+        data.to_csv('reference_genomes.csv', sep="\t")
+        return data
+    else:  # use predownloaded and parsed flatfile
+        # columns.insert(0, 'index')
+        columns.append('wd_qid')
+        data = pd.read_csv("/Users/timputman/wikidata_bot_code/reference_genomes.csv", sep="\t", dtype=object,
+                           skiprows=2, names=columns)
+        return data
 
 
 def mgi_qg_resources(taxid):
@@ -39,6 +45,7 @@ def mgi_qg_resources(taxid):
     :param taxid:
     :return: dictionary with mgi data and updated with (goid, aspect, evidence)
     """
+
     def quick_go_query():
         """
         request to quick go REST API for all gene ontology term records for a given taxid
@@ -48,7 +55,8 @@ def mgi_qg_resources(taxid):
         url = 'https://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&tax={}'.format(taxid)
         data = urllib.request.urlretrieve(url)
         df = pd.read_csv(data[0], sep="\t")
-        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect', 'With'], aggfunc=lambda x: list(x))
+        df_joined = pd.pivot_table(df, index=['ID'], values=['GO ID', 'Evidence', 'Aspect', 'With', 'Source',
+                                                             'Reference'], aggfunc=lambda x: list(x))
         goterms = {}
         for index, row in df_joined.iterrows():
             ecnumber = df_joined.loc[index]['With']
@@ -61,7 +69,9 @@ def mgi_qg_resources(taxid):
             goterms[index] = set(list(zip(df_joined.loc[index]['GO ID'],
                                           df_joined.loc[index]['Aspect'],
                                           ec2,
-                                          df_joined.loc[index]['Evidence'])))
+                                          df_joined.loc[index]['Evidence'],
+                                          df_joined.loc[index]['Reference'],
+                                          df_joined.loc[index]['Source'])))
 
         return goterms
 
@@ -93,5 +103,3 @@ def mgi_qg_resources(taxid):
         all_list.append(i)
 
     return all_list
-
-
