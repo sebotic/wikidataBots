@@ -262,7 +262,7 @@ class ProteinBot(object):
 
         # remove all Wikidata properties where no data has been provided, but are handled by the bot
         all_stmnt_props = list(map(lambda x: x.get_prop_nr(), self.statements))
-        for pr in ['P680', 'P681', 'P682', 'P705', 'P637', 'P638', 'P692', 'P702']:
+        for pr in ['P680', 'P681', 'P682', 'P705', 'P637', 'P638', 'P692', 'P702', 'P591']:
             if pr not in all_stmnt_props:
                 self.statements.append(PBB_Core.WDBaseDataType.delete_statement(prop_nr=pr))
 
