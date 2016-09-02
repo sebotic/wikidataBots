@@ -9,15 +9,15 @@ block header
       } );
 
     script(type='text/javascript').
-      google.charts.load('current', {packages: ['corechart', 'line', 'table']});
-      google.charts.setOnLoadCallback(gene_drawCrosshairs);
-      function gene_drawCrosshairs() {
-        var data = new google.visualization.DataTable();
-        data.addColumn('date', 'Date');
-        {% autoescape off %}
-        #{mammal_clegend}
-        {% endautoescape %} 
-        data.addRows([#{mammal_cdata}]);
+      google.charts.load('current', {packages: ['corechart', 'line', 'table', 'bar']});
+      //google.charts.setOnLoadCallback(gene_drawCrosshairs);
+      //function gene_drawCrosshairs() {
+        //var data = new google.visualization.DataTable();
+        //data.addColumn('date', 'Date');
+        //{% autoescape off %}
+        //# //{mammal_clegend}
+        //{% endautoescape %} 
+        //data.addRows([# //{mammal_cdata}]);
         //data.addColumn('number', 'Human');   //for testing
         //data.addColumn('number', 'Mouse');   //for testing
         //data.addColumn('number', 'Rat');     //for testing
@@ -25,53 +25,105 @@ block header
         //data.addRows([#{cdata}]);              //for testing
 
 
+        //var options = {
+          //width: 600,
+          //height: 300,
+          //title: 'Mammalian Genes in Wikidata per Species',
+          //hAxis: {title: 'Query Date'},
+          //vAxis: {title: 'Number of Genes'},
+          //crosshair: {color: '#000',trigger: 'selection'},
+          //chartArea: {  width: "50%", height: "70%" }
+        //};
+
+        //var chart = new 
+        //google.visualization.LineChart(document.getElementById('none_div'));
+
+        //chart.draw(data, options);
+        //chart.setSelection([{row: 38,column: 1}]);
+      //}
+      
+      google.charts.setOnLoadCallback(mammal_drawStacked);
+
+      function mammal_drawStacked() {
+        //var data = google.visualization.arrayToDataTable([
+          //['Species', 'Southern_pig-tailed_macaque', 'brown_rat', 'house_mouse', 'human'],
+          //[new Date(2016, 07, 03), 36974, 42079, 73450, 60060],
+          //[new Date(2016, 07, 16), 36974, 42074, 73450, 63608],
+          //[new Date(2016, 07, 23), 36962, 42074, 73450, 63608],
+          //[new Date(2016, 07, 27), 36974, 42074, 73450, 63607],
+        //]);
+        var data = google.visualization.arrayToDataTable([ 
+          {% autoescape off %}
+          #{mammal_clegend} 
+          #{mammal_cdata} 
+          {% endautoescape %}
+        ]);
+
         var options = {
+          title: 'Mammalian Genes in Wikidata per Species',
           width: 600,
           height: 300,
-          title: 'Mammalian Genes in Wikidata per Species',
-          hAxis: {title: 'Query Date'},
-          vAxis: {title: 'Number of Genes'},
-          crosshair: {color: '#000',trigger: 'selection'},
-          chartArea: {  width: "50%", height: "70%" }
+          legend: { position: 'top', maxLines: 2 },
+          bar: { groupWidth: '75%' },
+          isStacked: true
         };
-
-        var chart = new 
-        google.visualization.LineChart(document.getElementById('gene_div'));
-
+        var chart = new google.visualization.BarChart(document.getElementById('gene_div'));
         chart.draw(data, options);
-        chart.setSelection([{row: 38,column: 1}]);
       }
 
-      google.charts.setOnLoadCallback(microbe_drawCrosshairs);
-      function microbe_drawCrosshairs() {
-        var data = new google.visualization.DataTable();
-        data.addColumn('date', 'Date');
-        {% autoescape off %}
-        #{microbe_clegend} 
-        {% endautoescape %}
-        data.addRows([#{microbe_cdata}]);
+      google.charts.setOnLoadCallback(microbe_drawStacked);
+
+      function microbe_drawStacked() {
+        var data = google.visualization.arrayToDataTable([
+          {% autoescape off %}
+          #{microbe_clegend}
+          #{microbe_cdata}
+          {% endautoescape %}
+        ]);
+
+        var options = {
+          title: 'Microbial Genes in Wikidata per Species',
+          width: 600,
+          height: 300,
+          legend: { position: 'top', maxLines: 2 },
+          bar: { groupWidth: '75%' },
+          isStacked: true
+        };
+        var chart = new google.visualization.BarChart(document.getElementById('microbe_div'));
+        chart.draw(data, options);
+      }
+
+
+      //google.charts.setOnLoadCallback(microbe_drawCrosshairs);
+      //function microbe_drawCrosshairs() {
+        //var data = new google.visualization.DataTable();
+        //data.addColumn('date', 'Date');
+        //{% autoescape off %}
+        //#//{microbe_clegend} 
+        //{% endautoescape %}
+        //data.addRows([# //{microbe_cdata}]);
         //data.addColumn('number', 'Enterobacter');   //for testing
         //data.addColumn('number', 'pertussis');   //for testing
         //data.addColumn('number', 'Yersinia pestis');     //for testing
         //data.addColumn('number', 'Salmonella enterica'); //for testing
         //data.addRows([#{cdata}]);              //for testing
 
-        var options = {
-          width: 600, 
-          height: 300,
-          title: 'Microbial Genes in Wikidata per Species',
-          hAxis: {title: 'Query Date'}, 
-          vAxis: {title: 'Number of Genes'},
-          crosshair: {color: '#000',trigger: 'selection'},
-          chartArea: {  width: "50%", height: "70%" }
-        };
+        //var options = {
+          //width: 600, 
+          //height: 300,
+          //title: 'Microbial Genes in Wikidata per Species',
+          //hAxis: {title: 'Query Date'}, 
+          //vAxis: {title: 'Number of Genes'},
+          //crosshair: {color: '#000',trigger: 'selection'},
+          //chartArea: {  width: "50%", height: "70%" }
+        //};
 
-        var chart = new
-        google.visualization.LineChart(document.getElementById('microbe_div'));
+        //var chart = new
+        //google.visualization.LineChart(document.getElementById('microbe_div'));
 
-        chart.draw(data, options);
-        chart.setSelection([{row: 38,column: 1}]);
-      }
+        //chart.draw(data, options);
+        //chart.setSelection([{row: 38,column: 1}]);
+      //}
       
       google.charts.setOnLoadCallback(protein_drawCrosshairs);
       function protein_drawCrosshairs() {
@@ -174,7 +226,40 @@ block header
 
         table.draw(data, {showRowNumber: true, width: '50%', height: '50%'});
       }
-     
+
+      google.charts.setOnLoadCallback(drawBasic);
+
+      function drawBasic() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['Event', '8-16-2016', '8-24-2016'],
+          ['insertions', 500, 200],
+          ['deletions', 100, 30],
+          ['updates', 2000, 10000],
+        ]);
+
+        var options = {
+          width: 600,
+          height: 300,
+          chart: {
+            title: 'Wikidata Events Log',
+          },
+          hAxis: {
+            title: 'number items',
+            minValue: 0,
+          },
+          bars: 'horizontal',
+          axes: {
+            y: {
+              0: {side: 'right'}
+            }
+          }
+        };
+
+        var chart = new google.visualization.BarChart(document.getElementById('jbar_div'));
+
+        chart.draw(data, options);
+      } 
 
 block content
    #tabs
@@ -189,6 +274,7 @@ block content
            #graph_container
               #row
                   #gene_div
+                      p Gene Chart
                   #microbe_div
                       p Microbe Chart
               #row
@@ -216,6 +302,10 @@ block content
                   li
                      a(href='https://www.wikidata.org/wiki/Wikidata:WikiProject_Molecular_biology') WikiProject Molecular biology
        #tabs-2
-           p Jenkins Errors
+           #jbar_div
+               p Changes Barchart
+           #jpie_div
+           #jtable_div
        #tabs-3
-           p Curation Errors
+           #ctable_div
+           #cpie_div
