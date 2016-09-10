@@ -5,6 +5,12 @@ __author__ = 'egonw' # 0000-0001-7542-0286
 #  wikidataApi     -> password
 #  wikidataForReal -> true
 #
+# The third option allows you to inspect the JSON changes going to be made:
+#
+#  wikidataForReal=false python metabolite_bot.py > output1.json ; \
+#    wikidataForReal=true python metabolite_bot.py > output2.json ; \
+#    diff -uw output1.json output2.json > diff.json
+#
 # Needs Python 2.6/7 (does not work with Python 3)
 #
 # python metabolite_bot.py
