@@ -211,10 +211,13 @@ for metabolite in wp_metabolites:
           for key in prep.keys():
             for statement in prep[key]:
                 data2add.append(statement)
+          reallyAddData = os.environ['wikidataForReal'] == "true";
           wdPage = PBB_Core.WDItemEngine(
             qid, server="www.wikidata.org",
-            data=([],data2add)[os.environ['wikidataForReal'] == "true"],
-            domain="drugs", append_value=['P31','P233','P234','P235']
+            data=([],data2add)[reallyAddData],
+            domain="drugs",
+            fast_run=reallyAddData, fast_run_base_filter =
+              {u'P703': u'Q15978631', u'P813': '', u'P854': ''}
           )
           output = wdPage.get_wd_json_representation()
           pprint.pprint(output)
