@@ -79,7 +79,7 @@ def getMetabolitesFromWP():
         # P854 = reference URL
         refURL = PBB_Core.WDUrl(value=u"http://identifiers.org/wikipathways/" + str(wpurl), prop_nr=u'P854', is_reference=True)
         refURL.overwrite_references = True
-        wp_reference = [refStatedIn, refRetrieved, refWpId, refURL]
+        wp_reference = [refStatedIn, refWpId, refRetrieved, refURL]
         return wp_reference
 
     # source ref to PubChem
