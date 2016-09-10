@@ -1,8 +1,9 @@
 __author__ = 'egonw' # 0000-0001-7542-0286
 
 # set the following two env variables (e.g. with EXPORT):
-#  wikidataUser -> user name
-#  wikidataApi  -> password
+#  wikidataUser    -> user name
+#  wikidataApi     -> password
+#  wikidataForReal -> true
 #
 # Needs Python 2.6/7 (does not work with Python 3)
 #
@@ -206,7 +207,7 @@ for metabolite in wp_metabolites:
                 data2add.append(statement)
           wdPage = PBB_Core.WDItemEngine(
             qid, server="www.wikidata.org",
-            data=data2add,
+            data=([],data2add)[os.environ['wikidataForReal'] == "true"],
             domain="drugs", append_value=['P31','P233','P234','P235']
           )
           output = wdPage.get_wd_json_representation()
@@ -271,7 +272,7 @@ for metabolite in wp_metabolites:
               data2add.append(statement)
         wdPage = PBB_Core.WDItemEngine(
           item_name=metabolite["metabolite_label"][0], server="www.wikidata.org",
-          data=data2add,
+          data=([],data2add)[os.environ['wikidataForReal'] == "true"],
           domain="drugs"
         )
         wdPage.set_label(metabolite["metabolite_label"][0])
