@@ -6,6 +6,9 @@ __licence__ = 'AGPLv3'
 
 
 domain_incompatibilities = {
+    'metabolites': [
+
+    ],
     'drugs': [
 
     ],
@@ -25,6 +28,9 @@ domain_incompatibilities = {
 
 # a collection of values for the property 'subclass of' (P279) which are valid for a certain domain.
 valid_instances = {
+    'metabolites': [
+        'Q11173',  # chemical compound (only one single, pure chemical compound)
+    ],
     'drugs': [
         'Q11173',  # chemical compound (only one single, pure chemical compound)
         'Q79529',  # chemical substance (several defined chemical compounds)
@@ -87,7 +93,7 @@ wd_properties = {
     'P231': {
         'datatype': 'string',
         'name': 'CAS registry number',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'False'
     },
     'P486': {
@@ -105,13 +111,13 @@ wd_properties = {
     'P662': {
         'datatype': 'string',
         'name': 'PubChem ID (CID)',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P661': {
         'datatype': 'string',
         'name': 'ChemSpider ID',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P652': {
@@ -123,49 +129,49 @@ wd_properties = {
     'P665': {
         'datatype': 'string',
         'name': 'KEGG ID',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P683': {
         'datatype': 'string',
         'name': 'ChEBI ID',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P274': {
         'datatype': 'string',
         'name': 'chemical formula',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'False'
     },
     'P592': {
         'datatype': 'string',
         'name': 'ChEMBL ID',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P233': {
         'datatype': 'string',
         'name': 'SMILES',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'False'
     },
     'P2017': {
         'datatype': 'string',
         'name': 'Isomeric SMILES',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'False'
     },
     'P234': {
         'datatype': 'string',
         'name': 'InChI',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P235': {
         'datatype': 'string',
         'name': 'InChIKey',
-        'domain': ['drugs'],
+        'domain': ['drugs','metabolites'],
         'core_id': 'True'
     },
     'P1805': {
@@ -243,7 +249,7 @@ wd_properties = {
     'P703': {
         'datatype': 'item',
         'name': 'found in taxon',
-        'domain': ['genes'],
+        'domain': ['genes','metabolites'],
         'core_id': 'False'
     },
     'P594': {
